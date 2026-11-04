@@ -148,6 +148,7 @@ structure SiftUpOK (s : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.n)
   ok : HeapOKExcept (fun i => st.va "hd" i) (st.w "h") (par ii) ii
   origOK : HeapOKExcept origHd (st.w "h") (par ii₀) ii₀
   leaf0 : 2 * ii₀ + 1 ≥ st.w "h"
+  hiir : ii < st.w "h"
 
 /-- `par` is strictly decreasing away from 0. -/
 theorem par_lt (i : ℕ) (hi : 0 < i) : par i < i := by
@@ -227,7 +228,8 @@ theorem SiftUpOK.swap {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origH
     subst hzi
     have hleaf := K.leaf0
     rcases hjr with hr | hr <;> omega
-  refine ⟨hsoft, hhole, ?_, ?_, ?_, (by rw [hh]; exact K.origOK), (by rw [hh]; exact K.leaf0)⟩
+  refine ⟨hsoft, hhole, ?_, ?_, ?_, (by rw [hh]; exact K.origOK), (by rw [hh]; exact K.leaf0),
+    (by omega)⟩
   · -- xle at the new hole: children of `par ii`
     intro j hj hjr
     by_cases hjii : j = ii
