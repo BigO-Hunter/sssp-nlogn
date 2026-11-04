@@ -845,4 +845,86 @@ theorem pushBody_runs {st : State ℝ≥0}
     rw [hc5] at hcost
     omega
 
+/-! ## `siftDown`: bubble-down machinery -/
+
+/-- Min-child selection of one sift-down step (right child preferred on ties,
+matching `siftDownStep`). -/
+noncomputable def mchOf (origHd : ℕ → ℝ≥0) (h i : ℕ) : ℕ :=
+  if 2 * i + 2 < h then (if origHd (2 * i + 2) ≤ origHd (2 * i + 1) then 2 * i + 2 else 2 * i + 1)
+  else 2 * i + 1
+
+theorem mchOf_child (origHd : ℕ → ℝ≥0) (h i : ℕ) :
+    mchOf origHd h i = 2 * i + 1 ∨ mchOf origHd h i = 2 * i + 2 := by
+  simp only [mchOf]; split_ifs <;> omega
+
+theorem mchOf_gt (origHd : ℕ → ℝ≥0) (h i : ℕ) : i < mchOf origHd h i := by
+  have := mchOf_child origHd h i; omega
+
+theorem mchOf_inj (origHd : ℕ → ℝ≥0) (h : ℕ) {i j : ℕ}
+    (heq : mchOf origHd h i = mchOf origHd h j) : i = j := by
+  have a := mchOf_child origHd h i
+  have b := mchOf_child origHd h j
+  omega
+
+/-- Reachability along a successor function. -/
+def sreach (f : ℕ → ℕ) (a b : ℕ) : Prop := ∃ t, f^[t] a = b
+
+theorem sreach_self (f : ℕ → ℕ) (a : ℕ) : sreach f a a := ⟨0, rfl⟩
+
+theorem sreach_trans {f : ℕ → ℕ} {a b c : ℕ} (h1 : sreach f a b) (h2 : sreach f b c) :
+    sreach f a c := by
+  obtain ⟨t1, ht1⟩ := h1
+  obtain ⟨t2, ht2⟩ := h2
+  refine ⟨t2 + t1, ?_⟩
+  rw [Function.iterate_add_apply, ht1, ht2]
+
+theorem sreach_succ_iff {f : ℕ → ℕ} (hinj : Function.Injective f) {a b : ℕ} :
+    sreach f a (f b) ↔ a = f b ∨ sreach f a b := by
+  constructor
+  · rintro ⟨t, ht⟩
+    rcases t with _ | t
+    · exact Or.inl ht
+    · simp only [Function.iterate_succ_apply'] at ht
+      exact Or.inr ⟨t, hinj ht⟩
+  · rintro (h | ⟨t, ht⟩)
+    · exact ⟨0, h⟩
+    · exact ⟨t + 1, by simp only [Function.iterate_succ_apply', ht]⟩
+
+/-- Heap order on every edge except those out of position `a`. -/
+def HeapOKExceptFrom (hd : ℕ → ℝ≥0) (h a : ℕ) : Prop :=
+  ∀ i j, i < h → j < h → (j = 2 * i + 1 ∨ j = 2 * i + 2) → i ≠ a → hd i ≤ hd j
+
+theorem HeapOKExceptFrom.toHeapOK {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} {h a : ℕ}
+    (H : HeapOKExceptFrom hd h a)
+    (hchild : ∀ j, j < h → (j = 2 * a + 1 ∨ j = 2 * a + 2) → hd a ≤ hd j) :
+    HeapOK hv hd h := by
+  intro i hi j hj hjr
+  by_cases hia : i = a
+  · subst hia; exact hchild j hj hjr
+  · exact H i j hi hj hjr hia
+
+/-- The sift-down state: hole at `ii`, pairs are originals shifted along the
+min-child path (risen pairs), heap order holds except the edges out of the hole. -/
+structure SiftDownOK (s : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
+    (x : Fin G.n) (xk : ℝ≥0) (ii : ℕ) : Prop where
+  soft : SoftInv s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+      (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins")
+  hole : hvD s st ii = x ∧ st.va "hd" ii = xk
+  pairsV : ∀ i, i < st.w "h" →
+      (i = ii ∧ hvD s st i = x) ∨
+      (i ≠ ii ∧ sreach (mchOf origHd (st.w "h")) i ii ∧ sreach (mchOf origHd (st.w "h")) 0 i ∧
+        hvD s st i = origHv (mchOf origHd (st.w "h") i)) ∨
+      (¬ (sreach (mchOf origHd (st.w "h")) i ii ∧ sreach (mchOf origHd (st.w "h")) 0 i) ∧
+        hvD s st i = origHv i)
+  pairsK : ∀ i, i < st.w "h" →
+      (i = ii ∧ st.va "hd" i = xk) ∨
+      (i ≠ ii ∧ sreach (mchOf origHd (st.w "h")) i ii ∧ sreach (mchOf origHd (st.w "h")) 0 i ∧
+        st.va "hd" i = origHd (mchOf origHd (st.w "h") i)) ∨
+      (¬ (sreach (mchOf origHd (st.w "h")) i ii ∧ sreach (mchOf origHd (st.w "h")) 0 i) ∧
+        st.va "hd" i = origHd i)
+  ok : HeapOKExceptFrom (fun i => st.va "hd" i) (st.w "h") ii
+  origOK : HeapOKExceptFrom origHd (st.w "h") 0
+  pre0 : sreach (mchOf origHd (st.w "h")) 0 ii
+  hiir : ii < st.w "h"
+
 end Submission.DijkstraHeap
