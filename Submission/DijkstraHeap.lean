@@ -110,6 +110,79 @@ theorem SoftInv.swap {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n → �
           by rw [if_neg hja, if_neg hjb]
         rw [heqd j, e2]; exact hjd
 
+/-- The entry fields of `SoftInv` — the only fields heap-entry transpositions touch.
+Frame fields (`ghost`, `relax_hold`, `source0`, `done_reach`) ride alongside unchanged,
+so sift/sweep code can transport entry state without the full `SoftInv`. -/
+structure EntrySoft (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
+    (reachA doneA : Fin G.n → ℕ) (hv : ℕ → Fin G.n) (hd : ℕ → ℝ≥0) (h ins : ℕ) : Prop where
+  entry_cur : ∀ v, reachA v ≠ 0 → doneA v = 0 → ∃ i, i < h ∧ hv i = v ∧ hd i = distA v
+  entry_mono : ∀ i, i < h → distA (hv i) ≤ hd i
+  entry_reach : ∀ i, i < h → reachA (hv i) ≠ 0
+
+theorem EntrySoft.swap {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n → ℕ}
+    {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} {h ins : ℕ}
+    (S : EntrySoft s distA reachA doneA hv hd h ins) {a b : ℕ}
+    (hab : a ≠ b) (ha : a < h) (hb : b < h) {hv' : ℕ → Fin G.n} {hd' : ℕ → ℝ≥0}
+    (heqv : ∀ i, hv' i = if i = a then hv b else if i = b then hv a else hv i)
+    (heqd : ∀ i, hd' i = if i = a then hd b else if i = b then hd a else hd i) :
+    EntrySoft s distA reachA doneA hv' hd' h ins := by
+  have hmono : ∀ i, i < h → distA (hv' i) ≤ hd' i := by
+    intro i hi
+    have hvi : hv' i = if i = a then hv b else if i = b then hv a else hv i := heqv i
+    have hdi : hd' i = if i = a then hd b else if i = b then hd a else hd i := heqd i
+    by_cases hia : i = a
+    · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv b := if_pos hia
+      have e2 : (if i = a then hd b else if i = b then hd a else hd i) = hd b := if_pos hia
+      rw [hvi, hdi, e1, e2]; exact S.entry_mono b hb
+    · by_cases hib : i = b
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv a :=
+          by rw [if_neg hia, if_pos hib]
+        have e2 : (if i = a then hd b else if i = b then hd a else hd i) = hd a :=
+          by rw [if_neg hia, if_pos hib]
+        rw [hvi, hdi, e1, e2]; exact S.entry_mono a ha
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv i :=
+          by rw [if_neg hia, if_neg hib]
+        have e2 : (if i = a then hd b else if i = b then hd a else hd i) = hd i :=
+          by rw [if_neg hia, if_neg hib]
+        rw [hvi, hdi, e1, e2]; exact S.entry_mono i hi
+  have hreachE : ∀ i, i < h → reachA (hv' i) ≠ 0 := by
+    intro i hi
+    have hvi : hv' i = if i = a then hv b else if i = b then hv a else hv i := heqv i
+    by_cases hia : i = a
+    · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv b := if_pos hia
+      rw [hvi, e1]; exact S.entry_reach b hb
+    · by_cases hib : i = b
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv a :=
+          by rw [if_neg hia, if_pos hib]
+        rw [hvi, e1]; exact S.entry_reach a ha
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv i :=
+          by rw [if_neg hia, if_neg hib]
+        rw [hvi, e1]; exact S.entry_reach i hi
+  refine ⟨?_, hmono, hreachE⟩
+  intro v hr hd0
+  obtain ⟨j, hj, hjv, hjd⟩ := S.entry_cur v hr hd0
+  by_cases hja : j = a
+  · refine ⟨b, hb, ?_, ?_⟩
+    · have e1 : (if b = a then hv b else if b = b then hv a else hv b) = hv a :=
+        by rw [if_neg (Ne.symm hab), if_pos rfl]
+      rw [heqv b, e1]; rw [hja] at hjv; exact hjv
+    · have e2 : (if b = a then hd b else if b = b then hd a else hd b) = hd a :=
+        by rw [if_neg (Ne.symm hab), if_pos rfl]
+      rw [heqd b, e2]; rw [hja] at hjd; exact hjd
+  · by_cases hjb : j = b
+    · refine ⟨a, ha, ?_, ?_⟩
+      · have e1 : (if a = a then hv b else if a = b then hv a else hv a) = hv b := if_pos rfl
+        rw [heqv a, e1]; rw [hjb] at hjv; exact hjv
+      · have e2 : (if a = a then hd b else if a = b then hd a else hd a) = hd b := if_pos rfl
+        rw [heqd a, e2]; rw [hjb] at hjd; exact hjd
+    · refine ⟨j, hj, ?_, ?_⟩
+      · have e1 : (if j = a then hv b else if j = b then hv a else hv j) = hv j :=
+          by rw [if_neg hja, if_neg hjb]
+        rw [heqv j, e1]; exact hjv
+      · have e2 : (if j = a then hd b else if j = b then hd a else hd j) = hd j :=
+          by rw [if_neg hja, if_neg hjb]
+        rw [heqd j, e2]; exact hjd
+
 /-- `SoftInv` with one waived `entry_cur` hole: the freshly popped vertex `holev`
 has no heap entry between `popBody` and `settleBody`'s done-store. -/
 structure SoftInvH (holev : Fin G.n) (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
@@ -251,7 +324,7 @@ pairs are originals shifted one step down the sift path, heap order holds except
 edge into the moving pair, and the moving pair dominates its (possibly empty) children. -/
 structure SiftUpOK (s : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
     (x : Fin G.n) (xk : ℝ≥0) (ii₀ ii : ℕ) : Prop where
-  soft : SoftInv s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+  soft : EntrySoft s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
       (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins")
   hole : hvD s st ii = x ∧ st.va "hd" ii = xk
   xle : ∀ j, j < st.w "h" → (j = 2 * ii + 1 ∨ j = 2 * ii + 2) → xk ≤ st.va "hd" j
@@ -313,7 +386,7 @@ theorem SiftUpOK.swap {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origH
     funext hreach
   have hdn : (fun v : Fin G.n => st'.wa "done" v) = (fun v : Fin G.n => st.wa "done" v) :=
     funext hdone
-  have hsoft : SoftInv s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
+  have hsoft : EntrySoft s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
       (fun v => st'.wa "done" v) (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") := by
     have hsw := K.soft.swap (hab := hne.symm) (ha := hlt) (hb := hplt)
       (hv' := hvD s st') (hd' := fun i => st'.va "hd" i) heqv heqd
@@ -504,8 +577,9 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
     (hiiE : st.w "ii" = ii) (hbound : st.w "h" ≤ G.m + 1) :
     Runs realOps siftUp st (fun st' =>
       F0 G s st' ∧ AF G st' ∧
-      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+      EntrySoft s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
+      HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
       st'.cost ≤ st.cost + 12 * rk ii + 1) := by
   have hnpos : 0 < G.n := lt_of_le_of_lt (Nat.zero_le _) s.isLt
@@ -517,8 +591,9 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
        (st'.w "ii" = 0 ∧ q = 0 ∧ (ii' = 0 ∨ st'.va "hd" (par ii') ≤ st'.va "hd" ii'))) ∧
       st'.cost ≤ st.cost + 12 * (rk ii - q))
     (Q := fun st' => F0 G s st' ∧ AF G st' ∧
-      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+      EntrySoft s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
+      HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
       st'.cost ≤ st.cost + 12 * rk ii + 1) ?_ (rk ii) st ⟨ii, K, hF, hAF, rfl, rfl, le_rfl, ?_, ?_⟩
   · -- hstep
@@ -537,14 +612,15 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
       · rw [hcond, htest]; simp
       · rcases hmode with h1 | h2
         · rw [h1.1] at htest; exact absurd htest (by omega)
-        · refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_⟩
+        · refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_, ?_⟩
+          · exact K'.soft
           · have hedge : ¬(par ii' < s'.w "h" ∧ ii' < s'.w "h" ∧
                 (ii' = 2 * par ii' + 1 ∨ ii' = 2 * par ii' + 2)) ∨
                 s'.va "hd" (par ii') ≤ s'.va "hd" ii' := by
               rcases h2.2.2 with hz | hle
               · left; simp [par, hz]
               · exact Or.inr hle
-            exact K'.soft.toInv (HeapOKExcept.toHeapOK K'.ok hedge)
+            exact HeapOKExcept.toHeapOK K'.ok hedge
           · rw [show (s'.charge 1).w "h" = s'.w "h" from rfl, hh']
           · rw [show (s'.charge 1).w "ins" = s'.w "ins" from rfl, hins']
           · rw [show (s'.charge 1).cost = s'.cost + 1 from rfl]
@@ -792,15 +868,17 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
 guarantees the pushed vertex `pv` is reached (`reach[pv] ≠ 0`).  Cost: `12 * rk h + 13`. -/
 theorem pushBody_runs {st : State ℝ≥0}
     (hF : F0 G s st) (hAF : AF G st)
-    (hInv : Inv G s (fun v => st.va "dist" v) (fun v => st.wa "reach" v) (fun v => st.wa "done" v)
+    (hsoft : EntrySoft s (fun v => st.va "dist" v) (fun v => st.wa "reach" v) (fun v => st.wa "done" v)
       (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
+    (hheap : HeapOK (hvD s st) (fun i => st.va "hd" i) (st.w "h"))
     (hpv : st.w "pv" < G.n)
     (hreachv : st.wa "reach" (st.w "pv") ≠ 0)
     (hbound : st.w "h" ≤ G.m) (hinsb : st.w "ins" ≤ G.m) :
     Runs realOps pushBody st (fun st' =>
       F0 G s st' ∧ AF G st' ∧
-      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+      EntrySoft s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
+      HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" + 1 ∧ st'.w "ins" = st.w "ins" + 1 ∧
       st'.cost ≤ st.cost + 12 * rk (st.w "h") + 13) := by
   have hcap : 2 < st.cap := by have := hF.hcap; omega
@@ -872,11 +950,9 @@ theorem pushBody_runs {st : State ℝ≥0}
       ⟨st.w "pv", hpv⟩ (st.va "dist" (st.w "pv")) (st.w "h") (st.w "h") := by
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · -- soft
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · intro v hrv; exact hInv.ghost v hrv
-      · intro e hd0; exact hInv.relax_hold e hd0
+      refine ⟨?_, ?_, ?_⟩
       · intro v hrv hd0
-        obtain ⟨i, hi, hvi, hdi⟩ := hInv.entry_cur v hrv hd0
+        obtain ⟨i, hi, hvi, hdi⟩ := hsoft.entry_cur v hrv hd0
         refine ⟨i, by rw [hh5]; omega, ?_, ?_⟩
         · rw [hhv5, if_neg (by omega)]; exact hvi
         · rw [hhd5, if_neg (by omega)]; exact hdi
@@ -886,16 +962,14 @@ theorem pushBody_runs {st : State ℝ≥0}
           show st.va "dist" (st.w "pv") ≤ st.va "dist" (st.w "pv")
           exact le_rfl
         · rw [hhd5, if_neg hiz, hhv5, if_neg hiz]
-          exact hInv.entry_mono i (by have := hh5; omega)
+          exact hsoft.entry_mono i (by have := hh5; omega)
       · intro i hi
         by_cases hiz : i = st.w "h"
         · rw [hiz, hhv5, if_pos rfl]
           show st.wa "reach" (st.w "pv") ≠ 0
           exact hreachv
         · rw [hhv5, if_neg hiz]
-          exact hInv.entry_reach i (by have := hh5; omega)
-      · exact hInv.source0
-      · intro u hd0; exact hInv.done_reach u hd0
+          exact hsoft.entry_reach i (by have := hh5; omega)
     · -- hole
       refine ⟨?_, ?_⟩
       · rw [hhv5, if_pos rfl]
@@ -929,7 +1003,7 @@ theorem pushBody_runs {st : State ℝ≥0}
         · rw [hih] at hjr; omega
         · show t5.va "hd" i ≤ t5.va "hd" j
           rw [hhd5 i, if_neg hih, hhd5 j, if_neg hjh]
-          exact hInv.heapOK i (by have := hh5; omega) j (by have := hh5; omega) hjr
+          exact hheap i (by have := hh5; omega) j (by have := hh5; omega) hjr
     · -- origOK
       intro i j hi hj hjr hneq
       by_cases hjh : j = st.w "h"
@@ -942,7 +1016,7 @@ theorem pushBody_runs {st : State ℝ≥0}
         · show (if i = st.w "h" then st.va "dist" (st.w "pv") else st.va "hd" i)
             ≤ (if j = st.w "h" then st.va "dist" (st.w "pv") else st.va "hd" j)
           rw [if_neg hih, if_neg hjh]
-          exact hInv.heapOK i (by have := hh5; omega) j (by have := hh5; omega) hjr
+          exact hheap i (by have := hh5; omega) j (by have := hh5; omega) hjr
     · rw [hh5]; omega
     · rw [hh5]; omega
   -- run the sift
@@ -951,8 +1025,8 @@ theorem pushBody_runs {st : State ℝ≥0}
   have hAF5 : AF G t5 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
   have hbound5 : t5.w "h" ≤ G.m + 1 := by rw [hh5]; omega
   refine (siftUp_runs hF5 hAF5 hK rfl hbound5).mono ?_
-  rintro st' ⟨hF', hAF', hInv', hheq, hinseq, hcost⟩
-  refine ⟨hF', hAF', hInv', ?_, ?_, ?_⟩
+  rintro st' ⟨hF', hAF', hsoft', hheap', hheq, hinseq, hcost⟩
+  refine ⟨hF', hAF', hsoft', hheap', ?_, ?_, ?_⟩
   · rw [hheq, hh5]
   · rw [hinseq, hins5]
   · have hc5 : t5.cost = st.cost + 5 := rfl
