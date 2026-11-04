@@ -860,6 +860,14 @@ theorem mchOf_child (origHd : ℕ → ℝ≥0) (h i : ℕ) :
 theorem mchOf_gt (origHd : ℕ → ℝ≥0) (h i : ℕ) : i < mchOf origHd h i := by
   have := mchOf_child origHd h i; omega
 
+theorem mchOf_iter_le (origHd : ℕ → ℝ≥0) (h i : ℕ) : ∀ t, i ≤ (mchOf origHd h)^[t] i := by
+  intro t
+  induction t with
+  | zero => simp
+  | succ t ih =>
+    simp only [Function.iterate_succ_apply']
+    exact ih.trans (mchOf_gt origHd h ((mchOf origHd h)^[t] i)).le
+
 theorem mchOf_inj (origHd : ℕ → ℝ≥0) (h : ℕ) {i j : ℕ}
     (heq : mchOf origHd h i = mchOf origHd h j) : i = j := by
   have a := mchOf_child origHd h i
@@ -926,5 +934,194 @@ structure SiftDownOK (s : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.
   origOK : HeapOKExceptFrom origHd (st.w "h") 0
   pre0 : sreach (mchOf origHd (st.w "h")) 0 ii
   hiir : ii < st.w "h"
+
+/-- One sift-down swap: the hole descends to the min child `c`. -/
+theorem SiftDownOK.swap {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+    {x : Fin G.n} {xk : ℝ≥0} {ii c : ℕ}
+    (K : SiftDownOK s st origHv origHd x xk ii)
+    (hc : c = mchOf origHd (st.w "h") ii)
+    (hcin : c < st.w "h")
+    (hswap : st.va "hd" c ≤ xk)
+    (hmin : ∀ j, j < st.w "h" → (j = 2 * ii + 1 ∨ j = 2 * ii + 2) → st.va "hd" c ≤ st.va "hd" j)
+    (hh : st'.w "h" = st.w "h") (hins : st'.w "ins" = st.w "ins")
+    (hdist : ∀ v : Fin G.n, st'.va "dist" v = st.va "dist" v)
+    (hreach : ∀ v : Fin G.n, st'.wa "reach" v = st.wa "reach" v)
+    (hdone : ∀ v : Fin G.n, st'.wa "done" v = st.wa "done" v)
+    (heqv : ∀ i, hvD s st' i = if i = ii then hvD s st c
+        else if i = c then hvD s st ii else hvD s st i)
+    (heqd : ∀ i, st'.va "hd" i = if i = ii then st.va "hd" c
+        else if i = c then st.va "hd" ii else st.va "hd" i) :
+    SiftDownOK s st' origHv origHd x xk c := by
+  have hii : ii < st.w "h" := K.hiir
+  have hgt : ii < c := by rw [hc]; exact mchOf_gt origHd (st.w "h") ii
+  have hne : ii ≠ c := by omega
+  set f : ℕ → ℕ := mchOf origHd (st.w "h") with hf
+  have hinj : Function.Injective f := by
+    intro a b heq
+    apply mchOf_inj origHd (st.w "h")
+    rw [← hf]; exact heq
+  have hfeq : f ii = c := by rw [hf]; exact hc.symm
+  have hpre : sreach f 0 c := sreach_trans K.pre0 ⟨1, hfeq⟩
+  have hpar : 0 < ii → f (par ii) = ii ∧ sreach f 0 (par ii) := by
+    intro hpos
+    obtain ⟨t, ht⟩ := K.pre0
+    rcases t with _ | t
+    · simp at ht; omega
+    · simp only [Function.iterate_succ_apply'] at ht
+      have hfeq2 : mchOf origHd (st.w "h") (f^[t] 0) = ii := by rw [← hf]; exact ht
+      have hfi : f^[t] 0 = par ii := by
+        have hch := mchOf_child origHd (st.w "h") (f^[t] 0)
+        simp only [par]
+        rcases hch with h | h <;> rw [h] at hfeq2 <;> omega
+      exact ⟨by rw [← hfi]; exact ht, ⟨t, hfi⟩⟩
+  have hchain : ∀ {a b}, sreach f a b ↔ sreach (mchOf origHd (st.w "h")) a b := fun {a b} => Iff.rfl
+  have hcorig : hvD s st c = origHv c ∧ st.va "hd" c = origHd c := by
+    have hnf : ¬ (sreach f c ii ∧ sreach f 0 c) := by
+      intro hh2
+      obtain ⟨t, ht⟩ := hh2.1
+      rcases t with _ | t
+      · simp at ht; omega
+      · simp only [Function.iterate_succ_apply'] at ht
+        have hlt : f^[t] c < ii := by
+          have := mchOf_gt origHd (st.w "h") (f^[t] c)
+          rw [← hf, ht] at this
+          exact this
+        have hge : c ≤ f^[t] c := mchOf_iter_le origHd (st.w "h") c t
+        omega
+    rcases K.pairsV c hcin with h1 | h2 | h3
+    · exact absurd h1.1 (Ne.symm hne)
+    · exact (hnf ⟨h2.2.1, h2.2.2.1⟩).elim
+    · rcases K.pairsK c hcin with a1 | a2 | a3
+      · exact absurd a1.1 (Ne.symm hne)
+      · exact (hnf ⟨a2.2.1, a2.2.2.1⟩).elim
+      · exact ⟨h3.2, a3.2⟩
+  have hdd : (fun v : Fin G.n => st'.va "dist" v) = (fun v : Fin G.n => st.va "dist" v) :=
+    funext hdist
+  have hrr : (fun v : Fin G.n => st'.wa "reach" v) = (fun v : Fin G.n => st.wa "reach" v) :=
+    funext hreach
+  have hdn : (fun v : Fin G.n => st'.wa "done" v) = (fun v : Fin G.n => st.wa "done" v) :=
+    funext hdone
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, by rw [hh]; exact hpre, ?_⟩
+  · have hsw := K.soft.swap (hab := hne) (ha := hii) (hb := hcin)
+      (hv' := hvD s st') (hd' := fun i => st'.va "hd" i) heqv heqd
+    rw [← hdd, ← hrr, ← hdn, ← hh, ← hins] at hsw
+    exact hsw
+  · refine ⟨?_, ?_⟩
+    · rw [heqv]; simp [Ne.symm hne]; exact K.hole.1
+    · rw [heqd]; simp [Ne.symm hne]; exact K.hole.2
+  · -- pairsV at the new hole `c`
+    intro i hi
+    have hi' : i < st.w "h" := by rw [← hh]; exact hi
+    rw [hh]
+    have hchain2 : sreach (mchOf origHd (st.w "h")) i c ↔
+        i = c ∨ sreach (mchOf origHd (st.w "h")) i ii := by
+      rw [← hf, ← hfeq]; exact sreach_succ_iff hinj
+    by_cases hiz : i = c
+    · exact Or.inl ⟨hiz, by rw [hiz, heqv]; simp [Ne.symm hne]; exact K.hole.1⟩
+    · by_cases hii2 : i = ii
+      · refine Or.inr (Or.inl ⟨by omega, ?_, ?_, ?_⟩)
+        · rw [hchain2]; exact Or.inr (by rw [hii2]; exact sreach_self _ ii)
+        · rw [hii2]; exact K.pre0
+        · rw [hii2, heqv]; simp [Ne.symm hne]; exact hcorig.1.trans (congrArg origHv hc)
+      · have h1 : hvD s st' i = hvD s st i := by
+          rw [heqv, if_neg hii2, if_neg hiz]
+        rcases K.pairsV i hi' with h2 | h3 | h4
+        · exact absurd h2.1 hii2
+        · refine Or.inr (Or.inl ⟨hiz, ?_, ?_, ?_⟩)
+          · rw [hchain2]; exact Or.inr h3.2.1
+          · exact h3.2.2.1
+          · rw [h1]; exact h3.2.2.2
+        · refine Or.inr (Or.inr ⟨?_, ?_⟩)
+          · intro hh2
+            have hh3 := hh2
+            rw [hchain2] at hh3
+            rcases hh3 with ⟨h | h, h0⟩
+            · exact absurd h hiz
+            · exact h4.1 ⟨h, h0⟩
+          · rw [h1]; exact h4.2
+  · -- pairsK at the new hole `c`
+    intro i hi
+    have hi' : i < st.w "h" := by rw [← hh]; exact hi
+    rw [hh]
+    have hchain2 : sreach (mchOf origHd (st.w "h")) i c ↔
+        i = c ∨ sreach (mchOf origHd (st.w "h")) i ii := by
+      rw [← hf, ← hfeq]; exact sreach_succ_iff hinj
+    by_cases hiz : i = c
+    · exact Or.inl ⟨hiz, by rw [hiz, heqd]; simp [Ne.symm hne]; exact K.hole.2⟩
+    · by_cases hii2 : i = ii
+      · refine Or.inr (Or.inl ⟨by omega, ?_, ?_, ?_⟩)
+        · rw [hchain2]; exact Or.inr (by rw [hii2]; exact sreach_self _ ii)
+        · rw [hii2]; exact K.pre0
+        · rw [hii2, heqd]; simp [Ne.symm hne]; exact hcorig.2.trans (congrArg origHd hc)
+      · have h1 : st'.va "hd" i = st.va "hd" i := by
+          rw [heqd, if_neg hii2, if_neg hiz]
+        rcases K.pairsK i hi' with h2 | h3 | h4
+        · exact absurd h2.1 hii2
+        · refine Or.inr (Or.inl ⟨hiz, ?_, ?_, ?_⟩)
+          · rw [hchain2]; exact Or.inr h3.2.1
+          · exact h3.2.2.1
+          · rw [h1]; exact h3.2.2.2
+        · refine Or.inr (Or.inr ⟨?_, ?_⟩)
+          · intro hh2
+            have hh3 := hh2
+            rw [hchain2] at hh3
+            rcases hh3 with ⟨h | h, h0⟩
+            · exact absurd h hiz
+            · exact h4.1 ⟨h, h0⟩
+          · rw [h1]; exact h4.2
+  · -- ok: heap order except the edges out of `c`
+    intro i j hi hj hjr hnic
+    show st'.va "hd" i ≤ st'.va "hd" j
+    have hi' : i < st.w "h" := by rw [← hh]; exact hi
+    have hj' : j < st.w "h" := by rw [← hh]; exact hj
+    by_cases hci : i = ii
+    · rw [hci]
+      show st'.va "hd" ii ≤ st'.va "hd" j
+      by_cases hcj : j = c
+      · rw [hcj]; simp [heqd, Ne.symm hne]
+        exact hswap.trans K.hole.2.symm.le
+      · have e : st'.va "hd" j = st.va "hd" j := by
+          rw [heqd, if_neg hcj, if_neg (by omega)]
+        rw [e]; simp [heqd, Ne.symm hne]
+        exact hmin j hj' (by rw [hci] at hjr; exact hjr)
+    · have hjc : j ≠ c := by
+        intro hhj
+        rw [hhj] at hjr
+        have hparc : i = par c := (par_of_child hjr).symm
+        have hpi : par c = ii := by
+          rw [hc]
+          show par (mchOf origHd (st.w "h") ii) = ii
+          exact par_of_child (mchOf_child origHd (st.w "h") ii)
+        rw [hparc] at hci
+        exact hci hpi
+      have e1 : st'.va "hd" i = st.va "hd" i := by
+        rw [heqd, if_neg hci, if_neg (by omega)]
+      by_cases hcj : j = ii
+      · -- edge into the old hole: its parent holds the risen pair `origHd ii`
+        have hipar : i = par ii := by
+          rw [hcj] at hjr
+          exact (par_of_child hjr).symm
+        have hpos : 0 < ii := by rcases hjr with hr | hr <;> omega
+        have hpar' := hpar hpos
+        have hp2 : mchOf origHd (st.w "h") (par ii) = ii := by rw [← hf]; exact hpar'.1
+        have hle1 : st.va "hd" i = origHd ii := by
+          rw [hipar]
+          rcases K.pairsK (par ii) (by have hpt := par_lt ii hpos; omega)
+            with h1 | h2 | h3
+          · exact absurd h1.1 (by have hpt := par_lt ii hpos; omega)
+          · rw [h2.2.2.2, hp2]
+          · exact absurd ⟨⟨1, by rw [← hf]; exact hpar'.1⟩,
+              by rw [← hf]; exact hpar'.2⟩ h3.1
+        have hle2 : origHd c = st.va "hd" c := hcorig.2.symm
+        rw [e1, hcj]; simp [heqd, Ne.symm hne]
+        rw [hle1, ← hle2]
+        exact K.origOK ii c (by omega) hcin
+          (by rw [hc]; exact mchOf_child origHd (st.w "h") ii) (by omega)
+      · have e2 : st'.va "hd" j = st.va "hd" j := by
+          rw [heqd, if_neg hcj, if_neg hjc]
+        rw [e1, e2]
+        exact K.ok i j hi' hj' hjr hci
+  · rw [hh]; exact K.origOK
+  · rw [hh]; exact hcin
 
 end Submission.DijkstraHeap
