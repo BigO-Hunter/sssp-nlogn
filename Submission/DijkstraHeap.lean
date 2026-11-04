@@ -293,6 +293,38 @@ theorem HeapV.storeW {st : State ℝ≥0} {h : ℕ} (V : HeapV (G := G) st h)
   · rw [key, if_pos hj2]; exact ha
   · rw [key, if_neg hj2]; exact V j hj
 
+/-- The heap operations (`siftUp`, `pushBody`, `siftDown`, `popBody`) write only `hv`/`hd` and
+scalars: every other array is left alone.  Stated as one bundle so the `Runs` postconditions that
+need it carry a single conjunct. -/
+structure HeapFrame (st st' : State ℝ≥0) : Prop where
+  dist : ∀ j, st'.va "dist" j = st.va "dist" j
+  reach : ∀ j, st'.wa "reach" j = st.wa "reach" j
+  done : ∀ j, st'.wa "done" j = st.wa "done" j
+  head : ∀ w, st'.wa "head" w = st.wa "head" w
+  nxt : ∀ j, st'.wa "nxt" j = st.wa "nxt" j
+  regv : st'.w "v" = st.w "v"
+
+theorem HeapFrame.trivial (st : State ℝ≥0) : HeapFrame st st :=
+  ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, rfl⟩
+
+theorem HeapFrame.trans {a b c : State ℝ≥0} (h1 : HeapFrame a b) (h2 : HeapFrame b c) :
+    HeapFrame a c where
+  dist j := (h2.dist j).trans (h1.dist j)
+  reach j := (h2.reach j).trans (h1.reach j)
+  done j := (h2.done j).trans (h1.done j)
+  head w := (h2.head w).trans (h1.head w)
+  nxt j := (h2.nxt j).trans (h1.nxt j)
+  regv := h2.regv.trans h1.regv
+
+theorem HeapFrame.charge {st st' : State ℝ≥0} (h : HeapFrame st st') (k : ℕ) :
+    HeapFrame st (st'.charge k) where
+  dist j := h.dist j
+  reach j := h.reach j
+  done j := h.done j
+  head w := h.head w
+  nxt j := h.nxt j
+  regv := h.regv
+
 /-- `Inv` with one waived `entry_cur` hole: the pop-window invariant between
 `popBody` and `settleBody`'s done-store (or the stale-skip). -/
 structure InvH (holev : Fin G.n) (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
@@ -597,7 +629,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
-      HeapV (G := G) st' (st'.w "h") ∧
+      HeapV (G := G) st' (st'.w "h") ∧ HeapFrame st st' ∧
       st'.cost ≤ st.cost + 12 * rk ii + 1) := by
   have hnpos : 0 < G.n := lt_of_le_of_lt (Nat.zero_le _) s.isLt
   have hcap0 : 2 < st.cap := by have := hF.hcap; omega
@@ -606,17 +638,18 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
       q ≤ rk ii ∧
       ((st'.w "ii" = ii' ∧ 0 < ii' ∧ q = rk ii') ∨
        (st'.w "ii" = 0 ∧ q = 0 ∧ (ii' = 0 ∨ st'.va "hd" (par ii') ≤ st'.va "hd" ii'))) ∧
-      HeapV (G := G) st' (st'.w "h") ∧
+      HeapV (G := G) st' (st'.w "h") ∧ HeapFrame st st' ∧
       st'.cost ≤ st.cost + 12 * (rk ii - q))
     (Q := fun st' => F0 G s st' ∧ AF G st' ∧
       EntrySoft s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
-      HeapV (G := G) st' (st'.w "h") ∧
-      st'.cost ≤ st.cost + 12 * rk ii + 1) ?_ (rk ii) st ⟨ii, K, hF, hAF, rfl, rfl, le_rfl, ?_, hval, ?_⟩
+      HeapV (G := G) st' (st'.w "h") ∧ HeapFrame st st' ∧
+      st'.cost ≤ st.cost + 12 * rk ii + 1) ?_ (rk ii) st
+      ⟨ii, K, hF, hAF, rfl, rfl, le_rfl, ?_, hval, HeapFrame.trivial st, ?_⟩
   · -- hstep
-    intro q s' ⟨ii', K', hF', hAF', hh', hins', hle, hmode, hV', hcost⟩
+    intro q s' ⟨ii', K', hF', hAF', hh', hins', hle, hmode, hV', hfr, hcost⟩
     have hcap' : 2 < s'.cap := by have := hF'.hcap; omega
     have hcond : evalW s' (lt (lit 0) (var "ii")) = some (if 0 < s'.w "ii" then 1 else 0) :=
       evalW_lt_of (x := 0) (y := s'.w "ii") (evalW_lit_of (by have := hcap'; omega))
@@ -631,7 +664,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
       · rw [hcond, htest]; simp
       · rcases hmode with h1 | h2
         · rw [h1.1] at htest; exact absurd htest (by omega)
-        · refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_, ?_, hfr.charge 1, ?_⟩
           · exact K'.soft
           · have hedge : ¬(par ii' < s'.w "h" ∧ ii' < s'.w "h" ∧
                 (ii' = 2 * par ii' + 1 ∨ ii' = 2 * par ii' + 2)) ∨
@@ -843,7 +876,9 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
               · have hpar := rk_par hpos
                 have hpp := rk_pos hpos
                 omega
-            refine ⟨rk (par ii'), hn', par ii', hK10, hF10, hAF10, hh', hins', ?_, ?_, hV10, ?_⟩
+            refine ⟨rk (par ii'), hn', par ii', hK10, hF10, hAF10, hh', hins', ?_, ?_, hV10,
+              (hfr.trans ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl,
+                fun _ => rfl, rfl⟩), ?_⟩
             · -- index bound
               omega
             · -- mode
@@ -883,7 +918,8 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
               rw [K'.hole.2]
               exact le_of_lt hlt
             refine ⟨0, by rw [h1.2.2]; exact rk_pos hpos, ii', hK2, hF2, hAF2, hh', hins',
-              ?_, ?_, hVS, ?_⟩
+              ?_, ?_, hVS, (hfr.trans ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl,
+                fun _ => rfl, fun _ => rfl, rfl⟩), ?_⟩
             · omega
             · refine Or.inr ⟨show tS.w "ii" = 0 from rfl, rfl, Or.inr ?_⟩
               show tS.va "hd" (par ii') ≤ tS.va "hd" ii'
@@ -918,7 +954,7 @@ theorem pushBody_runs {st : State ℝ≥0}
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" + 1 ∧ st'.w "ins" = st.w "ins" + 1 ∧
-      HeapV (G := G) st' (st'.w "h") ∧
+      HeapV (G := G) st' (st'.w "h") ∧ HeapFrame st st' ∧
       st'.cost ≤ st.cost + 12 * rk (st.w "h") + 13) := by
   have hcap : 2 < st.cap := by have := hF.hcap; omega
   have hhE : evalW st (var "h") = some (st.w "h") := evalW_var st "h"
@@ -983,6 +1019,8 @@ theorem pushBody_runs {st : State ℝ≥0}
       exact hvD_eq_of_wa hw
   have hh5 : t5.w "h" = st.w "h" + 1 := rfl
   have hins5 : t5.w "ins" = st.w "ins" + 1 := rfl
+  have hfr5 : HeapFrame st t5 :=
+    ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, rfl⟩
   have hV5 : HeapV (G := G) t5 (t5.w "h") := by
     intro i hi
     rw [hwa5]
@@ -1076,10 +1114,11 @@ theorem pushBody_runs {st : State ℝ≥0}
   have hAF5 : AF G t5 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
   have hbound5 : t5.w "h" ≤ G.m + 1 := by rw [hh5]; omega
   refine (siftUp_runs hF5 hAF5 hV5 hK rfl hbound5).mono ?_
-  rintro st' ⟨hF', hAF', hsoft', hheap', hheq, hinseq, hV', hcost⟩
-  refine ⟨hF', hAF', hsoft', hheap', ?_, ?_, hV', ?_⟩
+  rintro st' ⟨hF', hAF', hsoft', hheap', hheq, hinseq, hV', hfr', hcost⟩
+  refine ⟨hF', hAF', hsoft', hheap', ?_, ?_, hV', ?_, ?_⟩
   · rw [hheq, hh5]
   · rw [hinseq, hins5]
+  · exact hfr5.trans hfr'
   · have hc5 : t5.cost = st.cost + 5 := rfl
     rw [hc5] at hcost
     omega
@@ -2672,5 +2711,201 @@ theorem SweepInv.push_relax {st t : State ℝ≥0} {u x : Fin G.n} {cand : ℝ�
   · -- k_le
     rw [hnot]
     exact hlen
+
+/-- The taken-relax suffix of `relaxBody` (`fl = 1`): lower `x`'s label to `cand`, mark it
+reached, and — since `x` is unsettled — push it. -/
+theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : ℕ} {cand : ℝ≥0}
+    (hF : F0 G s t) (hAF : AF G t)
+    (hxv : t.w "x" = (x : ℕ))
+    (hcandv : t.v "cand" = cand)
+    (hcand : t.va "dist" u + G.w e = cand)
+    (hval : HeapV (G := G) t (t.w "h"))
+    (hbound : t.w "h" ≤ G.m) (hinsb : t.w "ins" ≤ G.m)
+    (hdx0 : t.wa "done" x = 0)
+    (hxnot : x ≠ u) (hxs : x ≠ s)
+    (hsrcv : G.src e = u) (hdstv : G.dst e = x)
+    (htake : (chainOf t u (G.m + 1)).take (k + 1)
+      = (chainOf t u (G.m + 1)).take k ++ [(e : ℕ)])
+    (S : SweepInv G s u t k)
+    (hsw : ∀ e' : Fin G.m, (e' : ℕ) ∈ (chainOf t u (G.m + 1)).take k → G.src e' = u)
+    (hle : t.wa "reach" x ≠ 0 → cand ≤ t.va "dist" x) :
+    Runs realOps
+      (seq (vstore "dist" (var "x") (.var "cand"))
+        (seq (wstore "reach" (var "x") (lit 1))
+          (ite (eq (load "done" (var "x")) (lit 0))
+            (seq (wset "pv" (var "x")) pushBody) skip))) t (fun t' =>
+      SweepInv G s u t' (k + 1) ∧ F0 G s t' ∧ AF G t' ∧
+      chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) ∧
+      t'.w "v" = t.w "v" ∧
+      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 20) := by
+  have hcap0 : 0 < t.cap := by have := hF.hcap; omega
+  have hcap1 : 1 < t.cap := by have := hF.hcap; omega
+  have hdstLen : (x : ℕ) < t.vlen "dist" := by rw [hAF.distL]; exact x.isLt
+  refine runs_seq (runs_vstore (arr := "dist") (i := var "x") (e := .var "cand")
+    (by rw [evalW_var, hxv]) rfl hdstLen ?_)
+  set t1 := (t.storeV "dist" (x : ℕ) (t.v "cand")).charge 1 with ht1
+  have hx1 : evalW t1 (var "x") = some (x : ℕ) := by
+    rw [evalW_var]
+    rw [show t1.w "x" = t.w "x" from rfl, hxv]
+  have hone1 : evalW t1 (lit 1) = some 1 :=
+    evalW_lit_of (by show 1 < t1.cap; exact hcap1)
+  have hreachLen : (x : ℕ) < t1.wlen "reach" := by
+    rw [show t1.wlen "reach" = t.wlen "reach" from rfl, hAF.reachL]; exact x.isLt
+  refine runs_seq (runs_wstore (arr := "reach") (i := var "x") (e := lit 1) hx1 hone1
+    hreachLen ?_)
+  set t2 := (t1.storeW "reach" (x : ℕ) 1).charge 1 with ht2
+  have hdoneE : evalW t2 (eq (load "done" (var "x")) (lit 0))
+      = some (if t.wa "done" (x : ℕ) = 0 then 1 else 0) := by
+    have hload : evalW t2 (load "done" (var "x")) = some (t.wa "done" (x : ℕ)) := by
+      have h := evalW_load_of (s := t2) (arr := "done") (i := var "x") (j := (x : ℕ))
+        (by rw [evalW_var]; rw [show t2.w "x" = t.w "x" from rfl, hxv])
+        (by rw [show t2.wlen "done" = t.wlen "done" from rfl, hAF.doneL]; exact x.isLt)
+      rwa [show t2.wa "done" (x : ℕ) = t.wa "done" (x : ℕ) from rfl] at h
+    exact evalW_eq_of hload (evalW_lit_of (by show 0 < t2.cap; exact hcap0)) (by
+      show 1 < t2.cap; exact hcap1)
+  refine runs_ite_true (x := 1) (by rw [hdoneE, if_pos hdx0]) (by decide) ?_
+  have hpvE : evalW (t2.charge 1) (var "x") = some (x : ℕ) := by
+    rw [evalW_var]
+    rw [show (t2.charge 1).w "x" = t.w "x" from rfl, hxv]
+  refine runs_seq (runs_wset (x := "pv") hpvE ?_)
+  set t3 := ((t2.charge 1).setW "pv" (x : ℕ)).charge 1 with ht3
+  -- final-state register/array reads
+  have hdistT : ∀ j, j ≠ (x : ℕ) → t3.va "dist" j = t.va "dist" j := by
+    intro j hj
+    rw [ht3, va_charge, va_setW, ht2, va_charge, va_charge, va_storeW, ht1, va_charge,
+      va_storeV]
+    rw [if_neg (by intro hc; exact hj hc.2)]
+  have hdistTx : t3.va "dist" (x : ℕ) = cand := by
+    rw [ht3, va_charge, va_setW, ht2, va_charge, va_charge, va_storeW, ht1, va_charge,
+      va_storeV]
+    rw [if_pos ⟨rfl, rfl⟩, hcandv]
+  have hreachT : ∀ j, j ≠ (x : ℕ) → t3.wa "reach" j = t.wa "reach" j := by
+    intro j hj
+    rw [ht3, wa_charge, wa_setW, ht2, wa_charge, wa_charge, wa_storeW, ht1, wa_charge,
+      wa_storeV]
+    rw [if_neg (by intro hc; exact hj hc.2)]
+  have hreachTx : t3.wa "reach" (x : ℕ) = 1 := by
+    rw [ht3, wa_charge, wa_setW, ht2, wa_charge, wa_charge, wa_storeW, ht1, wa_charge,
+      wa_storeV]
+    rw [if_pos ⟨rfl, rfl⟩]
+  have hhdT : ∀ i, t3.va "hd" i = t.va "hd" i := by
+    intro i
+    rw [ht3, va_charge, va_setW, ht2, va_charge, va_charge, va_storeW, ht1, va_charge,
+      va_storeV]
+    rw [if_neg (by intro hc; exact absurd hc.1 (by decide))]
+  -- every word array other than `reach` is untouched by the relax prefix
+  have hwT : ∀ (arr : String) (j : ℕ), arr ≠ "reach" → t3.wa arr j = t.wa arr j := by
+    intro arr j harr
+    rw [ht3, wa_charge, wa_setW, ht2, wa_charge, wa_charge, wa_storeW, ht1, wa_charge,
+      wa_storeV]
+    rw [if_neg (by intro hc; exact absurd hc.1 harr)]
+  have hdoneT : ∀ j, t3.wa "done" j = t.wa "done" j := fun j => hwT "done" j (by decide)
+  have hhvT3 : ∀ i, t3.wa "hv" i = t.wa "hv" i := fun i => hwT "hv" i (by decide)
+  have hheadT : ∀ w, t3.wa "head" w = t.wa "head" w := fun w => hwT "head" w (by decide)
+  have hnxtT : ∀ j, t3.wa "nxt" j = t.wa "nxt" j := fun j => hwT "nxt" j (by decide)
+  have hhvT : ∀ i, hvD s t3 i = hvD s t i := fun i => hvD_eq_of_wa (hhvT3 i)
+  have hhT : t3.w "h" = t.w "h" := by
+    rw [ht3, w_charge, w_setW, ht2, w_charge, w_charge, w_storeW, ht1, w_charge, w_storeV]
+    rw [if_neg (by decide)]
+  have hinsT : t3.w "ins" = t.w "ins" := by
+    rw [ht3, w_charge, w_setW, ht2, w_charge, w_charge, w_storeW, ht1, w_charge, w_storeV]
+    rw [if_neg (by decide)]
+  have hpv3 : t3.w "pv" = (x : ℕ) := by
+    rw [ht3, w_charge, w_setW]
+    rw [if_pos rfl]
+  have hpvlt : t3.w "pv" < G.n := by rw [hpv3]; exact x.isLt
+  have hreachv3 : t3.wa "reach" (t3.w "pv") ≠ 0 := by
+    rw [hpv3, hreachTx]; exact one_ne_zero
+  have hN : ∀ (v : Fin G.n), (v : ℕ) ≠ (x : ℕ) → v ≠ x :=
+    fun v hv hvv => hv (by rw [hvv])
+  have hNatNe : ∀ (v : Fin G.n), v ≠ x → (v : ℕ) ≠ (x : ℕ) :=
+    fun v hv hc => hv (Fin.eq_of_val_eq hc)
+  -- the entry set at `t3`, holed at the vertex being pushed
+  have hESH : EntrySoftH ⟨t3.w "pv", hpvlt⟩ s (fun v => t3.va "dist" v)
+      (fun v => t3.wa "reach" v) (fun v => t3.wa "done" v) (hvD s t3)
+      (fun i => t3.va "hd" i) (t3.w "h") (t3.w "ins") := by
+    have hne : ∀ (v : Fin G.n), v ≠ ⟨t3.w "pv", hpvlt⟩ → (v : ℕ) ≠ (x : ℕ) := by
+      intro v hv hvv
+      exact hv (Fin.ext (by rw [hvv]; exact hpv3.symm))
+    refine ⟨?_, ?_, ?_⟩
+    · intro v hvx' hr hd0
+      obtain ⟨i, hi, hiv, hid⟩ := S.entry_cur v
+        (by rw [← hreachT ↑v (hne v hvx')]; exact hr)
+        (by rw [← hdoneT ↑v]; exact hd0)
+      refine ⟨i, hi, ?_, ?_⟩
+      · rw [hhvT i]; exact hiv
+      · rw [hhdT i, hdistT ↑v (hne v hvx')]; exact hid
+    · intro i hi
+      have hi' : i < t.w "h" := hi
+      by_cases hix : hvD s t3 i = x
+      · have hix' : hvD s t i = x := by rw [← hhvT i]; exact hix
+        have hrx : t.wa "reach" (x : ℕ) ≠ 0 := by
+          have h := S.entry_reach i hi'
+          rw [← hhvT i, hix] at h
+          exact h
+        rw [hix, hdistTx, hhdT i]
+        calc cand ≤ t.va "dist" (x : ℕ) := hle hrx
+          _ = t.va "dist" (hvD s t i) := by rw [hix']
+          _ ≤ t.va "hd" i := S.entry_mono i hi'
+      · rw [hdistT ↑(hvD s t3 i) (hNatNe _ hix), hhdT i, hhvT i]
+        exact S.entry_mono i hi'
+    · intro i hi
+      have hi' : i < t.w "h" := hi
+      by_cases hix : hvD s t3 i = x
+      · rw [hix, hreachTx]; exact one_ne_zero
+      · rw [hreachT ↑(hvD s t3 i) (hNatNe _ hix), hhvT i]
+        exact S.entry_reach i hi'
+  have hF3 : F0 G s t3 := F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+    (fun _ _ => rfl) rfl rfl rfl
+  have hAF3 : AF G t3 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
+  have hheap3 : HeapOK (hvD s t3) (fun i => t3.va "hd" i) (t3.w "h") :=
+    HeapOK.congr S.heapOK hhT hhdT
+  have hval3 : HeapV (G := G) t3 (t3.w "h") := by
+    intro i hi
+    rw [hhT] at hi
+    rw [hhvT3 i]
+    exact S.val i hi
+  refine (pushBody_runs (st := t3) hF3 hAF3 hpvlt hESH hheap3 hval3 hreachv3
+    (by rw [hhT]; exact hbound) (by rw [hinsT]; exact hinsb)).mono ?_
+  rintro t4 ⟨hF4, hAF4, hES4, hHOK4, hh4, hins4, hval4, hfr4, hcost4⟩
+  have hh4' : t4.w "h" = t.w "h" + 1 := by rw [hh4, hhT]
+  -- `pushBody` writes only heap slots and counters (its Q carries the frame)
+  have hEk : EdgeRelaxed G t4 e := by
+    refine ⟨?_, ?_⟩
+    · rw [hdstv, hfr4.reach, hreachTx]; exact one_ne_zero
+    · have hxl : t4.va "dist" (x : ℕ) = cand := (hfr4.dist x).trans hdistTx
+      have hul : t4.va "dist" (u : ℕ) = t.va "dist" (u : ℕ) :=
+        (hfr4.dist u).trans (hdistT (u : ℕ) (hNatNe u hxnot.symm))
+      rw [hdstv, hsrcv, hxl, hul, ← hcand, ENNReal.coe_add]
+  refine ⟨SweepInv.push_relax (st := t) (t := t4) S hdx0 hxnot hxs hsrcv hdstv hcand htake hEk
+    hES4 hHOK4 hval4 ?_ ?_ ?_ ?_ ?_ ?_ ?_ hle hsw, hF4, hAF4, ?_, ?_, ?_⟩
+  · intro w
+    rw [hfr4.head w, hheadT w]
+  · intro j
+    rw [hfr4.nxt j, hnxtT j]
+  · intro j
+    rw [hfr4.done j, hdoneT j]
+  · intro j hj
+    rw [hfr4.dist j, hdistT j hj]
+  · rw [hfr4.dist x, hdistTx]
+  · intro j hj
+    rw [hfr4.reach j, hreachT j hj]
+  · rw [hfr4.reach x, hreachTx]
+    exact one_ne_zero
+  · -- chain stability
+    have hch : ∀ (v : ℕ) (k' : ℕ), chainOf t4 v k' = chainOf t v k' := by
+      intro v k'
+      simp only [chainOf]
+      rw [hfr4.head v, hheadT v]
+      exact chainWalk_congr (fun j _ => by rw [hfr4.nxt j, hnxtT j])
+    exact hch u (G.m + 1)
+  · -- the popped-vertex register is untouched
+    rw [hfr4.regv, ht3, w_charge, w_setW, ht2, w_charge, w_charge, w_storeW, ht1,
+      w_charge, w_storeV]
+    rw [if_neg (by decide)]
+  · -- cost
+    have hc3 : t3.cost = t.cost + 4 := rfl
+    rw [hc3, hhT] at hcost4
+    omega
 
 end Submission.DijkstraHeap
