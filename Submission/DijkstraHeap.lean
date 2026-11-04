@@ -110,6 +110,104 @@ theorem SoftInv.swap {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n → �
           by rw [if_neg hja, if_neg hjb]
         rw [heqd j, e2]; exact hjd
 
+/-- `SoftInv` with one waived `entry_cur` hole: the freshly popped vertex `holev`
+has no heap entry between `popBody` and `settleBody`'s done-store. -/
+structure SoftInvH (holev : Fin G.n) (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
+    (reachA doneA : Fin G.n → ℕ) (hv : ℕ → Fin G.n) (hd : ℕ → ℝ≥0) (h ins : ℕ) : Prop where
+  ghost : ∀ v, reachA v ≠ 0 → ∃ p, G.IsWalk s v p ∧ G.len p = distA v
+  relax_hold : ∀ e : Fin G.m, doneA (G.src e) ≠ 0 →
+    reachA (G.dst e) ≠ 0 ∧
+    ((distA (G.dst e) : ℝ≥0) : ℝ≥0∞) ≤ ((distA (G.src e) : ℝ≥0) : ℝ≥0∞) + G.w e
+  entry_hole : ∀ v, v ≠ holev → reachA v ≠ 0 → doneA v = 0 →
+    ∃ i, i < h ∧ hv i = v ∧ hd i = distA v
+  entry_mono : ∀ i, i < h → distA (hv i) ≤ hd i
+  entry_reach : ∀ i, i < h → reachA (hv i) ≠ 0
+  source0 : distA s = 0 ∧ reachA s ≠ 0
+  done_reach : ∀ u, doneA u ≠ 0 → reachA u ≠ 0
+
+theorem SoftInvH.swap {holev : Fin G.n} {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n → ℕ}
+    {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} {h ins : ℕ}
+    (S : SoftInvH holev s distA reachA doneA hv hd h ins) {a b : ℕ}
+    (hab : a ≠ b) (ha : a < h) (hb : b < h) {hv' : ℕ → Fin G.n} {hd' : ℕ → ℝ≥0}
+    (heqv : ∀ i, hv' i = if i = a then hv b else if i = b then hv a else hv i)
+    (heqd : ∀ i, hd' i = if i = a then hd b else if i = b then hd a else hd i) :
+    SoftInvH holev s distA reachA doneA hv' hd' h ins := by
+  have hmono : ∀ i, i < h → distA (hv' i) ≤ hd' i := by
+    intro i hi
+    have hvi : hv' i = if i = a then hv b else if i = b then hv a else hv i := heqv i
+    have hdi : hd' i = if i = a then hd b else if i = b then hd a else hd i := heqd i
+    by_cases hia : i = a
+    · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv b := if_pos hia
+      have e2 : (if i = a then hd b else if i = b then hd a else hd i) = hd b := if_pos hia
+      rw [hvi, hdi, e1, e2]; exact S.entry_mono b hb
+    · by_cases hib : i = b
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv a :=
+          by rw [if_neg hia, if_pos hib]
+        have e2 : (if i = a then hd b else if i = b then hd a else hd i) = hd a :=
+          by rw [if_neg hia, if_pos hib]
+        rw [hvi, hdi, e1, e2]; exact S.entry_mono a ha
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv i :=
+          by rw [if_neg hia, if_neg hib]
+        have e2 : (if i = a then hd b else if i = b then hd a else hd i) = hd i :=
+          by rw [if_neg hia, if_neg hib]
+        rw [hvi, hdi, e1, e2]; exact S.entry_mono i hi
+  have hreachE : ∀ i, i < h → reachA (hv' i) ≠ 0 := by
+    intro i hi
+    have hvi : hv' i = if i = a then hv b else if i = b then hv a else hv i := heqv i
+    by_cases hia : i = a
+    · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv b := if_pos hia
+      rw [hvi, e1]; exact S.entry_reach b hb
+    · by_cases hib : i = b
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv a :=
+          by rw [if_neg hia, if_pos hib]
+        rw [hvi, e1]; exact S.entry_reach a ha
+      · have e1 : (if i = a then hv b else if i = b then hv a else hv i) = hv i :=
+          by rw [if_neg hia, if_neg hib]
+        rw [hvi, e1]; exact S.entry_reach i hi
+  refine ⟨S.ghost, S.relax_hold, ?_, hmono, hreachE, S.source0, S.done_reach⟩
+  intro v hvne hr hd0
+  obtain ⟨j, hj, hjv, hjd⟩ := S.entry_hole v hvne hr hd0
+  by_cases hja : j = a
+  · refine ⟨b, hb, ?_, ?_⟩
+    · have e1 : (if b = a then hv b else if b = b then hv a else hv b) = hv a :=
+        by rw [if_neg (Ne.symm hab), if_pos rfl]
+      rw [heqv b, e1]; rw [hja] at hjv; exact hjv
+    · have e2 : (if b = a then hd b else if b = b then hd a else hd b) = hd a :=
+        by rw [if_neg (Ne.symm hab), if_pos rfl]
+      rw [heqd b, e2]; rw [hja] at hjd; exact hjd
+  · by_cases hjb : j = b
+    · refine ⟨a, ha, ?_, ?_⟩
+      · have e1 : (if a = a then hv b else if a = b then hv a else hv a) = hv b := if_pos rfl
+        rw [heqv a, e1]; rw [hjb] at hjv; exact hjv
+      · have e2 : (if a = a then hd b else if a = b then hd a else hd a) = hd b := if_pos rfl
+        rw [heqd a, e2]; rw [hjb] at hjd; exact hjd
+    · refine ⟨j, hj, ?_, ?_⟩
+      · have e1 : (if j = a then hv b else if j = b then hv a else hv j) = hv j :=
+          by rw [if_neg hja, if_neg hjb]
+        rw [heqv j, e1]; exact hjv
+      · have e2 : (if j = a then hd b else if j = b then hd a else hd j) = hd j :=
+          by rw [if_neg hja, if_neg hjb]
+        rw [heqd j, e2]; exact hjd
+
+/-- `Inv` with one waived `entry_cur` hole: the pop-window invariant between
+`popBody` and `settleBody`'s done-store (or the stale-skip). -/
+structure InvH (holev : Fin G.n) (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
+    (reachA doneA : Fin G.n → ℕ) (hv : ℕ → Fin G.n) (hd : ℕ → ℝ≥0) (h ins : ℕ) : Prop where
+  soft : SoftInvH holev s distA reachA doneA hv hd h ins
+  heapOK : HeapOK hv hd h
+
+/-- A stale pop (`done holev ≠ 0`) resolves the hole: full `Inv` follows. -/
+theorem InvH.toInv_of_done {holev : Fin G.n} {distA : Fin G.n → ℝ≥0}
+    {reachA doneA : Fin G.n → ℕ} {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} {h ins : ℕ}
+    (I : InvH holev s distA reachA doneA hv hd h ins) (hdne : doneA holev ≠ 0) :
+    Inv G s distA reachA doneA hv hd h ins := by
+  refine ⟨I.soft.ghost, I.soft.relax_hold, I.heapOK, ?_,
+    I.soft.entry_mono, I.soft.entry_reach, I.soft.source0, I.soft.done_reach⟩
+  intro v hr hd0
+  by_cases hvv : v = holev
+  · subst hvv; exact absurd hd0 hdne
+  · exact I.soft.entry_hole v hvv hr hd0
+
 /-- Parent position in the implicit binary heap. -/
 def par (i : ℕ) : ℕ := (i - 1) / 2
 
@@ -913,9 +1011,10 @@ theorem HeapOKExceptFrom.toHeapOK {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} 
 
 /-- The sift-down state: hole at `ii`, pairs are originals shifted along the
 min-child path (risen pairs), heap order holds except the edges out of the hole. -/
-structure SiftDownOK (s : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
+structure SiftDownOK (holev : Fin G.n) (s : Fin G.n) (st : State ℝ≥0)
+    (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
     (x : Fin G.n) (xk : ℝ≥0) (ii : ℕ) : Prop where
-  soft : SoftInv s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+  soft : SoftInvH holev s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
       (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins")
   hole : hvD s st ii = x ∧ st.va "hd" ii = xk
   pairsV : ∀ i, i < st.w "h" →
@@ -936,9 +1035,9 @@ structure SiftDownOK (s : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.
   hiir : ii < st.w "h"
 
 /-- One sift-down swap: the hole descends to the min child `c`. -/
-theorem SiftDownOK.swap {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+theorem SiftDownOK.swap {holev : Fin G.n} {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
     {x : Fin G.n} {xk : ℝ≥0} {ii c : ℕ}
-    (K : SiftDownOK s st origHv origHd x xk ii)
+    (K : SiftDownOK holev s st origHv origHd x xk ii)
     (hc : c = mchOf origHd (st.w "h") ii)
     (hcin : c < st.w "h")
     (hswap : st.va "hd" c ≤ xk)
@@ -951,7 +1050,7 @@ theorem SiftDownOK.swap {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {ori
         else if i = c then hvD s st ii else hvD s st i)
     (heqd : ∀ i, st'.va "hd" i = if i = ii then st.va "hd" c
         else if i = c then st.va "hd" ii else st.va "hd" i) :
-    SiftDownOK s st' origHv origHd x xk c := by
+    SiftDownOK holev s st' origHv origHd x xk c := by
   have hii : ii < st.w "h" := K.hiir
   have hgt : ii < c := by rw [hc]; exact mchOf_gt origHd (st.w "h") ii
   have hne : ii ≠ c := by omega
@@ -1188,9 +1287,9 @@ theorem mchOf_min (origHd : ℕ → ℝ≥0) {h i c j : ℕ}
 
 /-- Children of the hole hold their original pairs: the min-child path strictly
 increases indices, so no child of the hole is on it. -/
-theorem SiftDownOK.child_orig {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+theorem SiftDownOK.child_orig {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
     {x : Fin G.n} {xk : ℝ≥0} {ii j : ℕ}
-    (K : SiftDownOK s st origHv origHd x xk ii)
+    (K : SiftDownOK holev s st origHv origHd x xk ii)
     (hj : j < st.w "h") (hjr : j = 2 * ii + 1 ∨ j = 2 * ii + 2) :
     hvD s st j = origHv j ∧ st.va "hd" j = origHd j := by
   have hjgt : ii < j := by omega
@@ -1210,16 +1309,16 @@ theorem SiftDownOK.child_orig {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {o
 
 /-- A sift-down state survives updates that leave the heap arrays, decoded labels and
 sizes alone (register writes and charges). -/
-theorem SiftDownOK.stable {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+theorem SiftDownOK.stable {holev : Fin G.n} {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
     {x : Fin G.n} {xk : ℝ≥0} {ii : ℕ}
-    (K : SiftDownOK s st origHv origHd x xk ii)
+    (K : SiftDownOK holev s st origHv origHd x xk ii)
     (hvE : ∀ i, st'.wa "hv" i = st.wa "hv" i)
     (hdE : ∀ i, st'.va "hd" i = st.va "hd" i)
     (hdistE : ∀ (v : Fin G.n), st'.va "dist" v = st.va "dist" v)
     (hreachE : ∀ (v : Fin G.n), st'.wa "reach" v = st.wa "reach" v)
     (hdoneE : ∀ (v : Fin G.n), st'.wa "done" v = st.wa "done" v)
     (hhE : st'.w "h" = st.w "h") (hinsE : st'.w "ins" = st.w "ins") :
-    SiftDownOK s st' origHv origHd x xk ii := by
+    SiftDownOK holev s st' origHv origHd x xk ii := by
   have hdd : (fun (v : Fin G.n) => st'.va "dist" v) = (fun (v : Fin G.n) => st.va "dist" v) :=
     funext hdistE
   have hrr : (fun (v : Fin G.n) => st'.wa "reach" v) = (fun (v : Fin G.n) => st.wa "reach" v) :=
@@ -1265,9 +1364,9 @@ def siftDownTail : Stmt :=
 
 /-- Loop invariant for `siftDown_runs`: the index is the remaining descent measure
 (rank + 1 while `go`, 0 once stopped). -/
-def SiftDownInv (st : State ℝ≥0) (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
+def SiftDownInv (holev : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
     (x : Fin G.n) (xk : ℝ≥0) (m : ℕ) (st' : State ℝ≥0) : Prop :=
-  ∃ ii', SiftDownOK s st' origHv origHd x xk ii' ∧
+  ∃ ii', SiftDownOK holev s st' origHv origHd x xk ii' ∧
     F0 G s st' ∧ AF G st' ∧
     st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
     ((st'.w "go" = 1 ∧ st'.w "ii" = ii' ∧ m = rkD (st.w "h") ii' + 1 ∧
@@ -1300,14 +1399,14 @@ theorem budget_exit {x : ℕ} : 2 + 18 * x + 15 + 1 ≤ 18 * x + 18 := by omega
 /-- One `siftDown` run: from a sift-down state with the hole at `0`, the loop restores `Inv`.
 Cost: at most `18 * rkD h 0 + 18` — ≤ 17 per descent step (incl. its tests), stop tail,
 the two entry writes, and the final test. -/
-theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
     {x : Fin G.n} {xk : ℝ≥0}
     (hF : F0 G s st) (hAF : AF G st)
-    (K : SiftDownOK s st origHv origHd x xk 0)
+    (K : SiftDownOK holev s st origHv origHd x xk 0)
     (hbound : st.w "h" ≤ G.m + 1) :
     Runs realOps siftDown st (fun st' =>
       F0 G s st' ∧ AF G st' ∧
-      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+      InvH holev s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
       st'.cost ≤ st.cost + 18 * rkD (st.w "h") 0 + 18) := by
@@ -1318,15 +1417,15 @@ theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : 
   refine runs_seq (runs_wset (x := "go") (a := 1)
       (evalW_lit_of (by show 1 < st.cap; omega)) ?_)
   set t1 := (((st.setW "ii" 0).charge 1).setW "go" 1).charge 1 with ht1
-  have hK1 : SiftDownOK s t1 origHv origHd x xk 0 :=
+  have hK1 : SiftDownOK holev s t1 origHv origHd x xk 0 :=
     SiftDownOK.stable K (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
       (fun _ => rfl) rfl rfl
   have hF1 : F0 G s t1 :=
     F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) rfl rfl rfl
   have hAF1 : AF G t1 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
-  refine runs_while_nat (I := SiftDownInv st origHv origHd x xk)
+  refine runs_while_nat (I := SiftDownInv holev st origHv origHd x xk)
       (Q := fun st' => F0 G s st' ∧ AF G st' ∧
-        Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
+        InvH holev s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
           (fun v => st'.wa "done" v) (hvD s st') (fun i => st'.va "hd" i)
           (st'.w "h") (st'.w "ins") ∧
         st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
@@ -1349,8 +1448,7 @@ theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : 
       · have hedge : ∀ j, j < s'.w "h" → (j = 2 * ii' + 1 ∨ j = 2 * ii' + 2) →
             s'.va "hd" ii' ≤ s'.va "hd" j := h2.2.2.1
         refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_⟩
-        · exact K'.soft.toInv
-            (HeapOKExceptFrom.toHeapOK K'.ok (fun j hj hjr => hedge j hj hjr))
+        · exact ⟨K'.soft, HeapOKExceptFrom.toHeapOK K'.ok (fun j hj hjr => hedge j hj hjr)⟩
         · rw [show (s'.charge 1).w "h" = s'.w "h" from rfl, hh']
         · rw [show (s'.charge 1).w "ins" = s'.w "ins" from rfl, hins']
         · rw [show (s'.charge 1).cost = s'.cost + 1 from rfl]
@@ -1387,7 +1485,7 @@ theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : 
         by_cases hlt : ii' + 1 < s'.w "h" / 2 + 1
         · -- step runs: siftDownStep = wset cl, wset c, child-pick ite, siftDownTail
           have htail : ∀ (tX : State ℝ≥0) (cx : ℕ),
-              SiftDownOK s tX origHv origHd x xk ii' → F0 G s tX → AF G tX →
+              SiftDownOK holev s tX origHv origHd x xk ii' → F0 G s tX → AF G tX →
               tX.w "h" = st.w "h" → tX.w "ins" = st.w "ins" → tX.w "ii" = ii' →
               evalW tX (var "c") = some cx →
               cx < s'.w "h" →
@@ -1396,7 +1494,7 @@ theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : 
               cx = mchOf origHd (st.w "h") ii' →
               tX.cost ≤ s'.cost + 8 →
               Runs realOps siftDownTail tX
-                (fun s'' => ∃ m', m' < m ∧ SiftDownInv (s := s) st origHv origHd x xk m' s'') := by
+                (fun s'' => ∃ m', m' < m ∧ SiftDownInv (s := s) holev st origHv origHd x xk m' s'') := by
             intro tX cx hKX hFX hAFX hhX hinsX hiiX hcX hcxlt hgoX hcx0 hcm hcostX
             have h1lt : 1 < tX.cap := by have := hFX.hcap; have := hnpos; omega
             have hcxltT : cx < tX.w "h" := by rw [hhX, ← hh']; exact hcxlt
@@ -1573,7 +1671,7 @@ theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : 
                 rw [← hh']; omega
               have hdrop : rkD (st.w "h") cx + 1 ≤ rkD (st.w "h") ii' :=
                 rkD_succ_of_child hcx0 hlt2
-              have hK9 : SiftDownOK s t9 origHv origHd x xk cx :=
+              have hK9 : SiftDownOK holev s t9 origHv origHd x xk cx :=
                 SiftDownOK.swap hKX (by rw [hhX]; exact hcm) hcxltT hsw hmin
                   (rfl) (rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) heqv heqd
               have hF9 : F0 G s t9 :=
@@ -1598,7 +1696,7 @@ theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : 
               refine runs_wset (x := "go") (a := 0)
                   (evalW_lit_of (by show 0 < tX.cap; have := h1lt; omega)) ?_
               set tS2 := ((tY.charge 1).setW "go" 0).charge 1 with htS2
-              have hKS2 : SiftDownOK s tS2 origHv origHd x xk ii' :=
+              have hKS2 : SiftDownOK holev s tS2 origHv origHd x xk ii' :=
                 SiftDownOK.stable hKX (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
                   (fun _ => rfl) (fun _ => rfl) rfl rfl
               have hFS2 : F0 G s tS2 :=
@@ -1789,7 +1887,7 @@ theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : 
           refine runs_ite_false (by rw [hcondE, if_neg hlt]) ?_
           refine runs_wset (x := "go") (a := 0) h0E ?_
           set tS := ((t0.charge 1).setW "go" 0).charge 1 with htS
-          have hKS : SiftDownOK s tS origHv origHd x xk ii' :=
+          have hKS : SiftDownOK holev s tS origHv origHd x xk ii' :=
             SiftDownOK.stable K' (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
               (fun _ => rfl) (fun _ => rfl) rfl rfl
           have hFS : F0 G s tS :=
