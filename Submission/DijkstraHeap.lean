@@ -2341,4 +2341,304 @@ theorem SweepInv.toInv {G : Graph} {s u : Fin G.n} {st : State ℝ≥0} {k : ℕ
     exact S.relaxed_swept e hmem
   · exact S.relaxed_other e hsu hdne
 
+/-! ### The settle sweep: edge relaxation
+
+`relaxBody` lowers the label of an unsettled vertex and (on a strict improvement) pushes it.
+The edge being relaxed is the `k`-th link of `u`'s out-edge chain, so the sweep invariant
+advances from cursor `k` to `k + 1`. -/
+
+theorem v_setV (st : State ℝ≥0) (x y : String) (a : ℝ≥0) :
+    (st.setV x a).v y = if y = x then a else st.v y := rfl
+
+theorem v_setW (st : State ℝ≥0) (x y : String) (a : ℕ) : (st.setW x a).v y = st.v y := rfl
+
+theorem v_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) (x : String) :
+    (st.storeW arr j a).v x = st.v x := rfl
+
+theorem v_storeV (st : State ℝ≥0) (arr : String) (j : ℕ) (z : ℝ≥0) (x : String) :
+    (st.storeV arr j z).v x = st.v x := rfl
+
+theorem v_charge (st : State ℝ≥0) (k : ℕ) (x : String) : (st.charge k).v x = st.v x := rfl
+
+theorem HeapOK.congr {hd hd' : ℕ → ℝ≥0} {h h' : ℕ} {hv hv' : ℕ → Fin G.n}
+    (H : HeapOK hv hd h) (hh : h' = h) (he : ∀ i, hd' i = hd i) : HeapOK hv' hd' h' := by
+  intro i hi j hj hjr
+  rw [hh] at hi hj
+  rw [he i, he j]
+  exact H i hi j hj hjr
+
+/-- A failed `vle` test: the right operand is strictly smaller. -/
+theorem lt_of_vle_zero {a b : ℝ≥0} (h : (if realOps.le a b then 1 else 0) = 0) : b < a := by
+  rw [bit_le] at h
+  by_cases hle : a ≤ b
+  · rw [if_pos hle] at h
+    exact absurd h (by simp)
+  · exact not_le.mp hle
+
+/-- The out-edge chain at fuel `k` is a prefix of the full chain. -/
+theorem chainOf_take {st : State ℝ≥0} {u : ℕ} {k : ℕ} (hk : k ≤ G.m + 1) :
+    chainOf st u k = (chainOf st u (G.m + 1)).take k := by
+  have hidx : k + (G.m + 1 - k) = G.m + 1 := by omega
+  have h := chainWalk_take st k (st.wa "head" u) (G.m + 1 - k)
+  rw [hidx] at h
+  exact h
+
+/-- A sweep cursor never exceeds the chain fuel. -/
+theorem SweepInv.k_le_fuel {st : State ℝ≥0} {u : Fin G.n} {k : ℕ}
+    (S : SweepInv G s u st k) : k ≤ G.m + 1 := by
+  have h1 := S.k_le
+  have h2 := chainWalk_length_le st (st.wa "head" u) (G.m + 1)
+  simp only [chainOf] at h1 h2 ⊢
+  omega
+
+/-- Relaxing the label of an unsettled vertex preserves an established edge obligation: the
+target may only sit lower, and the source of such an obligation is settled, hence not `x`. -/
+theorem EdgeRelaxed.lower {st t : State ℝ≥0} {e : Fin G.m} {x : Fin G.n} {cand : ℝ≥0}
+    (h : EdgeRelaxed G st e) (hxnot : G.src e ≠ x)
+    (hreachx : t.wa "reach" x ≠ 0)
+    (hreach : t.wa "reach" (G.dst e) ≠ 0)
+    (hdist : ∀ v : Fin G.n, v ≠ x → t.va "dist" v = st.va "dist" v)
+    (hdistx : t.va "dist" x = cand)
+    (hle : st.wa "reach" x ≠ 0 → cand ≤ st.va "dist" x) :
+    EdgeRelaxed G t e := by
+  refine ⟨hreach, ?_⟩
+  have hsrc : t.va "dist" (G.src e) = st.va "dist" (G.src e) := hdist _ hxnot
+  by_cases hd : G.dst e = x
+  · rw [hd] at hreach ⊢
+    have hrx : st.wa "reach" x ≠ 0 := by rw [← hd]; exact h.1
+    have h2 := h.2
+    rw [hd] at h2
+    rw [hdistx, hsrc]
+    exact le_trans (by exact_mod_cast hle hrx) h2
+  · rw [hdist _ hd, hsrc]
+    exact h.2
+
+/-- Transport the sweep invariant across a state that agrees on the heap, the registers it
+reads, and the three label arrays. -/
+theorem SweepInv.congr {st t : State ℝ≥0} {u : Fin G.n} {k : ℕ} (S : SweepInv G s u st k)
+    (hhead : ∀ w, t.wa "head" w = st.wa "head" w)
+    (hnxt : ∀ j, t.wa "nxt" j = st.wa "nxt" j)
+    (hreach : ∀ j, t.wa "reach" j = st.wa "reach" j)
+    (hdone : ∀ j, t.wa "done" j = st.wa "done" j)
+    (hdist : ∀ j, t.va "dist" j = st.va "dist" j)
+    (hhv : ∀ i, t.wa "hv" i = st.wa "hv" i)
+    (hhd : ∀ i, t.va "hd" i = st.va "hd" i)
+    (hh : t.w "h" = st.w "h") (hins : t.w "ins" = st.w "ins") :
+    SweepInv G s u t k := by
+  have hchain : ∀ (v : ℕ) (k' : ℕ), k' ≤ G.m + 1 → chainOf t v k' = chainOf st v k' := by
+    intro v k' _
+    simp only [chainOf, hhead]
+    exact chainWalk_congr (fun j _ => hnxt j)
+  have hnot : chainOf t u (G.m + 1) = chainOf st u (G.m + 1) := hchain u _ (le_refl _)
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro v hv
+    obtain ⟨p, hp, hlen⟩ := S.ghost v (by rw [← hreach ↑v]; exact hv)
+    exact ⟨p, hp, by rw [hlen, hdist ↑v]⟩
+  · intro v hd
+    rw [hdist ↑v]
+    exact S.settled_exact v (by rw [← hdone ↑v]; exact hd)
+  · intro e' hsrc' hdn'
+    obtain ⟨h1, h2⟩ := S.relaxed_other e' hsrc' (by rw [← hdone ↑(G.src e')]; exact hdn')
+    refine ⟨by rw [hreach ↑(G.dst e')]; exact h1, ?_⟩
+    show ((t.va "dist" ↑(G.dst e') : ℝ≥0) : ℝ≥0∞)
+      ≤ ((t.va "dist" ↑(G.src e') : ℝ≥0) : ℝ≥0∞) + G.w e'
+    rw [hdist ↑(G.dst e'), hdist ↑(G.src e')]
+    exact h2
+  · intro e' hmem
+    obtain ⟨h1, h2⟩ := S.relaxed_swept e' (by rw [← hchain u k (S.k_le_fuel)]; exact hmem)
+    refine ⟨by rw [hreach ↑(G.dst e')]; exact h1, ?_⟩
+    show ((t.va "dist" ↑(G.dst e') : ℝ≥0) : ℝ≥0∞)
+      ≤ ((t.va "dist" ↑(G.src e') : ℝ≥0) : ℝ≥0∞) + G.w e'
+    rw [hdist ↑(G.dst e'), hdist ↑(G.src e')]
+    exact h2
+  · intro v hr hd0
+    obtain ⟨i, hi, hiv, hid⟩ := S.entry_cur v (by rw [← hreach ↑v]; exact hr)
+      (by rw [← hdone ↑v]; exact hd0)
+    exact ⟨i, by rw [hh]; exact hi, (hvD_congr hhv i).trans hiv,
+      by rw [hhd i, hdist ↑v]; exact hid⟩
+  · intro i hi
+    rw [hvD_congr hhv i, hdist ↑(hvD s st i), hhd i]
+    exact S.entry_mono i (by rw [← hh]; exact hi)
+  · intro i hi
+    rw [hvD_congr hhv i, hreach ↑(hvD s st i)]
+    exact S.entry_reach i (by rw [← hh]; exact hi)
+  · exact HeapOK.congr S.heapOK hh hhd
+  · intro i hi
+    rw [hh] at hi
+    rw [hhv i]
+    exact S.val i hi
+  · refine ⟨?_, ?_⟩
+    · rw [hdist ↑s]; exact S.source0.1
+    · rw [hreach ↑s]; exact S.source0.2
+  · intro v hd
+    rw [hreach ↑v]
+    exact S.done_reach v (by rw [← hdone ↑v]; exact hd)
+  · intro w hw
+    rw [hchain w (G.m + 1) (le_refl _)]
+    exact S.chainWF w hw
+  · rw [hdone ↑u]; exact S.done_u
+  · rw [hnot]; exact S.k_le
+
+/-- Advance the sweep cursor by one edge whose obligation already holds (no write taken). -/
+theorem SweepInv.advance_static {st : State ℝ≥0} {u : Fin G.n} {k : ℕ} {e : Fin G.m}
+    (S : SweepInv G s u st k) (hEk : EdgeRelaxed G st e)
+    (htake : (chainOf st u (G.m + 1)).take (k + 1)
+      = (chainOf st u (G.m + 1)).take k ++ [(e : ℕ)]) :
+    SweepInv G s u st (k + 1) := by
+  have hlen : k + 1 ≤ (chainOf st u (G.m + 1)).length := by
+    have h := congrArg List.length htake
+    simp at h
+    omega
+  refine ⟨S.ghost, S.settled_exact, S.relaxed_other, ?_, S.entry_cur, S.entry_mono,
+    S.entry_reach, S.heapOK, S.val, S.source0, S.done_reach, S.chainWF, S.done_u, hlen⟩
+  intro e' hmem
+  have hk1 : k + 1 ≤ G.m + 1 := by
+    have h2 := chainWalk_length_le st (st.wa "head" u) (G.m + 1)
+    simp only [chainOf] at hlen h2 ⊢
+    omega
+  have hkf : k ≤ G.m + 1 := by omega
+  have hkt : chainOf st u k = (chainOf st u (G.m + 1)).take k := chainOf_take hkf
+  have hkt1 :
+      chainOf st u (k + 1) = (chainOf st u (G.m + 1)).take (k + 1) := chainOf_take hk1
+  have hmem1 : (e' : ℕ) ∈ (chainOf st u (G.m + 1)).take (k + 1) := by
+    rw [← hkt1]; exact hmem
+  rcases List.mem_append.mp (htake ▸ hmem1) with h | h
+  · exact S.relaxed_swept e' (by rw [hkt]; exact h)
+  · have hve : e' = e := Fin.eq_of_val_eq (List.mem_singleton.mp h)
+    rw [hve]
+    exact hEk
+
+/-- Advance the sweep cursor by one edge whose head was just lowered to `cand` and pushed. -/
+theorem SweepInv.push_relax {st t : State ℝ≥0} {u x : Fin G.n} {cand : ℝ≥0} {k : ℕ}
+    {e : Fin G.m}
+    (S : SweepInv G s u st k)
+    (hdonex : st.wa "done" x = 0)
+    (hxnot : x ≠ u) (hxs : x ≠ s)
+    (hsrcv : G.src e = u) (hdstv : G.dst e = x)
+    (hcand : st.va "dist" u + G.w e = cand)
+    (htake : (chainOf st u (G.m + 1)).take (k + 1)
+      = (chainOf st u (G.m + 1)).take k ++ [(e : ℕ)])
+    (hEk : EdgeRelaxed G t e)
+    (ES : EntrySoft s (fun v => t.va "dist" v) (fun v => t.wa "reach" v) (fun v => t.wa "done" v)
+      (hvD s t) (fun i => t.va "hd" i) (t.w "h") (t.w "ins"))
+    (HOK : HeapOK (hvD s t) (fun i => t.va "hd" i) (t.w "h"))
+    (VAL : HeapV (G := G) t (t.w "h"))
+    (hhead : ∀ w, t.wa "head" w = st.wa "head" w)
+    (hnxt : ∀ j, t.wa "nxt" j = st.wa "nxt" j)
+    (hdone : ∀ j, t.wa "done" j = st.wa "done" j)
+    (hdist : ∀ j, j ≠ (x : ℕ) → t.va "dist" j = st.va "dist" j)
+    (hdistx : t.va "dist" ↑x = cand)
+    (hreach : ∀ j, j ≠ (x : ℕ) → t.wa "reach" j = st.wa "reach" j)
+    (hreachx : t.wa "reach" ↑x ≠ 0)
+    (hle : st.wa "reach" ↑x ≠ 0 → cand ≤ st.va "dist" ↑x)
+    (hsw : ∀ e' : Fin G.m, (e' : ℕ) ∈ (chainOf st u (G.m + 1)).take k → G.src e' = u) :
+    SweepInv G s u t (k + 1) := by
+  have hxne : ∀ (v : Fin G.n), v ≠ x → (v : ℕ) ≠ (x : ℕ) := by
+    intro v hv hvv
+    exact hv (Fin.eq_of_val_eq hvv)
+  have hchain : ∀ (v : ℕ) (k' : ℕ), k' ≤ G.m + 1 → chainOf t v k' = chainOf st v k' := by
+    intro v k' _
+    simp only [chainOf, hhead]
+    exact chainWalk_congr (fun j _ => hnxt j)
+  have hnot : chainOf t u (G.m + 1) = chainOf st u (G.m + 1) := hchain u _ (le_refl _)
+  have hlen : k + 1 ≤ (chainOf st u (G.m + 1)).length := by
+    have h := congrArg List.length htake
+    simp at h
+    omega
+  have hkf : k ≤ G.m + 1 := by
+    have h2 := chainWalk_length_le st (st.wa "head" u) (G.m + 1)
+    simp only [chainOf] at hlen h2 ⊢
+    omega
+  have hkt : chainOf st u k = (chainOf st u (G.m + 1)).take k := chainOf_take hkf
+  have hk1 : k + 1 ≤ G.m + 1 := by
+    have h2 := chainWalk_length_le st (st.wa "head" u) (G.m + 1)
+    simp only [chainOf] at hlen h2 ⊢
+    omega
+  have hkt1 :
+      chainOf st u (k + 1) = (chainOf st u (G.m + 1)).take (k + 1) := chainOf_take hk1
+  -- the transport of an already-obliged edge through the label write
+  have hold : ∀ e' : Fin G.m, (e' : ℕ) ∈ (chainOf st u (G.m + 1)).take k →
+      EdgeRelaxed G t e' := by
+    intro e' hmem
+    have hold' := S.relaxed_swept e' (by rw [hkt]; exact hmem)
+    have hsrcn : G.src e' ≠ x := by
+      rw [hsw e' hmem]
+      exact fun hh => hxnot hh.symm
+    refine EdgeRelaxed.lower hold' hsrcn hreachx ?_ ?_ hdistx hle
+    · by_cases hd : G.dst e' = x
+      · rw [hd]; exact hreachx
+      · rw [hreach ↑(G.dst e') (hxne _ hd)]; exact hold'.1
+    · exact fun v hv => hdist ↑v (hxne v hv)
+  refine ⟨?_, ?_, ?_, ?_, ES.entry_cur, ES.entry_mono, ES.entry_reach, HOK, VAL, ?_, ?_, ?_, ?_, ?_⟩
+  · -- ghost: the new walk to `x` is `u`'s walk extended by the relaxed edge
+    intro v hr
+    by_cases hvx : v = x
+    · rw [hvx]
+      obtain ⟨p, hp, hlen'⟩ := S.ghost u (S.done_reach u S.done_u)
+      refine ⟨p ++ [e], ?_, ?_⟩
+      · refine Graph.IsWalk.append hp ?_
+        rw [← hsrcv, ← hdstv]
+        exact Graph.IsWalk.single e
+      · rw [hdistx]
+        rw [G.len_append, G.len_singleton, hlen', hcand]
+    · obtain ⟨p, hp, hlen'⟩ := S.ghost v (by rw [← hreach ↑v (hxne v hvx)]; exact hr)
+      exact ⟨p, hp, by rw [hlen', hdist ↑v (hxne v hvx)]⟩
+  · -- settled_exact: nothing is written at a settled vertex
+    intro v hd
+    by_cases hvx : v = x
+    · rw [hvx] at hd ⊢
+      have hst : st.wa "done" ↑x = 0 := hdonex
+      rw [hdone ↑x] at hd
+      exact absurd hst hd
+    · rw [hdist ↑v (hxne v hvx)]
+      exact S.settled_exact v (by rw [← hdone ↑v]; exact hd)
+  · -- relaxed_other
+    intro e' hsrc' hdn'
+    have hold' := S.relaxed_other e' hsrc' (by rw [← hdone ↑(G.src e')]; exact hdn')
+    have hsrcn : G.src e' ≠ x := by
+      intro hxx
+      have hst : st.wa "done" ↑x ≠ 0 := by
+        rw [← hxx]
+        rw [← hdone ↑(G.src e')]
+        exact hdn'
+      rw [hdonex] at hst
+      exact hst rfl
+    refine EdgeRelaxed.lower hold' hsrcn hreachx ?_ ?_ hdistx hle
+    · by_cases hd : G.dst e' = x
+      · rw [hd]; exact hreachx
+      · rw [hreach ↑(G.dst e') (hxne _ hd)]; exact hold'.1
+    · exact fun v hv => hdist ↑v (hxne v hv)
+  · -- relaxed_swept: the old prefix transports, the new edge is `e`
+    intro e' hmem
+    have hmem1 : (e' : ℕ) ∈ (chainOf st u (G.m + 1)).take (k + 1) := by
+      have h3 : (e' : ℕ) ∈ chainOf t u (k + 1) := hmem
+      rw [hchain u (k + 1) hk1, hkt1] at h3
+      exact h3
+    rcases List.mem_append.mp (htake ▸ hmem1) with h | h
+    · exact hold e' h
+    · have hve : e' = e := Fin.eq_of_val_eq (List.mem_singleton.mp h)
+      rw [hve]
+      exact hEk
+  · -- source0: the source is reached, so the test could not improve it
+    refine ⟨?_, ?_⟩
+    · rw [hdist ↑s (hxne s (Ne.symm hxs))]; exact S.source0.1
+    · rw [hreach ↑s (hxne s (Ne.symm hxs))]; exact S.source0.2
+  · -- done_reach
+    intro v hd
+    by_cases hvx : v = x
+    · rw [hvx] at hd ⊢
+      rw [hdone ↑x] at hd
+      exact absurd hdonex hd
+    · rw [hreach ↑v (hxne v hvx)]
+      exact S.done_reach v (by rw [← hdone ↑v]; exact hd)
+  · -- chainWF
+    intro w hw
+    rw [hchain w (G.m + 1) (le_refl _)]
+    exact S.chainWF w hw
+  · -- done_u
+    rw [hdone ↑u]; exact S.done_u
+  · -- k_le
+    rw [hnot]
+    exact hlen
+
 end Submission.DijkstraHeap
