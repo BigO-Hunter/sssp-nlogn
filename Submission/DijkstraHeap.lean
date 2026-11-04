@@ -588,6 +588,7 @@ Cost: at most `12 * rk ii + 1` (each bubble step is ≤ 12 statements including 
 theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
     {x : Fin G.n} {xk : ℝ≥0} {ii₀ ii : ℕ}
     (hF : F0 G s st) (hAF : AF G st)
+    (hval : HeapV (G := G) st (st.w "h"))
     (K : SiftUpOK s st origHv origHd x xk ii₀ ii)
     (hiiE : st.w "ii" = ii) (hbound : st.w "h" ≤ G.m + 1) :
     Runs realOps siftUp st (fun st' =>
@@ -596,6 +597,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
+      HeapV (G := G) st' (st'.w "h") ∧
       st'.cost ≤ st.cost + 12 * rk ii + 1) := by
   have hnpos : 0 < G.n := lt_of_le_of_lt (Nat.zero_le _) s.isLt
   have hcap0 : 2 < st.cap := by have := hF.hcap; omega
@@ -604,15 +606,17 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
       q ≤ rk ii ∧
       ((st'.w "ii" = ii' ∧ 0 < ii' ∧ q = rk ii') ∨
        (st'.w "ii" = 0 ∧ q = 0 ∧ (ii' = 0 ∨ st'.va "hd" (par ii') ≤ st'.va "hd" ii'))) ∧
+      HeapV (G := G) st' (st'.w "h") ∧
       st'.cost ≤ st.cost + 12 * (rk ii - q))
     (Q := fun st' => F0 G s st' ∧ AF G st' ∧
       EntrySoft s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
-      st'.cost ≤ st.cost + 12 * rk ii + 1) ?_ (rk ii) st ⟨ii, K, hF, hAF, rfl, rfl, le_rfl, ?_, ?_⟩
+      HeapV (G := G) st' (st'.w "h") ∧
+      st'.cost ≤ st.cost + 12 * rk ii + 1) ?_ (rk ii) st ⟨ii, K, hF, hAF, rfl, rfl, le_rfl, ?_, hval, ?_⟩
   · -- hstep
-    intro q s' ⟨ii', K', hF', hAF', hh', hins', hle, hmode, hcost⟩
+    intro q s' ⟨ii', K', hF', hAF', hh', hins', hle, hmode, hV', hcost⟩
     have hcap' : 2 < s'.cap := by have := hF'.hcap; omega
     have hcond : evalW s' (lt (lit 0) (var "ii")) = some (if 0 < s'.w "ii" then 1 else 0) :=
       evalW_lt_of (x := 0) (y := s'.w "ii") (evalW_lit_of (by have := hcap'; omega))
@@ -627,7 +631,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
       · rw [hcond, htest]; simp
       · rcases hmode with h1 | h2
         · rw [h1.1] at htest; exact absurd htest (by omega)
-        · refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_, ?_⟩
+        · refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_, ?_, ?_⟩
           · exact K'.soft
           · have hedge : ¬(par ii' < s'.w "h" ∧ ii' < s'.w "h" ∧
                 (ii' = 2 * par ii' + 1 ∨ ii' = 2 * par ii' + 2)) ∨
@@ -638,6 +642,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
             exact HeapOKExcept.toHeapOK K'.ok hedge
           · rw [show (s'.charge 1).w "h" = s'.w "h" from rfl, hh']
           · rw [show (s'.charge 1).w "ins" = s'.w "ins" from rfl, hins']
+          · exact hV'
           · rw [show (s'.charge 1).cost = s'.cost + 1 from rfl]
             have hq0 : q = 0 := h2.2.1
             omega
@@ -819,6 +824,18 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
                 (fun _ _ => rfl) rfl rfl rfl
             have hAF10 : AF G t10 := AF.preserve hAF' rfl rfl rfl rfl rfl rfl rfl
             have hc10 : t10.cost = s'.cost + 11 := rfl
+            have hV10 : HeapV (G := G) t10 (t10.w "h") := by
+              intro i hi
+              have hi' : i < s'.w "h" := by
+                rw [show t10.w "h" = s'.w "h" from rfl] at hi; exact hi
+              rw [hwaE]
+              by_cases h1i : i = par ii'
+              · rw [if_pos h1i]; exact hV' ii' K'.hiir
+              · rw [if_neg h1i]
+                by_cases h2i : i = ii'
+                · rw [if_pos h2i]
+                  exact hV' (par ii') (lt_trans (par_lt ii' hpos) K'.hiir)
+                · rw [if_neg h2i]; exact hV' i hi'
             have hn' : rk (par ii') < q := by
               rw [h1.2.2]
               by_cases hz : par ii' = 0
@@ -826,7 +843,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
               · have hpar := rk_par hpos
                 have hpp := rk_pos hpos
                 omega
-            refine ⟨rk (par ii'), hn', par ii', hK10, hF10, hAF10, hh', hins', ?_, ?_, ?_⟩
+            refine ⟨rk (par ii'), hn', par ii', hK10, hF10, hAF10, hh', hins', ?_, ?_, hV10, ?_⟩
             · -- index bound
               omega
             · -- mode
@@ -856,12 +873,17 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
                 (fun _ _ => rfl) rfl rfl rfl
             have hAF2 : AF G tS := AF.preserve hAF' rfl rfl rfl rfl rfl rfl rfl
             have hcS : tS.cost = s'.cost + 5 := rfl
+            have hVS : HeapV (G := G) tS (tS.w "h") := by
+              intro i hi
+              have hi' : i < s'.w "h" := by
+                rw [show tS.w "h" = s'.w "h" from rfl] at hi; exact hi
+              exact hV' i hi'
             have hle2 : s'.va "hd" (par ii') ≤ s'.va "hd" ii' := by
               have hlt : s'.va "hd" (par ii') < xk := lt_of_not_ge hsw
               rw [K'.hole.2]
               exact le_of_lt hlt
             refine ⟨0, by rw [h1.2.2]; exact rk_pos hpos, ii', hK2, hF2, hAF2, hh', hins',
-              ?_, ?_, ?_⟩
+              ?_, ?_, hVS, ?_⟩
             · omega
             · refine Or.inr ⟨show tS.w "ii" = 0 from rfl, rfl, Or.inr ?_⟩
               show tS.va "hd" (par ii') ≤ tS.va "hd" ii'
@@ -887,6 +909,7 @@ theorem pushBody_runs {st : State ℝ≥0}
     (hsoft : EntrySoftH ⟨st.w "pv", hpv⟩ s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
       (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
     (hheap : HeapOK (hvD s st) (fun i => st.va "hd" i) (st.w "h"))
+    (hval : HeapV (G := G) st (st.w "h"))
     (hreachv : st.wa "reach" (st.w "pv") ≠ 0)
     (hbound : st.w "h" ≤ G.m) (hinsb : st.w "ins" ≤ G.m) :
     Runs realOps pushBody st (fun st' =>
@@ -895,6 +918,7 @@ theorem pushBody_runs {st : State ℝ≥0}
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       HeapOK (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") ∧
       st'.w "h" = st.w "h" + 1 ∧ st'.w "ins" = st.w "ins" + 1 ∧
+      HeapV (G := G) st' (st'.w "h") ∧
       st'.cost ≤ st.cost + 12 * rk (st.w "h") + 13) := by
   have hcap : 2 < st.cap := by have := hF.hcap; omega
   have hhE : evalW st (var "h") = some (st.w "h") := evalW_var st "h"
@@ -959,6 +983,14 @@ theorem pushBody_runs {st : State ℝ≥0}
       exact hvD_eq_of_wa hw
   have hh5 : t5.w "h" = st.w "h" + 1 := rfl
   have hins5 : t5.w "ins" = st.w "ins" + 1 := rfl
+  have hV5 : HeapV (G := G) t5 (t5.w "h") := by
+    intro i hi
+    rw [hwa5]
+    by_cases hz : i = st.w "h"
+    · rw [if_pos hz]; exact hpv
+    · rw [if_neg hz]
+      have hi' : i < st.w "h" := by rw [hh5] at hi; omega
+      exact hval i hi'
   -- the sift-up state at the new entry
   have hK : SiftUpOK s t5 (fun i => if i = st.w "h" then ⟨st.w "pv", hpv⟩ else hvD s st i)
       (fun i => if i = st.w "h" then st.va "dist" (st.w "pv") else st.va "hd" i)
@@ -1043,9 +1075,9 @@ theorem pushBody_runs {st : State ℝ≥0}
     F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) rfl rfl rfl
   have hAF5 : AF G t5 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
   have hbound5 : t5.w "h" ≤ G.m + 1 := by rw [hh5]; omega
-  refine (siftUp_runs hF5 hAF5 hK rfl hbound5).mono ?_
-  rintro st' ⟨hF', hAF', hsoft', hheap', hheq, hinseq, hcost⟩
-  refine ⟨hF', hAF', hsoft', hheap', ?_, ?_, ?_⟩
+  refine (siftUp_runs hF5 hAF5 hV5 hK rfl hbound5).mono ?_
+  rintro st' ⟨hF', hAF', hsoft', hheap', hheq, hinseq, hV', hcost⟩
+  refine ⟨hF', hAF', hsoft', hheap', ?_, ?_, hV', ?_⟩
   · rw [hheq, hh5]
   · rw [hinseq, hins5]
   · have hc5 : t5.cost = st.cost + 5 := rfl
