@@ -1250,4 +1250,565 @@ theorem SiftDownOK.stable {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {o
   · rw [hhE]; exact K.pre0
   · rw [hhE]; exact K.hiir
 
+/-- The tail of one sift-down step: compare the hole against the min child `c`, swap or stop. -/
+def siftDownTail : Stmt :=
+  seq (vle "b" (.load "hd" (var "c")) (.load "hd" (var "ii")))
+    (ite (var "b")
+      (seq (vset "tv" (.load "hd" (var "ii")))
+      (seq (vstore "hd" (var "ii") (.load "hd" (var "c")))
+      (seq (vstore "hd" (var "c") (.var "tv"))
+      (seq (wset "tw" (load "hv" (var "ii")))
+      (seq (wstore "hv" (var "ii") (load "hv" (var "c")))
+      (seq (wstore "hv" (var "c") (var "tw"))
+           (wset "ii" (var "c"))))))))
+      (wset "go" (lit 0)))
+
+/-- Loop invariant for `siftDown_runs`: the index is the remaining descent measure
+(rank + 1 while `go`, 0 once stopped). -/
+def SiftDownInv (st : State ℝ≥0) (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
+    (x : Fin G.n) (xk : ℝ≥0) (m : ℕ) (st' : State ℝ≥0) : Prop :=
+  ∃ ii', SiftDownOK s st' origHv origHd x xk ii' ∧
+    F0 G s st' ∧ AF G st' ∧
+    st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
+    ((st'.w "go" = 1 ∧ st'.w "ii" = ii' ∧ m = rkD (st.w "h") ii' + 1 ∧
+        st'.cost ≤ st.cost + 2 + 18 * (rkD (st.w "h") 0 - rkD (st.w "h") ii') + 12) ∨
+     (st'.w "go" = 0 ∧ m = 0 ∧
+        (∀ j, j < st'.w "h" → (j = 2 * ii' + 1 ∨ j = 2 * ii' + 2) →
+          st'.va "hd" ii' ≤ st'.va "hd" j) ∧
+        st'.cost ≤ st.cost + 2 + 18 * rkD (st.w "h") 0 + 15))
+
+/-- The root rank dominates every hole rank. -/
+theorem rkD_le_zero {h i : ℕ} : rkD h i ≤ rkD h 0 := by
+  have h1 : h / (i + 1) ≤ h / 1 := div_le_of_le_den (by omega) (by omega)
+  simpa [rkD, Nat.div_one] using Nat.log_mono_right h1
+
+/-- Swap-step budget: `+29` absorbed by one rank drop under `Kd = 18`. -/
+theorem budget_swap {x q q' : ℕ} (hle : q ≤ x) (hq : q' + 1 ≤ q) :
+    18 * (x - q) + 29 ≤ 18 * (x - q') + 12 := by omega
+
+/-- Stop-step budget at `q ≥ 1`: `+23` absorbed into the full-rank bound. -/
+theorem budget_bstop {x q : ℕ} (hle : q ≤ x) (hq : 1 ≤ q) :
+    18 * (x - q) + 23 ≤ 18 * x + 15 := by omega
+
+-- Budget arithmetic on plain variables (avoids rkD-term atomization in omega goals).
+theorem budget_init {x : ℕ} : 2 ≤ 2 + 18 * (x - x) + 12 := by omega
+
+theorem budget_stop {x q : ℕ} : 18 * (x - q) + 15 ≤ 18 * x + 15 := by omega
+
+theorem budget_exit {x : ℕ} : 2 + 18 * x + 15 + 1 ≤ 18 * x + 18 := by omega
+
+/-- One `siftDown` run: from a sift-down state with the hole at `0`, the loop restores `Inv`.
+Cost: at most `18 * rkD h 0 + 18` — ≤ 17 per descent step (incl. its tests), stop tail,
+the two entry writes, and the final test. -/
+theorem siftDown_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+    {x : Fin G.n} {xk : ℝ≥0}
+    (hF : F0 G s st) (hAF : AF G st)
+    (K : SiftDownOK s st origHv origHd x xk 0)
+    (hbound : st.w "h" ≤ G.m + 1) :
+    Runs realOps siftDown st (fun st' =>
+      F0 G s st' ∧ AF G st' ∧
+      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+        (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
+      st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
+      st'.cost ≤ st.cost + 18 * rkD (st.w "h") 0 + 18) := by
+  have hnpos : 0 < G.n := lt_of_le_of_lt (Nat.zero_le _) s.isLt
+  have hcap0 : 2 < st.cap := by have := hF.hcap; omega
+  refine runs_seq (runs_wset (x := "ii") (a := 0)
+      (evalW_lit_of (by show 0 < st.cap; omega)) ?_)
+  refine runs_seq (runs_wset (x := "go") (a := 1)
+      (evalW_lit_of (by show 1 < st.cap; omega)) ?_)
+  set t1 := (((st.setW "ii" 0).charge 1).setW "go" 1).charge 1 with ht1
+  have hK1 : SiftDownOK s t1 origHv origHd x xk 0 :=
+    SiftDownOK.stable K (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+      (fun _ => rfl) rfl rfl
+  have hF1 : F0 G s t1 :=
+    F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) rfl rfl rfl
+  have hAF1 : AF G t1 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
+  refine runs_while_nat (I := SiftDownInv st origHv origHd x xk)
+      (Q := fun st' => F0 G s st' ∧ AF G st' ∧
+        Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
+          (fun v => st'.wa "done" v) (hvD s st') (fun i => st'.va "hd" i)
+          (st'.w "h") (st'.w "ins") ∧
+        st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
+        st'.cost ≤ st.cost + 18 * rkD (st.w "h") 0 + 18)
+      ?_ (rkD (st.w "h") 0 + 1) t1
+      ⟨0, hK1, hF1, hAF1, rfl, rfl, Or.inl ⟨rfl, rfl, rfl,
+        by rw [show t1.cost = st.cost + 2 from rfl]
+           have hsub0 : rkD (st.w "h") 0 - rkD (st.w "h") 0 ≤ rkD (st.w "h") 0 :=
+             Nat.sub_le _ _
+           omega⟩⟩
+  · intro m s' ⟨ii', K', hF', hAF', hh', hins', hmode⟩
+    have hcap' : 2 < s'.cap := by have := hF'.hcap; omega
+    have hhdL : s'.vlen "hd" = G.m + 1 := hAF'.hdL
+    have hhvL : s'.wlen "hv" = G.m + 1 := hAF'.hvL
+    refine ⟨s'.w "go", evalW_var s' "go", fun hgo => ?_, fun hgz => ?_⟩
+    swap -- anonymous constructor order is (body, exit); exit block goes first below
+    · -- exit: `go` reads 0
+      rcases hmode with h1 | h2
+      · omega
+      · have hedge : ∀ j, j < s'.w "h" → (j = 2 * ii' + 1 ∨ j = 2 * ii' + 2) →
+            s'.va "hd" ii' ≤ s'.va "hd" j := h2.2.2.1
+        refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_⟩
+        · exact K'.soft.toInv
+            (HeapOKExceptFrom.toHeapOK K'.ok (fun j hj hjr => hedge j hj hjr))
+        · rw [show (s'.charge 1).w "h" = s'.w "h" from rfl, hh']
+        · rw [show (s'.charge 1).w "ins" = s'.w "ins" from rfl, hins']
+        · rw [show (s'.charge 1).cost = s'.cost + 1 from rfl]
+          have hq0 : m = 0 := h2.2.1
+          have hc2 : s'.cost ≤ st.cost + 2 + 18 * rkD (st.w "h") 0 + 15 := h2.2.2.2
+          omega
+    · -- body: only mode 1 reaches it
+      rcases hmode with h1 | h2
+      · obtain ⟨hgo1, hii1, hm1, hc1⟩ := h1
+        set t0 := s'.charge 1 with ht0
+        have h0E : evalW t0 (lit 0) = some 0 := evalW_lit_of (by show 0 < s'.cap; omega)
+        have h1E : evalW t0 (lit 1) = some 1 := evalW_lit_of (by show 1 < s'.cap; omega)
+        have h2E : evalW t0 (lit 2) = some 2 := evalW_lit_of (by show 2 < s'.cap; omega)
+        have hii0 : evalW t0 (var "ii") = some ii' := by
+          rw [evalW_var]; show some (s'.w "ii") = some ii'; rw [hii1]
+        have hh0 : evalW t0 (var "h") = some (s'.w "h") := evalW_var t0 "h"
+        have hhl : s'.w "h" ≤ G.m + 1 := by rw [hh']; exact hbound
+        have hcapG : G.n + G.m + 2 ≤ s'.cap := hF'.hcap
+        have hiilt : ii' + 1 < s'.cap := by
+          have := K'.hiir; have := hhl; have := hcapG; omega
+        have hh2lt : s'.w "h" / 2 + 1 < s'.cap := by
+          have := hhl; have := hcapG; have := hnpos; omega
+        have haddii : evalW t0 (add (var "ii") (lit 1)) = some (ii' + 1) :=
+          evalW_add_of hii0 h1E (by show ii' + 1 < s'.cap; exact hiilt)
+        have hdivh : evalW t0 (div (var "h") (lit 2)) = some (s'.w "h" / 2) :=
+          evalW_div_of hh0 h2E (by norm_num)
+        have haddh : evalW t0 (add (div (var "h") (lit 2)) (lit 1))
+            = some (s'.w "h" / 2 + 1) :=
+          evalW_add_of hdivh h1E (by show s'.w "h" / 2 + 1 < s'.cap; exact hh2lt)
+        have hcondE : evalW t0
+            (lt (add (var "ii") (lit 1)) (add (div (var "h") (lit 2)) (lit 1)))
+            = some (if ii' + 1 < s'.w "h" / 2 + 1 then 1 else 0) :=
+          evalW_lt_of haddii haddh (by show 1 < s'.cap; have := hcapG; omega)
+        by_cases hlt : ii' + 1 < s'.w "h" / 2 + 1
+        · -- step runs: siftDownStep = wset cl, wset c, child-pick ite, siftDownTail
+          have htail : ∀ (tX : State ℝ≥0) (cx : ℕ),
+              SiftDownOK s tX origHv origHd x xk ii' → F0 G s tX → AF G tX →
+              tX.w "h" = st.w "h" → tX.w "ins" = st.w "ins" → tX.w "ii" = ii' →
+              evalW tX (var "c") = some cx →
+              cx < s'.w "h" →
+              tX.w "go" = 1 →
+              cx = 2 * ii' + 1 ∨ cx = 2 * ii' + 2 →
+              cx = mchOf origHd (st.w "h") ii' →
+              tX.cost ≤ s'.cost + 8 →
+              Runs realOps siftDownTail tX
+                (fun s'' => ∃ m', m' < m ∧ SiftDownInv (s := s) st origHv origHd x xk m' s'') := by
+            intro tX cx hKX hFX hAFX hhX hinsX hiiX hcX hcxlt hgoX hcx0 hcm hcostX
+            have h1lt : 1 < tX.cap := by have := hFX.hcap; have := hnpos; omega
+            have hcxltT : cx < tX.w "h" := by rw [hhX, ← hh']; exact hcxlt
+            have hcxorig : tX.va "hd" cx = origHd cx :=
+              (hKX.child_orig hcxltT hcx0).2
+            have hmin : ∀ j, j < tX.w "h" → (j = 2 * ii' + 1 ∨ j = 2 * ii' + 2) →
+                tX.va "hd" cx ≤ tX.va "hd" j := by
+              intro j hj hjr
+              have hj' : j < st.w "h" := by rw [← hhX]; exact hj
+              have ho := hKX.child_orig hj hjr
+              rw [hcxorig, ho.2]
+              exact mchOf_min origHd hcm hj' hjr
+            have hiiE : evalW tX (var "ii") = some ii' := by
+              rw [evalW_var]; exact congrArg some hiiX
+            have havC : evalV realOps tX (VExpr.load "hd" (var "c")) = some (tX.va "hd" cx) :=
+              evalV_load_of hcX (by show _ < tX.vlen "hd"; rw [hAFX.hdL]; omega)
+            have havI : evalV realOps tX (VExpr.load "hd" (var "ii")) = some (tX.va "hd" ii') :=
+              evalV_load_of hiiE (by show _ < tX.vlen "hd"; rw [hAFX.hdL]; have := hKX.hiir; rw [hhX] at this; omega)
+            refine runs_seq (runs_vle (x := "b") havC havI (by omega) ?_)
+            set tY := (tX.setW "b" (if realOps.le (tX.va "hd" cx) (tX.va "hd" ii')
+              then 1 else 0)).charge 1 with htY
+            have hbval : tY.w "b" = if tX.va "hd" cx ≤ xk then 1 else 0 := by
+              show (if realOps.le (tX.va "hd" cx) (tX.va "hd" ii') then 1 else 0) = _
+              rw [bit_le]
+              show (if tX.va "hd" cx ≤ tX.va "hd" ii' then 1 else 0) = _
+              rw [hKX.hole.2]
+            have hbE : evalW tY (var "b") = some (tY.w "b") := evalW_var tY "b"
+            by_cases hsw : tX.va "hd" cx ≤ xk
+            · -- swap branch: hole descends to cx
+              have hb1 : tY.w "b" = 1 := by rw [hbval, if_pos hsw]
+              refine runs_ite_true hbE (by rw [hb1]; norm_num) ?_
+              set t2 := tY.charge 1 with ht2
+              have hii2 : evalW t2 (var "ii") = some ii' := by
+                rw [evalW_var]; show some (tX.w "ii") = some ii'; rw [hiiX]
+              have hcx2 : evalW t2 (var "c") = some cx := by
+                rw [evalW_var]; show some (tX.w "c") = some cx
+                rw [show tX.w "c" = tX.w "c" from rfl]
+                have := hcX; rw [evalW_var] at this; exact this
+              have hvl2 : ii' < t2.vlen "hd" := by
+                show _ < tX.vlen "hd"; rw [hAFX.hdL]; have := hKX.hiir; rw [hhX] at this; omega
+              have hvl2b : cx < t2.vlen "hd" := by show _ < tX.vlen "hd"; rw [hAFX.hdL]; omega
+              have hav2i : evalV realOps t2 (VExpr.load "hd" (var "ii")) = some (t2.va "hd" ii') :=
+                evalV_load_of hii2 hvl2
+              have hav2c : evalV realOps t2 (VExpr.load "hd" (var "c")) = some (t2.va "hd" cx) :=
+                evalV_load_of hcx2 hvl2b
+              refine runs_seq (runs_vset (x := "tv") hav2i ?_)
+              set t3 := (t2.setV "tv" (t2.va "hd" ii')).charge 1 with ht3
+              have hii3 : evalW t3 (var "ii") = some ii' := by
+                rw [evalW_var]; show some (tX.w "ii") = some ii'; rw [hiiX]
+              have hcx3 : evalW t3 (var "c") = some cx := by
+                rw [evalW_var]; show some (tX.w "c") = some cx
+                have := hcX; rw [evalW_var] at this; exact this
+              have hvl3 : ii' < t3.vlen "hd" := by
+                show _ < tX.vlen "hd"; rw [hAFX.hdL]; have := hKX.hiir; rw [hhX] at this; omega
+              have hvl3b : cx < t3.vlen "hd" := by show _ < tX.vlen "hd"; rw [hAFX.hdL]; omega
+              have hav3i : evalV realOps t3 (VExpr.load "hd" (var "ii")) = some (t3.va "hd" ii') :=
+                evalV_load_of hii3 hvl3
+              have hav3c : evalV realOps t3 (VExpr.load "hd" (var "c")) = some (t3.va "hd" cx) :=
+                evalV_load_of hcx3 hvl3b
+              refine runs_seq (runs_vstore (arr := "hd") hii3 hav3c hvl3 ?_)
+              set t4 := (t3.storeV "hd" ii' (t3.va "hd" cx)).charge 1 with ht4
+              have hcx4 : evalW t4 (var "c") = some cx := by
+                rw [evalW_var]; show some (tX.w "c") = some cx
+                have := hcX; rw [evalW_var] at this; exact this
+              have hvl4b : cx < t4.vlen "hd" := by show _ < tX.vlen "hd"; rw [hAFX.hdL]; omega
+              have htv4 : evalV realOps t4 (VExpr.var "tv") = some (tX.va "hd" ii') := rfl
+              refine runs_seq (runs_vstore (arr := "hd") hcx4 htv4 hvl4b ?_)
+              set t5 := (t4.storeV "hd" cx (tX.va "hd" ii')).charge 1 with ht5
+              have hii5 : evalW t5 (var "ii") = some ii' := by
+                rw [evalW_var]; show some (tX.w "ii") = some ii'; rw [hiiX]
+              have hcx5 : evalW t5 (var "c") = some cx := by
+                rw [evalW_var]; show some (tX.w "c") = some cx
+                have := hcX; rw [evalW_var] at this; exact this
+              have hwl5 : ii' < t5.wlen "hv" := by
+                show _ < tX.wlen "hv"; rw [hAFX.hvL]; have := hKX.hiir; rw [hhX] at this; omega
+              have hwl5b : cx < t5.wlen "hv" := by show _ < tX.wlen "hv"; rw [hAFX.hvL]; omega
+              have hiv5 : evalW t5 (load "hv" (var "ii")) = some (tX.wa "hv" ii') :=
+                evalW_load_of hii5 hwl5
+              have hcxv5 : evalW t5 (load "hv" (var "c")) = some (tX.wa "hv" cx) :=
+                evalW_load_of hcx5 hwl5b
+              refine runs_seq (runs_wset (x := "tw") hiv5 ?_)
+              set t6 := (t5.setW "tw" (tX.wa "hv" ii')).charge 1 with ht6
+              have hii6 : evalW t6 (var "ii") = some ii' := by
+                rw [evalW_var]; show some (tX.w "ii") = some ii'; rw [hiiX]
+              have hcx6 : evalW t6 (var "c") = some cx := by
+                rw [evalW_var]; show some (tX.w "c") = some cx
+                have := hcX; rw [evalW_var] at this; exact this
+              have htw6 : evalW t6 (var "tw") = some (tX.wa "hv" ii') := by rw [evalW_var]; rfl
+              have hwl6 : ii' < t6.wlen "hv" := by
+                show _ < tX.wlen "hv"; rw [hAFX.hvL]; have := hKX.hiir; rw [hhX] at this; omega
+              have hwl6b : cx < t6.wlen "hv" := by show _ < tX.wlen "hv"; rw [hAFX.hvL]; omega
+              have hiv6 : evalW t6 (load "hv" (var "ii")) = some (tX.wa "hv" ii') :=
+                evalW_load_of hii6 hwl6
+              have hcxv6 : evalW t6 (load "hv" (var "c")) = some (tX.wa "hv" cx) :=
+                evalW_load_of hcx6 hwl6b
+              refine runs_seq (runs_wstore (arr := "hv") hii6 hcxv6 hwl6 ?_)
+              set t7 := (t6.storeW "hv" ii' (tX.wa "hv" cx)).charge 1 with ht7
+              have hcx7 : evalW t7 (var "c") = some cx := by
+                rw [evalW_var]; show some (tX.w "c") = some cx
+                have := hcX; rw [evalW_var] at this; exact this
+              have htw7 : evalW t7 (var "tw") = some (tX.wa "hv" ii') := by rw [evalW_var]; rfl
+              have hwl7b : cx < t7.wlen "hv" := by show _ < tX.wlen "hv"; rw [hAFX.hvL]; omega
+              refine runs_seq (runs_wstore (arr := "hv") hcx7 htw7 hwl7b ?_)
+              set t8 := (t7.storeW "hv" cx (tX.wa "hv" ii')).charge 1 with ht8
+              have hcx8 : evalW t8 (var "c") = some cx := by
+                rw [evalW_var]; show some (tX.w "c") = some cx
+                have := hcX; rw [evalW_var] at this; exact this
+              refine runs_wset (x := "ii") hcx8 ?_
+              set t9 := (t8.setW "ii" cx).charge 1 with ht9
+              -- transposition facts for the swap lemma (partner cx, hole ii')
+              have e3 : ∀ i, t3.va "hd" i = tX.va "hd" i := fun i => rfl
+              have e1 : ∀ i, t4.va "hd" i = if i = ii' then t3.va "hd" cx
+                  else t3.va "hd" i := by
+                intro j
+                rw [ht4, va_charge, va_storeV]; simp
+              have e2 : ∀ i, t5.va "hd" i = if i = cx then tX.va "hd" ii'
+                  else t4.va "hd" i := by
+                intro j
+                rw [ht5, va_charge, va_storeV]; simp
+              have hhd : ∀ i, t9.va "hd" i = if i = cx then tX.va "hd" ii'
+                  else if i = ii' then tX.va "hd" cx else tX.va "hd" i := by
+                intro i
+                have e0 : t9.va "hd" i = t5.va "hd" i := rfl
+                have hx : t3.va "hd" cx = tX.va "hd" cx := rfl
+                rw [e0, e2, e1, hx]
+                split_ifs
+                · rfl
+                · rfl
+                · exact e3 i
+              have hneIC : ii' ≠ cx := by rcases hcx0 with h | h <;> omega
+              have heqd : ∀ i, t9.va "hd" i = if i = ii' then tX.va "hd" cx
+                  else if i = cx then tX.va "hd" ii' else tX.va "hd" i := by
+                intro i
+                rw [hhd]
+                by_cases hi : i = ii'
+                · rw [hi]; simp [hneIC]
+                · by_cases hj : i = cx
+                  · rw [hj]; simp [Ne.symm hneIC]
+                  · simp [hi, hj]
+              have w1 : ∀ i, t7.wa "hv" i = if i = ii' then tX.wa "hv" cx
+                  else tX.wa "hv" i := by
+                intro j
+                rw [ht7, wa_charge, wa_storeW]; simp
+                split_ifs <;> rfl
+              have w2 : ∀ i, t8.wa "hv" i = if i = cx then tX.wa "hv" ii'
+                  else t7.wa "hv" i := by
+                intro j
+                rw [ht8, wa_charge, wa_storeW]; simp
+              have hwaE : ∀ i, t9.wa "hv" i = if i = cx then tX.wa "hv" ii'
+                  else if i = ii' then tX.wa "hv" cx else tX.wa "hv" i := by
+                intro i
+                have w0 : t9.wa "hv" i = t8.wa "hv" i := rfl
+                rw [w0, w2, w1]
+              have heqv : ∀ i, hvD s t9 i = if i = ii' then hvD s tX cx
+                  else if i = cx then hvD s tX ii' else hvD s tX i := by
+                intro i
+                by_cases hi : i = ii'
+                · rw [hi]
+                  have hw : t9.wa "hv" ii' = tX.wa "hv" cx := by
+                    rw [hwaE, if_neg hneIC, if_pos rfl]
+                  have key := hvD_eq_of_wa (s := s) hw
+                  simp [key]
+                · by_cases hj : i = cx
+                  · rw [hj]
+                    have hw : t9.wa "hv" cx = tX.wa "hv" ii' := by
+                      rw [hwaE, if_pos rfl]
+                    have key := hvD_eq_of_wa (s := s) hw
+                    simp [key, Ne.symm hneIC]
+                  · have hw : t9.wa "hv" i = tX.wa "hv" i := by
+                      rw [hwaE, if_neg hj, if_neg hi]
+                    have key := hvD_eq_of_wa (s := s) hw
+                    simp [key, hi, hj]
+              have hlt2 : 2 * ii' + 1 < st.w "h" := by
+                rw [← hh']; omega
+              have hdrop : rkD (st.w "h") cx + 1 ≤ rkD (st.w "h") ii' :=
+                rkD_succ_of_child hcx0 hlt2
+              have hK9 : SiftDownOK s t9 origHv origHd x xk cx :=
+                SiftDownOK.swap hKX (by rw [hhX]; exact hcm) hcxltT hsw hmin
+                  (rfl) (rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) heqv heqd
+              have hF9 : F0 G s t9 :=
+                F0.preserve hFX rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+                  (fun _ _ => rfl) rfl rfl rfl
+              have hAF9 : AF G t9 := AF.preserve hAFX rfl rfl rfl rfl rfl rfl rfl
+              have hc9 : t9.cost = tX.cost + 9 := rfl
+              refine ⟨rkD (st.w "h") cx + 1, ?_, cx, hK9, hF9, hAF9,
+                by rw [show t9.w "h" = tX.w "h" from rfl, hhX],
+                by rw [show t9.w "ins" = tX.w "ins" from rfl, hinsX],
+                Or.inl ⟨by rw [show t9.w "go" = tX.w "go" from rfl, hgoX], rfl, rfl, ?_⟩⟩
+              · omega
+              · rw [hc9]
+                have hbs := budget_swap (x := rkD (st.w "h") 0) (q := rkD (st.w "h") ii')
+                  (q' := rkD (st.w "h") cx) (rkD_le_zero) hdrop
+                have h1 : s'.cost ≤ st.cost + 2 + 18 * (rkD (st.w "h") 0 - rkD (st.w "h") ii') + 12
+                  := hc1
+                omega
+            · -- stop branch: `go := 0`, hole stays at ii', hedge xk < hd c ≤ children
+              have hb0 : tY.w "b" = 0 := by rw [hbval, if_neg hsw]
+              refine runs_ite_false (by rw [hbE, hb0]) ?_
+              refine runs_wset (x := "go") (a := 0)
+                  (evalW_lit_of (by show 0 < tX.cap; have := h1lt; omega)) ?_
+              set tS2 := ((tY.charge 1).setW "go" 0).charge 1 with htS2
+              have hKS2 : SiftDownOK s tS2 origHv origHd x xk ii' :=
+                SiftDownOK.stable hKX (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+                  (fun _ => rfl) (fun _ => rfl) rfl rfl
+              have hFS2 : F0 G s tS2 :=
+                F0.preserve hFX rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+                  (fun _ _ => rfl) rfl rfl rfl
+              have hAFS2 : AF G tS2 := AF.preserve hAFX rfl rfl rfl rfl rfl rfl rfl
+              have hcS2 : tS2.cost = tX.cost + 3 := rfl
+              refine ⟨0, by omega, ii', hKS2, hFS2, hAFS2,
+                by rw [show tS2.w "h" = tX.w "h" from rfl, hhX],
+                by rw [show tS2.w "ins" = tX.w "ins" from rfl, hinsX],
+                Or.inr ⟨rfl, rfl, ?_, ?_⟩⟩
+              · intro j hj hjr
+                have hjh : j < s'.w "h" := by
+                  rw [show tS2.w "h" = tX.w "h" from rfl, hhX, ← hh'] at hj; exact hj
+                have hlt2 : 2 * ii' + 1 < st.w "h" := by rw [← hh']; omega
+                have hle2 : tX.va "hd" cx ≤ tX.va "hd" j := hmin j (by
+                  rw [hhX, ← hh']; exact hjh) hjr
+                have hgt : xk < tX.va "hd" cx := lt_of_not_ge hsw
+                show tS2.va "hd" ii' ≤ tS2.va "hd" j
+                rw [show tS2.va "hd" ii' = tX.va "hd" ii' from rfl, hKX.hole.2]
+                exact le_trans hgt.le hle2
+              · rw [hcS2]
+                have h1 : s'.cost ≤ st.cost + 2 + 18 * (rkD (st.w "h") 0 - rkD (st.w "h") ii') + 12
+                  := hc1
+                have hdrop0 : rkD (st.w "h") cx + 1 ≤ rkD (st.w "h") ii' :=
+                  rkD_succ_of_child hcx0 (by rw [← hh']; omega)
+                have hq : 1 ≤ rkD (st.w "h") ii' :=
+                  rkD_pos_of_child (by rw [← hh']; omega)
+                have hbs := budget_bstop (x := rkD (st.w "h") 0) (q := rkD (st.w "h") ii')
+                  (rkD_le_zero) hq
+                omega
+          refine runs_ite_true hcondE (by rw [if_pos hlt]; norm_num) ?_
+          have hlt2 : 2 * ii' + 1 < s'.w "h" := by
+            have h1' : ii' < s'.w "h" / 2 := by omega
+            have hmod := Nat.div_add_mod (s'.w "h") 2
+            have hm2 : s'.w "h" % 2 < 2 := Nat.mod_lt _ (by norm_num)
+            omega
+          have hcap2 : 2 * ii' + 2 < s'.cap := by have := hcapG; have := hlt2; have := hhl; omega
+          -- 1. cl := 2*ii'+1
+          have hclE : evalW (t0.charge 1) (add (add (var "ii") (var "ii")) (lit 1))
+              = some (2 * ii' + 1) := by
+            rw [evalW_charge]
+            have ha : evalW t0 (add (var "ii") (var "ii")) = some (ii' + ii') :=
+              evalW_add_of hii0 hii0 (by show ii' + ii' < s'.cap; omega)
+            have hb : evalW t0 (add (add (var "ii") (var "ii")) (lit 1))
+                = some (ii' + ii' + 1) :=
+              evalW_add_of ha h1E (by show ii' + ii' + 1 < s'.cap; omega)
+            rw [hb]
+            exact congrArg some (by omega)
+          refine runs_seq (runs_wset hclE ?_)
+          set d1 := ((t0.charge 1).setW "cl" (2 * ii' + 1)).charge 1 with hd1
+          have hcl1 : evalW d1 (var "cl") = some (2 * ii' + 1) := by rw [evalW_var]; rfl
+          -- 2. c := cl
+          refine runs_seq (runs_wset hcl1 ?_)
+          set d2 := (d1.setW "c" (2 * ii' + 1)).charge 1 with hd2
+          have hcl2 : evalW d2 (var "cl") = some (2 * ii' + 1) := by rw [evalW_var]; rfl
+          have h1d2 : evalW d2 (lit 1) = some 1 := evalW_lit_of (by show 1 < s'.cap; omega)
+          have hcl1E : evalW d2 (add (var "cl") (lit 1)) = some (2 * ii' + 2) :=
+            evalW_add_of (x := 2 * ii' + 1) (y := 1) hcl2 h1d2
+              (by show 2 * ii' + 2 < s'.cap; omega)
+          have hhd2 : evalW d2 (var "h") = some (s'.w "h") := by rw [evalW_var]; rfl
+          have hcond2 : evalW d2 (lt (add (var "cl") (lit 1)) (var "h"))
+              = some (if 2 * ii' + 2 < s'.w "h" then 1 else 0) :=
+            evalW_lt_of hcl1E hhd2 (by show 1 < s'.cap; omega)
+          -- 3. child pick
+          by_cases hright : 2 * ii' + 2 < s'.w "h"
+          · refine runs_seq (runs_ite_true hcond2 (by rw [if_pos hright]; norm_num) ?_)
+            set d3 := d2.charge 1 with hd3
+            have hcl3 : evalW d3 (var "cl") = some (2 * ii' + 1) := by rw [evalW_var]; rfl
+            have h1d3 : evalW d3 (lit 1) = some 1 := evalW_lit_of (by show 1 < s'.cap; omega)
+            have hcl13 : evalW d3 (add (var "cl") (lit 1)) = some (2 * ii' + 2) :=
+              evalW_add_of (x := 2 * ii' + 1) (y := 1) hcl3 h1d3
+                (by show 2 * ii' + 2 < s'.cap; omega)
+            have hvl3a : 2 * ii' + 2 < d3.vlen "hd" := by
+              have hL : d3.vlen "hd" = G.m + 1 := hhdL; rw [hL]; omega
+            have hvl3b : 2 * ii' + 1 < d3.vlen "hd" := by
+              have hL : d3.vlen "hd" = G.m + 1 := hhdL; rw [hL]; omega
+            have hav3 : evalV realOps d3 (VExpr.load "hd" (add (var "cl") (lit 1)))
+                = some (d3.va "hd" (2 * ii' + 2)) := evalV_load_of hcl13 hvl3a
+            have hav3' : evalV realOps d3 (VExpr.load "hd" (var "cl"))
+                = some (d3.va "hd" (2 * ii' + 1)) := evalV_load_of hcl3 hvl3b
+            refine runs_seq (runs_vle (x := "b") hav3 hav3'
+                (by show 1 < s'.cap; omega) ?_)
+            set d4 := (d3.setW "b" (if realOps.le (d3.va "hd" (2 * ii' + 2))
+                (d3.va "hd" (2 * ii' + 1)) then 1 else 0)).charge 1 with hd4
+            have hco2 : s'.va "hd" (2 * ii' + 2) = origHd (2 * ii' + 2) :=
+              (K'.child_orig hright (Or.inr rfl)).2
+            have hco1 : s'.va "hd" (2 * ii' + 1) = origHd (2 * ii' + 1) :=
+              (K'.child_orig hlt2 (Or.inl rfl)).2
+            have hbval : d4.w "b" = if s'.va "hd" (2 * ii' + 2) ≤ s'.va "hd" (2 * ii' + 1)
+                then 1 else 0 := by
+              show (if realOps.le (d3.va "hd" (2 * ii' + 2)) (d3.va "hd" (2 * ii' + 1))
+                then 1 else 0) = _
+              rw [bit_le]
+              show (if d3.va "hd" (2 * ii' + 2) ≤ d3.va "hd" (2 * ii' + 1) then 1 else 0) = _
+              rw [show d3.va "hd" (2 * ii' + 2) = s'.va "hd" (2 * ii' + 2) from rfl,
+                show d3.va "hd" (2 * ii' + 1) = s'.va "hd" (2 * ii' + 1) from rfl]
+            have hbE : evalW d4 (var "b") = some (d4.w "b") := evalW_var d4 "b"
+            have hright' : 2 * ii' + 2 < st.w "h" := by rw [← hh']; exact hright
+            by_cases hbb : s'.va "hd" (2 * ii' + 2) ≤ s'.va "hd" (2 * ii' + 1)
+            · -- b = 1: c := 2*ii'+2
+              have hb1 : d4.w "b" = 1 := by rw [hbval, if_pos hbb]
+              refine runs_ite_true hbE (by rw [hb1]; norm_num) ?_
+              have hcl4 : evalW (d4.charge 1) (add (var "cl") (lit 1))
+                  = some (2 * ii' + 2) := by
+                rw [evalW_charge]
+                exact evalW_add_of (x := 2 * ii' + 1) (y := 1)
+                    (by rw [evalW_var]; rfl)
+                    (evalW_lit_of (by show 1 < s'.cap; omega))
+                    (by show 2 * ii' + 2 < s'.cap; omega)
+              refine runs_wset (x := "c") hcl4 ?_
+              set d5 := ((d4.charge 1).setW "c" (2 * ii' + 2)).charge 1 with hd5
+              have hcm5 : (2:ℕ) * ii' + 2 = mchOf origHd (st.w "h") ii' := by
+                have hrightS : 2 * ii' + 2 < st.w "h" := by rw [← hh']; exact hright
+                have hbbO : origHd (2 * ii' + 2) ≤ origHd (2 * ii' + 1) := by
+                  rw [← hco2, ← hco1]; exact hbb
+                simp only [mchOf]
+                rw [if_pos hrightS, if_pos hbbO]
+              exact htail d5 (2 * ii' + 2)
+                (SiftDownOK.stable K' (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+                  (fun _ => rfl) (fun _ => rfl) rfl rfl)
+                (F0.preserve hF' rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+                  (fun _ _ => rfl) rfl rfl rfl)
+                (AF.preserve hAF' rfl rfl rfl rfl rfl rfl rfl)
+                (by rw [show d5.w "h" = s'.w "h" from rfl, hh'])
+                (by rw [show d5.w "ins" = s'.w "ins" from rfl, hins'])
+                (by rw [show d5.w "ii" = s'.w "ii" from rfl, hii1])
+                (by rw [evalW_var]; rfl)
+                hright
+                (by rw [show d5.w "go" = s'.w "go" from rfl, hgo1])
+                (Or.inr rfl)
+                hcm5
+                (by show s'.cost + 8 ≤ s'.cost + 8; omega)
+            · -- b = 0: skip, c stays 2*ii'+1
+              have hb0 : d4.w "b" = 0 := by rw [hbval, if_neg hbb]
+              refine runs_ite_false (by rw [hbE, hb0]) ?_
+              refine runs_skip ?_
+              set d5 := ((d4.charge 1).charge 1) with hd5
+              have hcm5 : (2:ℕ) * ii' + 1 = mchOf origHd (st.w "h") ii' := by
+                have hrightS : 2 * ii' + 2 < st.w "h" := by rw [← hh']; exact hright
+                have hbbN : ¬(origHd (2 * ii' + 2) ≤ origHd (2 * ii' + 1)) := by
+                  rw [← hco2, ← hco1]; exact hbb
+                simp only [mchOf]
+                rw [if_pos hrightS, if_neg hbbN]
+              exact htail d5 (2 * ii' + 1)
+                (SiftDownOK.stable K' (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+                  (fun _ => rfl) (fun _ => rfl) rfl rfl)
+                (F0.preserve hF' rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+                  (fun _ _ => rfl) rfl rfl rfl)
+                (AF.preserve hAF' rfl rfl rfl rfl rfl rfl rfl)
+                (by rw [show d5.w "h" = s'.w "h" from rfl, hh'])
+                (by rw [show d5.w "ins" = s'.w "ins" from rfl, hins'])
+                (by rw [show d5.w "ii" = s'.w "ii" from rfl, hii1])
+                (by rw [evalW_var]; rfl)
+                hlt2
+                (by rw [show d5.w "go" = s'.w "go" from rfl, hgo1])
+                (Or.inl rfl)
+                hcm5
+                (by show s'.cost + 8 ≤ s'.cost + 8; omega)
+          · -- no right child: skip the pick, c = 2*ii'+1
+            refine runs_seq (runs_ite_false (by rw [hcond2, if_neg hright]) ?_)
+            refine runs_skip ?_
+            set d3 := ((d2.charge 1).charge 1) with hd3
+            have hcm3 : (2:ℕ) * ii' + 1 = mchOf origHd (st.w "h") ii' := by
+              have hrightN : ¬(2 * ii' + 2 < st.w "h") := by rw [← hh']; exact hright
+              simp only [mchOf]
+              rw [if_neg hrightN]
+            exact htail d3 (2 * ii' + 1)
+              (SiftDownOK.stable K' (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+                (fun _ => rfl) (fun _ => rfl) rfl rfl)
+              (F0.preserve hF' rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+                (fun _ _ => rfl) rfl rfl rfl)
+              (AF.preserve hAF' rfl rfl rfl rfl rfl rfl rfl)
+              (by rw [show d3.w "h" = s'.w "h" from rfl, hh'])
+              (by rw [show d3.w "ins" = s'.w "ins" from rfl, hins'])
+              (by rw [show d3.w "ii" = s'.w "ii" from rfl, hii1])
+              (by rw [evalW_var]; rfl)
+              hlt2
+              (by rw [show d3.w "go" = s'.w "go" from rfl, hgo1])
+              (Or.inl rfl)
+              hcm3
+              (by show s'.cost + 6 ≤ s'.cost + 8; omega)
+        · have hge : s'.w "h" ≤ 2 * ii' + 1 := by
+            have h1' : s'.w "h" / 2 ≤ ii' := by omega
+            have hmod := Nat.div_add_mod (s'.w "h") 2
+            have hm2 : s'.w "h" % 2 < 2 := Nat.mod_lt _ (by norm_num)
+            omega
+          refine runs_ite_false (by rw [hcondE, if_neg hlt]) ?_
+          refine runs_wset (x := "go") (a := 0) h0E ?_
+          set tS := ((t0.charge 1).setW "go" 0).charge 1 with htS
+          have hKS : SiftDownOK s tS origHv origHd x xk ii' :=
+            SiftDownOK.stable K' (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+              (fun _ => rfl) (fun _ => rfl) rfl rfl
+          have hFS : F0 G s tS :=
+            F0.preserve hF' rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+              (fun _ _ => rfl) rfl rfl rfl
+          have hAFS : AF G tS := AF.preserve hAF' rfl rfl rfl rfl rfl rfl rfl
+          have hcS : tS.cost = s'.cost + 3 := rfl
+          refine ⟨0, by omega, ii', hKS, hFS, hAFS,
+            by rw [show tS.w "h" = s'.w "h" from rfl, hh'],
+            by rw [show tS.w "ins" = s'.w "ins" from rfl, hins'],
+            Or.inr ⟨rfl, rfl, ?_, ?_⟩⟩
+          · intro j hj hjr
+            have hjh : j < s'.w "h" := by
+              rw [show tS.w "h" = s'.w "h" from rfl] at hj; exact hj
+            rcases hjr with hr | hr <;> omega
+          · rw [hcS]
+            have hsub : rkD (st.w "h") 0 - rkD (st.w "h") ii' ≤ rkD (st.w "h") 0 :=
+              Nat.sub_le _ _
+            omega
+      · exact absurd h2.1 hgo
+
 end Submission.DijkstraHeap
