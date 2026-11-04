@@ -674,4 +674,175 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
     have : rk ii - rk ii = 0 := Nat.sub_self _
     omega
 
+/-- One `pushBody` run: store the new entry at `h`, bump `h`/`ins`, sift up.  The caller
+guarantees the pushed vertex `pv` is reached (`reach[pv] ≠ 0`).  Cost: `12 * rk h + 13`. -/
+theorem pushBody_runs {st : State ℝ≥0}
+    (hF : F0 G s st) (hAF : AF G st)
+    (hInv : Inv G s (fun v => st.va "dist" v) (fun v => st.wa "reach" v) (fun v => st.wa "done" v)
+      (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
+    (hpv : st.w "pv" < G.n)
+    (hreachv : st.wa "reach" (st.w "pv") ≠ 0)
+    (hbound : st.w "h" ≤ G.m) (hinsb : st.w "ins" ≤ G.m) :
+    Runs realOps pushBody st (fun st' =>
+      F0 G s st' ∧ AF G st' ∧
+      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+        (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
+      st'.w "h" = st.w "h" + 1 ∧ st'.w "ins" = st.w "ins" + 1 ∧
+      st'.cost ≤ st.cost + 12 * rk (st.w "h") + 13) := by
+  have hcap : 2 < st.cap := by have := hF.hcap; omega
+  have hhE : evalW st (var "h") = some (st.w "h") := evalW_var st "h"
+  have hpvE : evalW st (var "pv") = some (st.w "pv") := evalW_var st "pv"
+  have hb1 : st.w "h" < st.wlen "hv" := by rw [hAF.hvL]; omega
+  refine runs_seq (runs_wstore hhE hpvE hb1 ?_)
+  set t1 := (st.storeW "hv" (st.w "h") (st.w "pv")).charge 1 with ht1
+  have hh1 : evalW t1 (var "h") = some (st.w "h") := by rw [evalW_var]; rfl
+  have hwl1 : st.w "h" < t1.vlen "hd" := by
+    have hL : t1.vlen "hd" = G.m + 1 := hAF.hdL; rw [hL]; omega
+  have hpl1 : st.w "pv" < t1.vlen "dist" := by
+    have hL : t1.vlen "dist" = G.n := hAF.distL; rw [hL]; exact hpv
+  have hdp1 : evalV realOps t1 (VExpr.load "dist" (var "pv")) = some (t1.va "dist" (st.w "pv")) :=
+    evalV_load_of (by rw [evalW_var]; rfl) hpl1
+  refine runs_seq (runs_vstore (arr := "hd") hh1 hdp1 hwl1 ?_)
+  set t2 := (t1.storeV "hd" (st.w "h") (t1.va "dist" (st.w "pv"))).charge 1 with ht2
+  have hh2 : evalW t2 (var "h") = some (st.w "h") := by rw [evalW_var]; rfl
+  refine runs_seq (runs_wset (x := "ii") hh2 ?_)
+  set t3 := (t2.setW "ii" (st.w "h")).charge 1 with ht3
+  have hadd3 : evalW t3 (add (var "h") (lit 1)) = some (st.w "h" + 1) := by
+    apply evalW_add_of
+    · rw [evalW_var]; rfl
+    · exact evalW_lit_of (by show 1 < st.cap; omega)
+    · show (st.w "h" + 1) < st.cap; have hc' := hF.hcap; omega
+  refine runs_seq (runs_wset (x := "h") hadd3 ?_)
+  set t4 := (t3.setW "h" (st.w "h" + 1)).charge 1 with ht4
+  have hadd4 : evalW t4 (add (var "ins") (lit 1)) = some (st.w "ins" + 1) := by
+    apply evalW_add_of
+    · rw [evalW_var]; rfl
+    · exact evalW_lit_of (by show 1 < st.cap; omega)
+    · show (st.w "ins" + 1) < st.cap; have hc' := hF.hcap; omega
+  refine runs_seq (runs_wset (x := "ins") hadd4 ?_)
+  set t5 := (t4.setW "ins" (st.w "ins" + 1)).charge 1 with ht5
+  -- composed push effects
+  have eA : ∀ i, t5.va "hd" i = if i = st.w "h" then t1.va "dist" (st.w "pv")
+      else t1.va "hd" i := by
+    intro i
+    have e1 : t5.va "hd" i = t2.va "hd" i := rfl
+    rw [e1, ht2, va_charge, va_storeV]
+    simp
+  have hhd5 : ∀ i, t5.va "hd" i = if i = st.w "h" then st.va "dist" (st.w "pv")
+      else st.va "hd" i := by
+    intro i
+    have e2 : t1.va "hd" i = st.va "hd" i := rfl
+    have e3 : t1.va "dist" (st.w "pv") = st.va "dist" (st.w "pv") := rfl
+    rw [eA, e3, e2]
+  have hwa5 : ∀ i, t5.wa "hv" i = if i = st.w "h" then st.w "pv" else st.wa "hv" i := by
+    intro i
+    have e1 : t5.wa "hv" i = t1.wa "hv" i := rfl
+    rw [e1, ht1, wa_charge, wa_storeW]
+    simp
+  have hhv5 : ∀ i, hvD s t5 i = if i = st.w "h" then ⟨st.w "pv", hpv⟩ else hvD s st i := by
+    intro i
+    by_cases hi : i = st.w "h"
+    · rw [hi, if_pos rfl]
+      show hvD s t5 (st.w "h") = ⟨st.w "pv", hpv⟩
+      simp only [hvD]
+      rw [hwa5, if_pos rfl]
+      exact dif_pos hpv
+    · rw [if_neg hi]
+      have hw : t5.wa "hv" i = st.wa "hv" i := by rw [hwa5, if_neg hi]
+      exact hvD_eq_of_wa hw
+  have hh5 : t5.w "h" = st.w "h" + 1 := rfl
+  have hins5 : t5.w "ins" = st.w "ins" + 1 := rfl
+  -- the sift-up state at the new entry
+  have hK : SiftUpOK s t5 (fun i => if i = st.w "h" then ⟨st.w "pv", hpv⟩ else hvD s st i)
+      (fun i => if i = st.w "h" then st.va "dist" (st.w "pv") else st.va "hd" i)
+      ⟨st.w "pv", hpv⟩ (st.va "dist" (st.w "pv")) (st.w "h") (st.w "h") := by
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · -- soft
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · intro v hrv; exact hInv.ghost v hrv
+      · intro e hd0; exact hInv.relax_hold e hd0
+      · intro v hrv hd0
+        obtain ⟨i, hi, hvi, hdi⟩ := hInv.entry_cur v hrv hd0
+        refine ⟨i, by rw [hh5]; omega, ?_, ?_⟩
+        · rw [hhv5, if_neg (by omega)]; exact hvi
+        · rw [hhd5, if_neg (by omega)]; exact hdi
+      · intro i hi
+        by_cases hiz : i = st.w "h"
+        · rw [hiz, hhd5, if_pos rfl, hhv5, if_pos rfl]
+          show st.va "dist" (st.w "pv") ≤ st.va "dist" (st.w "pv")
+          exact le_rfl
+        · rw [hhd5, if_neg hiz, hhv5, if_neg hiz]
+          exact hInv.entry_mono i (by have := hh5; omega)
+      · intro i hi
+        by_cases hiz : i = st.w "h"
+        · rw [hiz, hhv5, if_pos rfl]
+          show st.wa "reach" (st.w "pv") ≠ 0
+          exact hreachv
+        · rw [hhv5, if_neg hiz]
+          exact hInv.entry_reach i (by have := hh5; omega)
+      · exact hInv.source0
+      · intro u hd0; exact hInv.done_reach u hd0
+    · -- hole
+      refine ⟨?_, ?_⟩
+      · rw [hhv5, if_pos rfl]
+      · rw [hhd5, if_pos rfl]
+    · -- xle (children of h are out of range)
+      intro j hj hjr
+      rw [hhd5]
+      by_cases hz : j = st.w "h"
+      · rw [hz, if_pos rfl] <;> try exact le_rfl
+      · rw [if_neg hz]
+        rcases hjr with hr | hr <;> omega
+    · -- pairs
+      intro i hi
+      by_cases hiz : i = st.w "h"
+      · refine Or.inl ⟨hiz, ?_, ?_⟩
+        · rw [hiz, hhv5, if_pos rfl]
+        · rw [hiz, hhd5, if_pos rfl]
+      · refine Or.inr (Or.inr ⟨hiz, ?_, ?_⟩)
+        · show hvD s t5 i = (if i = st.w "h" then ⟨st.w "pv", hpv⟩ else hvD s st i)
+          rw [hhv5, if_neg hiz]
+        · show t5.va "hd" i = (if i = st.w "h" then st.va "dist" (st.w "pv") else st.va "hd" i)
+          rw [hhd5, if_neg hiz]
+    · -- ok: only the edge into h can fail
+      intro i j hi hj hjr hneq
+      by_cases hjh : j = st.w "h"
+      · have hip : i = par (st.w "h") := by
+          rw [hjh] at hjr
+          exact (par_of_child hjr).symm
+        exact absurd ⟨hip, hjh⟩ hneq
+      · by_cases hih : i = st.w "h"
+        · rw [hih] at hjr; omega
+        · show t5.va "hd" i ≤ t5.va "hd" j
+          rw [hhd5 i, if_neg hih, hhd5 j, if_neg hjh]
+          exact hInv.heapOK i (by have := hh5; omega) j (by have := hh5; omega) hjr
+    · -- origOK
+      intro i j hi hj hjr hneq
+      by_cases hjh : j = st.w "h"
+      · have hip : i = par (st.w "h") := by
+          rw [hjh] at hjr
+          exact (par_of_child hjr).symm
+        exact absurd ⟨hip, hjh⟩ hneq
+      · by_cases hih : i = st.w "h"
+        · rw [hih] at hjr; omega
+        · show (if i = st.w "h" then st.va "dist" (st.w "pv") else st.va "hd" i)
+            ≤ (if j = st.w "h" then st.va "dist" (st.w "pv") else st.va "hd" j)
+          rw [if_neg hih, if_neg hjh]
+          exact hInv.heapOK i (by have := hh5; omega) j (by have := hh5; omega) hjr
+    · rw [hh5]; omega
+    · rw [hh5]; omega
+  -- run the sift
+  have hF5 : F0 G s t5 :=
+    F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) rfl rfl rfl
+  have hAF5 : AF G t5 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
+  have hbound5 : t5.w "h" ≤ G.m + 1 := by rw [hh5]; omega
+  refine (siftUp_runs hF5 hAF5 hK rfl hbound5).mono ?_
+  rintro st' ⟨hF', hAF', hInv', hheq, hinseq, hcost⟩
+  refine ⟨hF', hAF', hInv', ?_, ?_, ?_⟩
+  · rw [hheq, hh5]
+  · rw [hinseq, hins5]
+  · have hc5 : t5.cost = st.cost + 5 := rfl
+    rw [hc5] at hcost
+    omega
+
 end Submission.DijkstraHeap
