@@ -50,11 +50,11 @@ theorem F0.setW {st : State ℝ≥0} (h : F0 G s st) {x : String}
     (hx : x ≠ "n" ∧ x ≠ "m" ∧ x ≠ "s") (a : ℕ) : F0 G s (st.setW x a) := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := h
   refine ⟨?_, ?_, ?_, h4, h5, h6, h7, h8, h9, h10⟩
-  · show (if x = "n" then a else st.w "n") = G.n
+  · show (if "n" = x then a else st.w "n") = G.n
     rw [if_neg (Ne.symm hx.1)]; exact h1
-  · show (if x = "m" then a else st.w "m") = G.m
+  · show (if "m" = x then a else st.w "m") = G.m
     rw [if_neg (Ne.symm hx.2.1)]; exact h2
-  · show (if x = "s" then a else st.w "s") = (s : ℕ)
+  · show (if "s" = x then a else st.w "s") = (s : ℕ)
     rw [if_neg (Ne.symm hx.2.2)]; exact h3
 
 theorem F0.preserve {st : State ℝ≥0} (h : F0 G s st) {st' : State ℝ≥0}
@@ -76,10 +76,13 @@ theorem F0.preserve {st : State ℝ≥0} (h : F0 G s st) {st' : State ℝ≥0}
 theorem F0.charge {st : State ℝ≥0} (h : F0 G s st) (k : ℕ) : F0 G s (st.charge k) :=
   F0.preserve h rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) rfl rfl rfl
 
-theorem F0.initState (P : Program) (s : Fin G.n) : F0 G s (initState P G s) := by
-  refine ⟨rfl, rfl, rfl, ?_, fun j hj => rfl, fun j hj => rfl, fun j hj => rfl, rfl, rfl, rfl⟩
-  calc G.n + G.m + 2 = (G.n + G.m + 2) ^ 1 := (pow_one _).symm
-    _ ≤ (G.n + G.m + 2) ^ (P.wordExp + 1) := Nat.pow_le_pow_right (by omega) (by omega)
+theorem F0.init_state (P : Program) (s : Fin G.n) : F0 G s (initState P G s) := by
+  refine ⟨rfl, rfl, rfl, ?_, ?_, ?_, ?_, rfl, rfl, rfl⟩
+  · calc G.n + G.m + 2 = (G.n + G.m + 2) ^ 1 := (pow_one _).symm
+      _ ≤ (G.n + G.m + 2) ^ (P.wordExp + 1) := Nat.pow_le_pow_right (by omega) (by omega)
+  · intro j hj; unfold Frontier.RAM.initState; rw [if_pos rfl]; exact dif_pos hj
+  · intro j hj; unfold Frontier.RAM.initState; rw [if_pos rfl]; exact dif_pos hj
+  · intro j hj; unfold Frontier.RAM.initState; rw [if_pos rfl]; exact dif_pos hj
 
 /-! ## Dijkstra array frame -/
 
@@ -150,13 +153,12 @@ theorem calcPa_runs (st : State ℝ≥0) (hF : F0 G s st) :
       evalW_lt_of (x := 1) (y := q) (evalW_lit_of hcap')
         (by rw [evalW_var, ht]) hcap'
     by_cases hq : 1 < q
-    · refine ⟨1, ?_, ?_, fun hz => absurd hz one_ne_zero⟩
+    · refine ⟨1, ?_, fun _ => ?_, fun hz => (one_ne_zero hz).elim⟩
       · rw [hcond, if_pos hq]
       · have hdiv : evalW (st'.charge 1) (.div (var "t") (lit 2)) = some (q / 2) := by
-          have a : evalW (st'.charge 1) (var "t") = some q := by rw [evalW_charge, evalW_var, ht]
-          have b : evalW (st'.charge 1) (lit 2) = some 2 :=
-            evalW_lit_of (Nat.lt_trans (by norm_num) hcap')
-          simp [evalW, a, b]
+          have b2 : fit st'.cap 2 = some 2 := by unfold fit; exact if_pos (by omega)
+          simp only [evalW]
+          rw [ht, b2]
         have hadd : evalW ((st'.charge 1).setW "t" (q / 2) |>.charge 1)
             (add (var "pa") (lit 1)) = some (st'.w "pa" + 1) := by
           apply evalW_add_of
@@ -165,34 +167,40 @@ theorem calcPa_runs (st : State ℝ≥0) (hF : F0 G s st) :
           · have := hF'.hcap; omega
         refine runs_seq (runs_wset hdiv ?_)
         refine runs_wset hadd ?_
-        refine ⟨q / 2, ?_,
-          ((((hF'.setW (x := "t") (a := q / 2) (by simp)).charge 1).setW (x := "pa")
-            (a := st'.w "pa" + 1) (by simp)).charge 1), ?_, ?_, ?_⟩
-        · simp; omega
+        refine ⟨q / 2, Nat.div_lt_self (by omega : 0 < q) (by norm_num : 1 < 2),
+          ⟨(((((hF'.charge 1).setW (x := "t") (a := q / 2) (by simp)).charge 1).setW (x := "pa")
+            (a := st'.w "pa" + 1) (by simp)).charge 1), ?_, ?_, ?_, ?_⟩⟩
+        · simp
         · show q / 2 = G.n / 2 ^ (st'.w "pa" + 1)
           rw [hrel, Nat.pow_succ]; omega
         · have h2 : 2 ^ (st'.w "pa" + 1) ≤ G.n := by
-            have h1 : 2 ≤ G.n / 2 ^ (st'.w "pa") := by omega
-            have h2 : (G.n / 2 ^ (st'.w "pa")) * 2 ^ (st'.w "pa") ≤ G.n :=
+            have h4 : (G.n / 2 ^ (st'.w "pa")) * 2 ^ (st'.w "pa") ≤ G.n :=
               Nat.div_mul_le_self G.n (2 ^ (st'.w "pa"))
-            rw [Nat.pow_succ]; omega
+            have h1 : 2 * 2 ^ (st'.w "pa") ≤ G.n := by
+              have : 2 * 2 ^ (st'.w "pa") ≤ (G.n / 2 ^ (st'.w "pa")) * 2 ^ (st'.w "pa") := by
+                rw [← hrel]; exact Nat.mul_le_mul (by omega : 2 ≤ q) le_rfl
+              exact this.trans h4
+            rw [Nat.pow_succ, Nat.mul_comm]; exact h1
           exact Nat.le_log_of_pow_le (by norm_num) h2
         · simp; omega
     · have hq1 : q ≤ 1 := by omega
-      refine ⟨0, ?_, (fun hz => absurd hz one_ne_zero), ?_⟩
+      refine ⟨0, ?_, fun hz => (hz rfl).elim, ?_⟩
       · rw [hcond, if_neg hq]
       · have hple' : Nat.log 2 G.n ≤ st'.w "pa" := by
           by_contra! hlt
-          have hpow : 2 ^ (st'.w "pa" + 1) ≤ G.n := by
-            have h2 : 2 ^ Nat.log 2 G.n ≤ G.n := Nat.pow_log_le_self 2 (by
-              by_contra! hh; simp at hh; subst hh; simp at hq1 hrel)
-            have : st'.w "pa" + 1 ≤ Nat.log 2 G.n := by omega
-            exact (Nat.pow_le_pow_right (by norm_num) this).trans h2
-          have h1 : 2 ≤ G.n / 2 ^ (st'.w "pa") := by
-            have h3 : 2 * 2 ^ (st'.w "pa") ≤ G.n := by rw [Nat.pow_succ] at hpow; exact hpow
-            have h4 : (G.n / 2 ^ (st'.w "pa")) * 2 ^ (st'.w "pa") ≤ G.n :=
-              Nat.div_mul_le_self G.n (2 ^ (st'.w "pa"))
-            omega
+          -- p < log → 2^(p+1) ≤ n → q = n/2^p ≥ 2 → 1 < q, contradicting ¬(1 < q)
+          have h2 : 2 ^ Nat.log 2 G.n ≤ G.n := Nat.pow_log_le_self 2 (by
+            by_contra! hh
+            have : G.n = 0 := by omega
+            subst this
+            simp at hrel)
+          have hpow : 2 ^ (st'.w "pa" + 1) ≤ G.n :=
+            (Nat.pow_le_pow_right (by norm_num) (show st'.w "pa" + 1 ≤ Nat.log 2 G.n by
+              omega)).trans h2
+          have h1 : 2 ≤ q := by
+            rw [← hrel, Nat.le_div_iff_mul_le (by positivity)]
+            have h3 : 2 ^ (st'.w "pa") * 2 ≤ G.n := by rw [Nat.pow_succ] at hpow; exact hpow
+            rw [Nat.mul_comm]; exact h3
           omega
         refine ⟨hF'.charge 1, ?_, ?_⟩
         · simp; omega
