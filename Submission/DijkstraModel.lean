@@ -22,6 +22,8 @@ namespace Submission.DijkstraModel
 open Frontier Graph NNReal ENNReal
 
 variable {G : Graph} {s : Fin G.n}
+variable {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n → ℕ}
+variable {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} {h ins : ℕ}
 
 /-! ## Heap order -/
 
