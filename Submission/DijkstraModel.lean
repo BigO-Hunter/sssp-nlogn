@@ -9,9 +9,9 @@ Pure math over decoded arrays (no `RAM`).  Decoded run quantities: `distA : Fin 
 total inserts).
 
 Standing invariant `Inv`: `ghost` (every reached vertex carries an exact realized
-walk, `len = distA`), `settled_exact`, `relax_hold` (edges out of settled vertices
+walk, `len = distA`), `relax_hold` (edges out of settled vertices
 are relaxed at current labels; heads reached), `heapOK` (min-heap order),
-`entry_ge`, `entry_cur`, `entry_mono`, `entry_reach`, `counts`, `source0`.
+`entry_cur`, `entry_mono`, `entry_reach`, `source0`, `done_reach`.
 
 Main results: `pop_settle_exact` (min-exchange) and `certificate` (at heap
 exhaustion the decoded labels are the exact distances).
@@ -64,16 +64,13 @@ structure Inv (G : Graph) (s : Fin G.n)
     (distA : Fin G.n → ℝ≥0) (reachA doneA : Fin G.n → ℕ)
     (hv : ℕ → Fin G.n) (hd : ℕ → ℝ≥0) (h ins : ℕ) : Prop where
   ghost : ∀ v, reachA v ≠ 0 → ∃ p, G.IsWalk s v p ∧ G.len p = distA v
-  settled_exact : ∀ u, doneA u ≠ 0 → ((distA u : ℝ≥0) : ℝ≥0∞) = G.dist s u
   relax_hold : ∀ e : Fin G.m, doneA (G.src e) ≠ 0 →
     reachA (G.dst e) ≠ 0 ∧
     ((distA (G.dst e) : ℝ≥0) : ℝ≥0∞) ≤ ((distA (G.src e) : ℝ≥0) : ℝ≥0∞) + G.w e
   heapOK : HeapOK hv hd h
-  entry_ge : ∀ i, i < h → ((G.dist s (hv i) : ℝ≥0∞)) ≤ ((hd i : ℝ≥0) : ℝ≥0∞)
   entry_cur : ∀ v, reachA v ≠ 0 → doneA v = 0 → ∃ i, i < h ∧ hv i = v ∧ hd i = distA v
   entry_mono : ∀ i, i < h → distA (hv i) ≤ hd i
   entry_reach : ∀ i, i < h → reachA (hv i) ≠ 0
-  counts : h ≤ ins ∧ ins ≤ G.m + 1
   source0 : distA s = 0 ∧ reachA s ≠ 0
   done_reach : ∀ u, doneA u ≠ 0 → reachA u ≠ 0
 
