@@ -2282,6 +2282,23 @@ structure SweepInv (G : Graph) (s : Fin G.n) (u : Fin G.n) (st : State ℝ≥0) 
   done_u : st.wa "done" u ≠ 0
   k_le : k ≤ (chainOf st u (G.m + 1)).length
 
+/-- A settled vertex's label is never undercut: any candidate along an edge into it is at
+least its exact label, so `relaxBody`'s improvement test reads false and writes nothing. -/
+theorem cand_ge_dist_done {G : Graph} {s : Fin G.n} {u x : Fin G.n} {st : State ℝ≥0}
+    (e : Fin G.m) (hsrc : G.src e = u) (hdst : G.dst e = x)
+    (hsettled : ∀ v : Fin G.n, st.wa "done" v ≠ 0 → ((st.va "dist" v : ℝ≥0) : ℝ≥0∞) = G.dist s v)
+    (hu : st.wa "done" u ≠ 0) (hx : st.wa "done" x ≠ 0) :
+    st.va "dist" x ≤ st.va "dist" u + G.w e := by
+  have huE : ((st.va "dist" u : ℝ≥0) : ℝ≥0∞) = G.dist s u := hsettled u hu
+  have hxE : ((st.va "dist" x : ℝ≥0) : ℝ≥0∞) = G.dist s x := hsettled x hx
+  have htri : G.dist s x ≤ G.dist s u + G.w e := by
+    simpa [hsrc, hdst] using Graph.dist_edge (s := s) e
+  have hcast : ((st.va "dist" x : ℝ≥0) : ℝ≥0∞)
+      ≤ ((st.va "dist" u : ℝ≥0) : ℝ≥0∞) + G.w e := by
+    rw [hxE, huE]
+    exact htri
+  exact_mod_cast hcast
+
 /-- At full chain coverage the sweep invariant collapses to the model `Inv`. -/
 theorem SweepInv.toInv {G : Graph} {s u : Fin G.n} {st : State ℝ≥0} {k : ℕ}
     (S : SweepInv G s u st k) (hk : (chainOf st u (G.m + 1)).length ≤ k) :
