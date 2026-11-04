@@ -110,4 +110,194 @@ theorem SoftInv.swap {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n → �
           by rw [if_neg hja, if_neg hjb]
         rw [heqd j, e2]; exact hjd
 
+/-- Parent position in the implicit binary heap. -/
+def par (i : ℕ) : ℕ := (i - 1) / 2
+
+/-- Heap order on every edge except the single edge `(a, b)`. -/
+def HeapOKExcept (hd : ℕ → ℝ≥0) (h a b : ℕ) : Prop :=
+  ∀ i j, i < h → j < h → (j = 2 * i + 1 ∨ j = 2 * i + 2) → ¬(i = a ∧ j = b) → hd i ≤ hd j
+
+/-- Full heap order once the excepted edge also holds (or is not a real edge). -/
+theorem HeapOKExcept.toHeapOK {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} {h a b : ℕ}
+    (H : HeapOKExcept hd h a b) (hedge : ¬(a < h ∧ b < h ∧ (b = 2 * a + 1 ∨ b = 2 * a + 2)) ∨ hd a ≤ hd b) :
+    HeapOK hv hd h := by
+  intro i hi j hj hjr
+  by_cases heq : i = a ∧ j = b
+  · rcases hedge with hneg | hok
+    · refine (hneg ?_).elim
+      refine ⟨?_, ?_, ?_⟩
+      · rw [← heq.1]; exact hi
+      · rw [← heq.2]; exact hj
+      · rw [heq.1, heq.2] at hjr; exact hjr
+    · rw [heq.1, heq.2]; exact hok
+  · exact H i j hi hj hjr heq
+
+/-- The sift-up state: entry fields intact (`SoftInv`), the moving pair `(x, xk)` at `ii`,
+pairs are originals shifted one step down the sift path, heap order holds except the
+edge into the moving pair, and the moving pair dominates its (possibly empty) children. -/
+structure SiftUpOK (s : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.n) (origHd : ℕ → ℝ≥0)
+    (x : Fin G.n) (xk : ℝ≥0) (ii₀ ii : ℕ) : Prop where
+  soft : SoftInv s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+      (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins")
+  hole : hvD s st ii = x ∧ st.va "hd" ii = xk
+  xle : ∀ j, j < st.w "h" → (j = 2 * ii + 1 ∨ j = 2 * ii + 2) → xk ≤ st.va "hd" j
+  pairs : ∀ i, i < st.w "h" →
+      (i = ii ∧ hvD s st i = x ∧ st.va "hd" i = xk) ∨
+      (ii ≤ i ∧ i ≠ ii ∧ hvD s st i = origHv (par i) ∧ st.va "hd" i = origHd (par i)) ∨
+      (i ≠ ii₀ ∧ hvD s st i = origHv i ∧ st.va "hd" i = origHd i)
+  ok : HeapOKExcept (fun i => st.va "hd" i) (st.w "h") (par ii) ii
+  origOK : HeapOKExcept origHd (st.w "h") (par ii₀) ii₀
+  leaf0 : 2 * ii₀ + 1 ≥ st.w "h"
+
+/-- `par` is strictly decreasing away from 0. -/
+theorem par_lt (i : ℕ) (hi : 0 < i) : par i < i := by
+  simp only [par]
+  omega
+
+theorem par_ne (i : ℕ) (hi : 0 < i) : par i ≠ i := by
+  have := par_lt i hi; omega
+
+/-- Every positive position is one of its parent's two children. -/
+theorem par_child (i : ℕ) (hi : 0 < i) : i = 2 * par i + 1 ∨ i = 2 * par i + 2 := by
+  have hd := Nat.div_add_mod (i - 1) 2
+  have hm : (i - 1) % 2 = 0 ∨ (i - 1) % 2 = 1 := by omega
+  simp only [par]
+  rcases hm with hm | hm <;> omega
+
+/-- The parent of a child position. -/
+theorem par_of_child {i j : ℕ} (h : j = 2 * i + 1 ∨ j = 2 * i + 2) : par j = i := by
+  rcases h with h | h <;> simp only [par] <;> rw [h] <;> omega
+
+/-- One sift-up swap: the moving pair rises to `par ii`, the pair there descends to `ii`
+and becomes a shifted pair.  The hole moves to `par ii`. -/
+theorem SiftUpOK.swap {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+    {x : Fin G.n} {xk : ℝ≥0} {ii₀ ii : ℕ}
+    (K : SiftUpOK s st origHv origHd x xk ii₀ ii)
+    (hii : 0 < ii) (hlt : ii < st.w "h")
+    (hh : st'.w "h" = st.w "h") (hins : st'.w "ins" = st.w "ins")
+    (hswap : xk ≤ st.va "hd" (par ii))
+    (hdist : ∀ v : Fin G.n, st'.va "dist" v = st.va "dist" v)
+    (hreach : ∀ v : Fin G.n, st'.wa "reach" v = st.wa "reach" v)
+    (hdone : ∀ v : Fin G.n, st'.wa "done" v = st.wa "done" v)
+    (heqv : ∀ i, hvD s st' i = if i = ii then hvD s st (par ii)
+        else if i = par ii then hvD s st ii else hvD s st i)
+    (heqd : ∀ i, st'.va "hd" i = if i = ii then st.va "hd" (par ii)
+        else if i = par ii then st.va "hd" ii else st.va "hd" i) :
+    SiftUpOK s st' origHv origHd x xk ii₀ (par ii) := by
+  have hp : par ii < ii := par_lt ii hii
+  have hne : par ii ≠ ii := par_ne ii hii
+  have hplt : par ii < st.w "h" := lt_trans hp hlt
+  have hpo : hvD s st (par ii) = origHv (par ii) ∧ st.va "hd" (par ii) = origHd (par ii) := by
+    rcases K.pairs (par ii) hplt with h1 | h2 | h3
+    · exact absurd h1.1 hne
+    · exact absurd h2.1 (by omega)
+    · exact ⟨h3.2.1, h3.2.2⟩
+  have hdd : (fun v : Fin G.n => st'.va "dist" v) = (fun v : Fin G.n => st.va "dist" v) :=
+    funext hdist
+  have hrr : (fun v : Fin G.n => st'.wa "reach" v) = (fun v : Fin G.n => st.wa "reach" v) :=
+    funext hreach
+  have hdn : (fun v : Fin G.n => st'.wa "done" v) = (fun v : Fin G.n => st.wa "done" v) :=
+    funext hdone
+  have hsoft : SoftInv s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
+      (fun v => st'.wa "done" v) (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") := by
+    have hsw := K.soft.swap (hab := hne.symm) (ha := hlt) (hb := hplt)
+      (hv' := hvD s st') (hd' := fun i => st'.va "hd" i) heqv heqd
+    rw [← hdd, ← hrr, ← hdn, ← hh, ← hins] at hsw
+    exact hsw
+  have e1 : hvD s st' (par ii) = hvD s st ii := by
+    rw [heqv, if_neg hne, if_pos rfl]
+  have e2 : st'.va "hd" (par ii) = xk := by
+    rw [heqd, if_neg hne, if_pos rfl]; exact K.hole.2
+  have hhole : hvD s st' (par ii) = x ∧ st'.va "hd" (par ii) = xk :=
+    ⟨e1.trans K.hole.1, e2⟩
+  have e3 : st'.va "hd" ii = origHd (par ii) := by
+    rw [heqd, if_pos rfl, hpo.2]
+  -- original parent edges, except the entry edge (vacuous there by `leaf0`)
+  have hpar : ∀ i j, i < st.w "h" → j < st.w "h" → (j = 2 * i + 1 ∨ j = 2 * i + 2) →
+      origHd (par i) ≤ origHd i := by
+    intro i j hi hj hjr
+    by_cases h0 : i = 0
+    · subst h0; exact le_rfl
+    have hedge : i = 2 * par i + 1 ∨ i = 2 * par i + 2 := par_child i (by omega)
+    have hpl : par i < st.w "h" := lt_trans (par_lt i (by omega)) hi
+    by_contra hn
+    have hzi : i = ii₀ := by
+      by_contra hn2
+      exact absurd (K.origOK (par i) i hpl hi hedge (fun hcc => hn2 hcc.2)) hn
+    subst hzi
+    have hleaf := K.leaf0
+    rcases hjr with hr | hr <;> omega
+  refine ⟨hsoft, hhole, ?_, ?_, ?_, (by rw [hh]; exact K.origOK), (by rw [hh]; exact K.leaf0)⟩
+  · -- xle at the new hole: children of `par ii`
+    intro j hj hjr
+    by_cases hjii : j = ii
+    · rw [hjii, e3, ← hpo.2]; exact hswap
+    · have e : st'.va "hd" j = st.va "hd" j := by
+        rw [heqd, if_neg hjii, if_neg (by omega)]
+      rw [e]
+      exact le_trans hswap
+        (K.ok (par ii) j hplt (by omega) hjr (fun hh' => hjii hh'.2))
+  · -- pairs
+    intro i hi
+    by_cases hii2 : i = ii
+    · rw [hii2]
+      refine Or.inr (Or.inl ⟨by omega, fun hh' => hne hh'.symm, ?_, ?_⟩)
+      · rw [heqv, if_pos rfl]; exact hpo.1
+      · rw [heqd, if_pos rfl]; exact hpo.2
+    · by_cases hip : i = par ii
+      · rw [hip]
+        refine Or.inl ⟨rfl, ?_, ?_⟩
+        · rw [heqv, if_neg hne, if_pos rfl]; exact K.hole.1
+        · rw [heqd, if_neg hne, if_pos rfl]; exact K.hole.2
+      · rcases K.pairs i (by omega) with h1 | h2 | h3
+        · exact absurd h1.1 hii2
+        · refine Or.inr (Or.inl ⟨by omega, hip, ?_, ?_⟩)
+          · rw [heqv, if_neg hii2, if_neg hip]; exact h2.2.2.1
+          · rw [heqd, if_neg hii2, if_neg hip]; exact h2.2.2.2
+        · refine Or.inr (Or.inr ⟨h3.1, ?_, ?_⟩)
+          · rw [heqv, if_neg hii2, if_neg hip]; exact h3.2.1
+          · rw [heqd, if_neg hii2, if_neg hip]; exact h3.2.2
+  · -- heap order except (par (par ii), par ii)
+    intro i j hi hj hjr hneq
+    show st'.va "hd" i ≤ st'.va "hd" j
+    by_cases hcp : i = par ii
+    · -- the hole sits at par ii
+      rw [hcp]
+      by_cases hcj : j = ii
+      · rw [hcj, e2, e3, ← hpo.2]; exact hswap
+      · have e : st'.va "hd" j = st.va "hd" j := by
+          rw [heqd, if_neg hcj, if_neg (by omega)]
+        rw [e2, e]
+        exact le_trans hswap (K.ok (par ii) j hplt (by omega) (by omega) (fun hcc => hcj hcc.2))
+    · have hjii : j ≠ ii := by
+        intro hh
+        rw [hh] at hjr
+        exact hcp (par_of_child hjr).symm
+      have hjp : j ≠ par ii := by
+        intro hh
+        rw [hh] at hjr
+        exact hneq ⟨(par_of_child hjr).symm, hh⟩
+      by_cases hci : i = ii
+      · -- the shifted pair at ii
+        rw [hci] at hjr
+        rw [hci]
+        have e : st'.va "hd" j = st.va "hd" j := by
+          rw [heqd, if_neg hjii, if_neg hjp]
+        rw [e3, e]
+        have hok : origHd (par ii) ≤ origHd ii := hpar ii j hlt (by omega) hjr
+        have hpj : par j = ii := par_of_child hjr
+        rcases K.pairs j (by omega) with h1 | h2 | h3
+        · exact absurd h1.1 hjii
+        · rw [h2.2.2.2, hpj]; exact hok
+        · rw [h3.2.2]
+          exact le_trans hok
+            (K.origOK ii j hlt (by omega) hjr (fun hcc => h3.1 hcc.2))
+      · -- neither endpoint moved
+        have e : st'.va "hd" j = st.va "hd" j := by
+          rw [heqd, if_neg hjii, if_neg hjp]
+        have e' : st'.va "hd" i = st.va "hd" i := by
+          rw [heqd, if_neg hci, if_neg hcp]
+        rw [e', e]
+        exact K.ok i j (by omega) (by omega) hjr (fun hcc => hcp hcc.1)
+
 end Submission.DijkstraHeap
