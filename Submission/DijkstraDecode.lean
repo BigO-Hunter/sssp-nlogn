@@ -152,6 +152,17 @@ theorem chainWalk_take (st : State ℝ≥0) (k : ℕ) :
       simp
       rw [ih (st.wa "nxt" (q - 1)) j]
 
+/-- A chain walk visits at most `n` edges with fuel `n`. -/
+theorem chainWalk_length_le (st : State ℝ≥0) (q n : ℕ) : (chainWalk st q n).length ≤ n := by
+  induction n generalizing q with
+  | zero => rfl
+  | succ n ih =>
+    rw [chainWalk_succ]
+    by_cases hq : q = 0
+    · simp [hq]
+    · rw [if_neg hq]
+      simpa using ih (st.wa "nxt" (q - 1))
+
 /-- If the long walk fits in the short fuel, the two walks agree (no truncation). -/
 theorem chainWalk_fuel_stable {st : State ℝ≥0} {q a b : ℕ} (hab : a ≤ b)
     (hlen : (chainWalk st q b).length ≤ a) : chainWalk st q a = chainWalk st q b := by

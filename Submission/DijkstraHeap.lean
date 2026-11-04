@@ -2247,4 +2247,62 @@ theorem popBody_runs {st : State ℝ≥0}
       rw [hc5] at hcost
       omega
 
+/-! ## The settle sweep (step 3)
+
+`settleBody` stores `done[u] = 1` BEFORE relaxing `u`'s out-edges one at a time, so the
+global `Inv.relax_hold` does not hold pre-sweep.  `SweepInv` weakens `relax_hold` to
+(a) edges out of done sources other than `u`, and (b) `u`'s already-swept out-edges —
+the first `k` links of the `head`/`nxt` chain (`chainOf st u k`).  `SweepInv.toInv`
+collapses it back to `Inv` once `k` covers the full chain. -/
+
+/-- One-edge relaxation obligation (state form; ENNReal to match `Inv.relax_hold`). -/
+def EdgeRelaxed (G : Graph) (st : State ℝ≥0) (e : Fin G.m) : Prop :=
+  st.wa "reach" (G.dst e) ≠ 0 ∧
+    ((st.va "dist" (G.dst e) : ℝ≥0) : ℝ≥0∞) ≤ ((st.va "dist" (G.src e) : ℝ≥0) : ℝ≥0∞) + G.w e
+
+/-- Chain well-formedness: every vertex's `head`/`nxt` chain enumerates its out-edges. -/
+def ChainWF (G : Graph) (st : State ℝ≥0) : Prop :=
+  ∀ u : ℕ, u < G.n → chainOf st u (G.m + 1) = outChainK G G.m u
+
+/-- Sweep invariant of the settle sweep of `u`, at chain cursor `k`. -/
+structure SweepInv (G : Graph) (s : Fin G.n) (u : Fin G.n) (st : State ℝ≥0) (k : ℕ) : Prop where
+  ghost : ∀ v : Fin G.n, st.wa "reach" v ≠ 0 → ∃ p, G.IsWalk s v p ∧ G.len p = st.va "dist" v
+  settled_exact : ∀ v : Fin G.n, st.wa "done" v ≠ 0 → ((st.va "dist" v : ℝ≥0) : ℝ≥0∞) = G.dist s v
+  relaxed_other : ∀ e : Fin G.m, G.src e ≠ u → st.wa "done" (G.src e) ≠ 0 → EdgeRelaxed G st e
+  relaxed_swept : ∀ e : Fin G.m, (e : ℕ) ∈ chainOf st u k → EdgeRelaxed G st e
+  entry_cur : ∀ v : Fin G.n, st.wa "reach" v ≠ 0 → st.wa "done" v = 0 →
+    ∃ i, i < st.w "h" ∧ hvD s st i = v ∧ st.va "hd" i = st.va "dist" v
+  entry_mono : ∀ i, i < st.w "h" → st.va "dist" (hvD s st i) ≤ st.va "hd" i
+  entry_reach : ∀ i, i < st.w "h" → st.wa "reach" (hvD s st i) ≠ 0
+  heapOK : HeapOK (hvD s st) (fun i => st.va "hd" i) (st.w "h")
+  val : HeapV (G := G) st (st.w "h")
+  source0 : st.va "dist" s = 0 ∧ st.wa "reach" s ≠ 0
+  done_reach : ∀ v : Fin G.n, st.wa "done" v ≠ 0 → st.wa "reach" v ≠ 0
+  chainWF : ChainWF G st
+  done_u : st.wa "done" u ≠ 0
+  k_le : k ≤ (chainOf st u (G.m + 1)).length
+
+/-- At full chain coverage the sweep invariant collapses to the model `Inv`. -/
+theorem SweepInv.toInv {G : Graph} {s u : Fin G.n} {st : State ℝ≥0} {k : ℕ}
+    (S : SweepInv G s u st k) (hk : (chainOf st u (G.m + 1)).length ≤ k) :
+    Inv G s (fun v => st.va "dist" v) (fun v => st.wa "reach" v) (fun v => st.wa "done" v)
+      (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins") := by
+  have hklen : k ≤ G.m + 1 := by
+    have hkle := S.k_le
+    have h1 := chainWalk_length_le st (st.wa "head" u) (G.m + 1)
+    have h2 : (chainOf st u (G.m + 1)).length
+        = (chainWalk st (st.wa "head" u) (G.m + 1)).length := rfl
+    omega
+  have hfull : chainOf st u k = chainOf st u (G.m + 1) :=
+    chainWalk_fuel_stable hklen hk
+  refine ⟨S.ghost, ?_, S.heapOK, S.entry_cur, S.entry_mono, S.entry_reach, S.source0, S.done_reach⟩
+  intro e hdne
+  by_cases hsu : G.src e = u
+  · have hmem : (e : ℕ) ∈ chainOf st u k := by
+      rw [hfull, S.chainWF u u.isLt]
+      simp only [outChainK, List.mem_reverse, List.mem_filter, List.mem_range]
+      exact ⟨e.isLt, by simp [srcN, hsu]⟩
+    exact S.relaxed_swept e hmem
+  · exact S.relaxed_other e hsu hdne
+
 end Submission.DijkstraHeap
