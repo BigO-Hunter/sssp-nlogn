@@ -2,6 +2,7 @@ import Frontier.RAMLogic
 import Frontier.RAMWitness
 import Submission.DijkstraProg
 import Submission.DijkstraModel
+import Submission.DijkstraDecode
 
 /-!
 # Submission.DijkstraSim — `Runs` proofs for the row program
@@ -17,7 +18,7 @@ namespace Submission.DijkstraSim
 
 open scoped ENNReal NNReal
 open Frontier Frontier.RAM WExpr Stmt
-open Submission.DijkstraProg Submission.DijkstraModel
+open Submission.DijkstraProg Submission.DijkstraModel Submission.DijkstraDecode
 
 variable {G : Graph} {s : Fin G.n}
 
@@ -75,6 +76,7 @@ theorem F0.preserve {st : State ℝ≥0} (h : F0 G s st) {st' : State ℝ≥0}
 
 theorem F0.charge {st : State ℝ≥0} (h : F0 G s st) (k : ℕ) : F0 G s (st.charge k) :=
   F0.preserve h rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) rfl rfl rfl
+
 
 theorem F0.init_state (P : Program) (s : Fin G.n) : F0 G s (initState P G s) := by
   refine ⟨rfl, rfl, rfl, ?_, ?_, ?_, ?_, rfl, rfl, rfl⟩
@@ -229,5 +231,395 @@ theorem calcPa_runs (st : State ℝ≥0) (hF : F0 G s st) :
   · rw [h2pa, Nat.pow_zero, Nat.div_one]
   · rw [h2pa]; exact Nat.zero_le _
   · simp
+
+/-! ## Record calculus (definitional equations; avoids simp blowup on record chains) -/
+
+theorem w_allocW (st : State ℝ≥0) (arr : String) (k : ℕ) (x : String) :
+    (st.allocW arr k).w x = st.w x := rfl
+theorem w_allocV (st : State ℝ≥0) (arr : String) (k : ℕ) (z : ℝ≥0) (x : String) :
+    (st.allocV arr k z).w x = st.w x := rfl
+theorem w_charge (st : State ℝ≥0) (k : ℕ) (x : String) : (st.charge k).w x = st.w x := rfl
+theorem w_setW (st : State ℝ≥0) (x y : String) (a : ℕ) :
+    (st.setW x a).w y = if y = x then a else st.w y := rfl
+theorem cap_allocW (st : State ℝ≥0) (arr : String) (k : ℕ) : (st.allocW arr k).cap = st.cap := rfl
+theorem cap_allocV (st : State ℝ≥0) (arr : String) (k : ℕ) (z : ℝ≥0) :
+    (st.allocV arr k z).cap = st.cap := rfl
+theorem cap_charge (st : State ℝ≥0) (k : ℕ) : (st.charge k).cap = st.cap := rfl
+theorem cap_setW (st : State ℝ≥0) (x : String) (a : ℕ) : (st.setW x a).cap = st.cap := rfl
+theorem wlen_allocW (st : State ℝ≥0) (arr : String) (k : ℕ) (x : String) :
+    (st.allocW arr k).wlen x = if x = arr then k else st.wlen x := rfl
+theorem wlen_allocV (st : State ℝ≥0) (arr : String) (k : ℕ) (z : ℝ≥0) (x : String) :
+    (st.allocV arr k z).wlen x = st.wlen x := rfl
+theorem wlen_charge (st : State ℝ≥0) (k : ℕ) (x : String) : (st.charge k).wlen x = st.wlen x := rfl
+theorem vlen_allocV (st : State ℝ≥0) (arr : String) (k : ℕ) (z : ℝ≥0) (x : String) :
+    (st.allocV arr k z).vlen x = if x = arr then k else st.vlen x := rfl
+theorem vlen_allocW (st : State ℝ≥0) (arr : String) (k : ℕ) (x : String) :
+    (st.allocW arr k).vlen x = st.vlen x := rfl
+theorem vlen_charge (st : State ℝ≥0) (k : ℕ) (x : String) : (st.charge k).vlen x = st.vlen x := rfl
+theorem wa_allocW (st : State ℝ≥0) (arr : String) (k : ℕ) (x : String) (j : ℕ) :
+    (st.allocW arr k).wa x j = if x = arr then 0 else st.wa x j := rfl
+theorem wa_allocV (st : State ℝ≥0) (arr : String) (k : ℕ) (z : ℝ≥0) (x : String) (j : ℕ) :
+    (st.allocV arr k z).wa x j = st.wa x j := rfl
+theorem wa_charge (st : State ℝ≥0) (k : ℕ) (x : String) (j : ℕ) :
+    (st.charge k).wa x j = st.wa x j := rfl
+theorem va_allocW (st : State ℝ≥0) (arr : String) (k : ℕ) (x : String) (j : ℕ) :
+    (st.allocW arr k).va x j = st.va x j := rfl
+theorem va_allocV (st : State ℝ≥0) (arr : String) (k : ℕ) (z : ℝ≥0) (x : String) (j : ℕ) :
+    (st.allocV arr k z).va x j = if x = arr then z else st.va x j := rfl
+theorem va_charge (st : State ℝ≥0) (k : ℕ) (x : String) (j : ℕ) :
+    (st.charge k).va x j = st.va x j := rfl
+theorem w_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) (x : String) :
+    (st.storeW arr j a).w x = st.w x := rfl
+theorem w_storeV (st : State ℝ≥0) (arr : String) (j : ℕ) (z : ℝ≥0) (x : String) :
+    (st.storeV arr j z).w x = st.w x := rfl
+theorem wa_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) (x : String) (i : ℕ) :
+    (st.storeW arr j a).wa x i = if x = arr ∧ i = j then a else st.wa x i := rfl
+theorem wa_storeV (st : State ℝ≥0) (arr : String) (j : ℕ) (z : ℝ≥0) (x : String) (i : ℕ) :
+    (st.storeV arr j z).wa x i = st.wa x i := rfl
+theorem va_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) (x : String) (i : ℕ) :
+    (st.storeW arr j a).va x i = st.va x i := rfl
+theorem va_storeV (st : State ℝ≥0) (arr : String) (j : ℕ) (z : ℝ≥0) (x : String) (i : ℕ) :
+    (st.storeV arr j z).va x i = if x = arr ∧ i = j then z else st.va x i := rfl
+theorem wlen_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) (x : String) :
+    (st.storeW arr j a).wlen x = st.wlen x := rfl
+theorem wlen_storeV (st : State ℝ≥0) (arr : String) (j : ℕ) (z : ℝ≥0) (x : String) :
+    (st.storeV arr j z).wlen x = st.wlen x := rfl
+theorem vlen_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) (x : String) :
+    (st.storeW arr j a).vlen x = st.vlen x := rfl
+theorem vlen_storeV (st : State ℝ≥0) (arr : String) (j : ℕ) (z : ℝ≥0) (x : String) :
+    (st.storeV arr j z).vlen x = st.vlen x := rfl
+theorem cap_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) : (st.storeW arr j a).cap = st.cap := rfl
+theorem cost_storeW (st : State ℝ≥0) (arr : String) (j a : ℕ) : (st.storeW arr j a).cost = st.cost := rfl
+theorem cost_storeV (st : State ℝ≥0) (arr : String) (j : ℕ) (z : ℝ≥0) :
+    (st.storeV arr j z).cost = st.cost := rfl
+
+theorem F0.storeW {st : State ℝ≥0} (h : F0 G s st) {arr : String} (j a : ℕ)
+    (har : arr ≠ "src" ∧ arr ≠ "dst") : F0 G s (st.storeW arr j a) := by
+  refine F0.preserve h rfl rfl rfl rfl ?_ ?_ (fun _ _ => rfl) rfl rfl rfl
+  · intro jj _; rw [wa_storeW]; exact if_neg (fun hh => har.1 hh.1.symm)
+  · intro jj _; rw [wa_storeW]; exact if_neg (fun hh => har.2 hh.1.symm)
+theorem w_setW_of_ne (st : State ℝ≥0) (x y : String) (a : ℕ) (h : y ≠ x) :
+    (st.setW x a).w y = st.w y := by rw [w_setW]; exact if_neg h
+theorem cost_setW (st : State ℝ≥0) (x : String) (a : ℕ) : (st.setW x a).cost = st.cost := rfl
+theorem wa_setW (st : State ℝ≥0) (x : String) (a : ℕ) (arr : String) (j : ℕ) :
+    (st.setW x a).wa arr j = st.wa arr j := rfl
+theorem va_setW (st : State ℝ≥0) (x : String) (a : ℕ) (arr : String) (j : ℕ) :
+    (st.setW x a).va arr j = st.va arr j := rfl
+theorem wlen_setW (st : State ℝ≥0) (x : String) (a : ℕ) (arr : String) :
+    (st.setW x a).wlen arr = st.wlen arr := rfl
+theorem vlen_setW (st : State ℝ≥0) (x : String) (a : ℕ) (arr : String) :
+    (st.setW x a).vlen arr = st.vlen arr := rfl
+theorem cost_charge (st : State ℝ≥0) (k : ℕ) : (st.charge k).cost = st.cost + k := rfl
+theorem cost_allocW (st : State ℝ≥0) (arr : String) (k : ℕ) : (st.allocW arr k).cost = st.cost := rfl
+theorem cost_allocV (st : State ℝ≥0) (arr : String) (k : ℕ) (z : ℝ≥0) :
+    (st.allocV arr k z).cost = st.cost := rfl
+
+/-- Charging a state does not change its decoded chains. -/
+theorem chainOf_charge (st : State ℝ≥0) (k : ℕ) (u : ℕ) :
+    chainOf (st.charge k) u (G.m + 1) = chainOf st u (G.m + 1) := by
+  simp only [chainOf, wa_charge]
+  apply chainWalk_congr
+  intro j _
+  exact wa_charge _ _ _ _
+
+/-! ## `allocAll`: the six arrays -/
+
+/-- `allocAll` runs and establishes the array-frame `AF` with a zeroed `head`. -/
+theorem allocAll_runs (st : State ℝ≥0) (hF : F0 G s st) :
+    Runs realOps allocAll st (fun st' =>
+      F0 G s st' ∧ AF G st' ∧ (∀ j, st'.wa "head" j = 0) ∧
+      st'.cost ≤ st.cost + 4 * G.n + 3 * G.m + 9) := by
+  have hcap : G.n + G.m + 2 ≤ st.cap := hF.hcap
+  have hnE : evalW st (var "n") = some G.n := by rw [evalW_var, hF.hn]
+  have hmE : evalW st (var "m") = some G.m := by rw [evalW_var, hF.hm]
+  refine runs_seq (runs_valloc (k := G.n) hnE ?_)
+  set st1 := (st.allocV "dist" G.n realOps.zero).charge (G.n + 1) with hst1
+  refine runs_seq (runs_walloc (k := G.n)
+    (by rw [evalW_var, hst1, w_charge, w_allocV, hF.hn]) ?_)
+  set st2 := (st1.allocW "reach" G.n).charge (G.n + 1) with hst2
+  refine runs_seq (runs_walloc (k := G.n)
+    (by rw [evalW_var, hst2, w_charge, w_allocW, hst1, w_charge, w_allocV, hF.hn]) ?_)
+  set st3 := (st2.allocW "done" G.n).charge (G.n + 1) with hst3
+  refine runs_seq (runs_walloc (k := G.n)
+    (by rw [evalW_var, hst3, w_charge, w_allocW, hst2, w_charge, w_allocW, hst1, w_charge,
+      w_allocV, hF.hn]) ?_)
+  set st4 := (st3.allocW "head" G.n).charge (G.n + 1) with hst4
+  refine runs_seq (runs_walloc (k := G.m)
+    (by rw [evalW_var, hst4, w_charge, w_allocW, hst3, w_charge, w_allocW, hst2, w_charge,
+      w_allocW, hst1, w_charge, w_allocV, hF.hm]) ?_)
+  set st5 := (st4.allocW "nxt" G.m).charge (G.m + 1) with hst5
+  have hvar5 : evalW st5 (var "m") = some G.m := by
+    rw [evalW_var, hst5, w_charge, w_allocW, hst4, w_charge, w_allocW, hst3, w_charge, w_allocW,
+      hst2, w_charge, w_allocW, hst1, w_charge, w_allocV, hF.hm]
+  have hcap5 : G.n + G.m + 2 ≤ st5.cap := by
+    rw [hst5, cap_charge, cap_allocW, hst4, cap_charge, cap_allocW, hst3, cap_charge, cap_allocW,
+      hst2, cap_charge, cap_allocW, hst1, cap_charge, cap_allocV]
+    exact hcap
+  have hm1E5 : evalW st5 (add (var "m") (lit 1)) = some (G.m + 1) :=
+    evalW_add_of hvar5 (evalW_lit_of (by have := hcap5; omega)) (by have := hcap5; omega)
+  refine runs_seq (runs_walloc (k := G.m + 1) hm1E5 ?_)
+  set st6 := (st5.allocW "hv" (G.m + 1)).charge (G.m + 2) with hst6
+  have hvar6 : evalW st6 (var "m") = some G.m := by
+    rw [evalW_var, hst6, w_charge, w_allocW]; exact hvar5
+  have hcap6 : G.n + G.m + 2 ≤ st6.cap := by
+    rw [hst6, cap_charge, cap_allocW]; exact hcap5
+  have hm1E6 : evalW st6 (add (var "m") (lit 1)) = some (G.m + 1) :=
+    evalW_add_of hvar6 (evalW_lit_of (by have := hcap6; omega)) (by have := hcap6; omega)
+  refine runs_valloc (k := G.m + 1) hm1E6 ?_
+  set st7 := (st6.allocV "hd" (G.m + 1) realOps.zero).charge (G.m + 2) with hst7
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · -- F0: input registers and arrays untouched
+    refine F0.preserve hF ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
+    · rw [hst7, w_charge, w_allocV, hst6, w_charge, w_allocW, hst5, w_charge, w_allocW,
+        hst4, w_charge, w_allocW, hst3, w_charge, w_allocW, hst2, w_charge, w_allocW,
+        hst1, w_charge, w_allocV]
+    · rw [hst7, w_charge, w_allocV, hst6, w_charge, w_allocW, hst5, w_charge, w_allocW,
+        hst4, w_charge, w_allocW, hst3, w_charge, w_allocW, hst2, w_charge, w_allocW,
+        hst1, w_charge, w_allocV]
+    · rw [hst7, w_charge, w_allocV, hst6, w_charge, w_allocW, hst5, w_charge, w_allocW,
+        hst4, w_charge, w_allocW, hst3, w_charge, w_allocW, hst2, w_charge, w_allocW,
+        hst1, w_charge, w_allocV]
+    · rw [hst7, cap_charge, cap_allocV, hst6, cap_charge, cap_allocW, hst5, cap_charge,
+        cap_allocW, hst4, cap_charge, cap_allocW, hst3, cap_charge, cap_allocW, hst2,
+        cap_charge, cap_allocW, hst1, cap_charge, cap_allocV]
+    · intro j _; rw [hst7, wa_charge, wa_allocV, hst6, wa_charge, wa_allocW,
+        if_neg (by decide : ("src" : String) ≠ "hv"), hst5, wa_charge, wa_allocW,
+        if_neg (by decide), hst4, wa_charge, wa_allocW, if_neg (by decide), hst3, wa_charge,
+        wa_allocW, if_neg (by decide), hst2, wa_charge, wa_allocW, if_neg (by decide),
+        hst1, wa_charge, wa_allocV]
+    · intro j _; rw [hst7, wa_charge, wa_allocV, hst6, wa_charge, wa_allocW,
+        if_neg (by decide : ("dst" : String) ≠ "hv"), hst5, wa_charge, wa_allocW,
+        if_neg (by decide), hst4, wa_charge, wa_allocW, if_neg (by decide), hst3, wa_charge,
+        wa_allocW, if_neg (by decide), hst2, wa_charge, wa_allocW, if_neg (by decide),
+        hst1, wa_charge, wa_allocV]
+    · intro j _; rw [hst7, va_charge, va_allocV,
+        if_neg (by decide : ("w" : String) ≠ "hd"), hst6, va_charge, va_allocW, hst5,
+        va_charge, va_allocW, hst4, va_charge, va_allocW, hst3, va_charge, va_allocW,
+        hst2, va_charge, va_allocW, hst1, va_charge, va_allocV, if_neg (by decide)]
+    · rw [hst7, wlen_charge, wlen_allocV, hst6, wlen_charge, wlen_allocW, if_neg (by decide),
+        hst5, wlen_charge, wlen_allocW, if_neg (by decide), hst4, wlen_charge, wlen_allocW,
+        if_neg (by decide), hst3, wlen_charge, wlen_allocW, if_neg (by decide), hst2,
+        wlen_charge, wlen_allocW, if_neg (by decide), hst1, wlen_charge, wlen_allocV]
+    · rw [hst7, wlen_charge, wlen_allocV, hst6, wlen_charge, wlen_allocW, if_neg (by decide),
+        hst5, wlen_charge, wlen_allocW, if_neg (by decide), hst4, wlen_charge, wlen_allocW,
+        if_neg (by decide), hst3, wlen_charge, wlen_allocW, if_neg (by decide), hst2,
+        wlen_charge, wlen_allocW, if_neg (by decide), hst1, wlen_charge, wlen_allocV]
+    · rw [hst7, vlen_charge, vlen_allocV, if_neg (by decide : ("w" : String) ≠ "hd"),
+        hst6, vlen_charge, vlen_allocW, hst5, vlen_charge, vlen_allocW, hst4, vlen_charge,
+        vlen_allocW, hst3, vlen_charge, vlen_allocW, hst2, vlen_charge, vlen_allocW,
+        hst1, vlen_charge, vlen_allocV, if_neg (by decide)]
+  · -- AF lengths
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · rw [hst7, vlen_charge, vlen_allocV, if_neg (by decide : ("dist" : String) ≠ "hd"),
+        hst6, vlen_charge, vlen_allocW, hst5, vlen_charge, vlen_allocW, hst4, vlen_charge,
+        vlen_allocW, hst3, vlen_charge, vlen_allocW, hst2, vlen_charge, vlen_allocW,
+        hst1, vlen_charge, vlen_allocV, if_pos rfl]
+    · rw [hst7, wlen_charge, wlen_allocV, hst6, wlen_charge, wlen_allocW,
+        if_neg (by decide : ("reach" : String) ≠ "hv"), hst5, wlen_charge, wlen_allocW,
+        if_neg (by decide), hst4, wlen_charge, wlen_allocW, if_neg (by decide),
+        hst3, wlen_charge, wlen_allocW, if_neg (by decide), hst2, wlen_charge, wlen_allocW,
+        if_pos rfl]
+    · rw [hst7, wlen_charge, wlen_allocV, hst6, wlen_charge, wlen_allocW, if_neg (by decide),
+        hst5, wlen_charge, wlen_allocW, if_neg (by decide), hst4, wlen_charge, wlen_allocW,
+        if_neg (by decide), hst3, wlen_charge, wlen_allocW, if_pos rfl]
+    · rw [hst7, wlen_charge, wlen_allocV, hst6, wlen_charge, wlen_allocW, if_neg (by decide),
+        hst5, wlen_charge, wlen_allocW, if_neg (by decide), hst4, wlen_charge, wlen_allocW,
+        if_pos rfl]
+    · rw [hst7, wlen_charge, wlen_allocV, hst6, wlen_charge, wlen_allocW, if_neg (by decide),
+        hst5, wlen_charge, wlen_allocW, if_pos rfl]
+    · rw [hst7, wlen_charge, wlen_allocV, hst6, wlen_charge, wlen_allocW, if_pos rfl]
+    · rw [hst7, vlen_charge, vlen_allocV, if_pos rfl]
+  · intro j
+    rw [hst7, wa_charge, wa_allocV, hst6, wa_charge, wa_allocW,
+      if_neg (by decide : ("head" : String) ≠ "hv"), hst5, wa_charge, wa_allocW,
+      if_neg (by decide), hst4, wa_charge, wa_allocW, if_pos rfl]
+  · simp only [hst7, hst6, hst5, hst4, hst3, hst2, hst1, cost_charge, cost_allocW, cost_allocV]
+    omega
+
+/-! ## `buildAdj`: the adjacency lists -/
+
+/-- `buildAdj` runs and builds the `head`/`nxt` chains: after the loop, the chain of `u`
+is exactly the out-edges of `u` in decreasing order. -/
+theorem buildAdj_runs (st : State ℝ≥0) (hF : F0 G s st) (hAF : AF G st)
+    (hzero : ∀ u, st.wa "head" u = 0) :
+    Runs realOps buildAdj st (fun st' =>
+      F0 G s st' ∧ AF G st' ∧
+      (∀ u, chainOf st' u (G.m + 1) = outChainK G G.m u) ∧
+      st'.cost ≤ st.cost + 6 * G.m + 2) := by
+  have hcap : G.n + G.m + 2 ≤ st.cap := hF.hcap
+  refine runs_seq (runs_wset (a := 0) (evalW_lit_of (by have := hcap; omega)) ?_)
+  set st0 := (st.setW "e" 0).charge 1 with hst0
+  refine runs_while (I := fun k st' => F0 G s st' ∧ AF G st' ∧ st'.w "e" = k ∧ k ≤ G.m ∧
+      (∀ u, chainOf st' u (G.m + 1) = outChainK G k u) ∧
+      st'.cost ≤ st.cost + 1 + 6 * k) G.m
+    (fun st' => F0 G s st' ∧ AF G st' ∧
+      (∀ u, chainOf st' u (G.m + 1) = outChainK G G.m u) ∧
+      st'.cost ≤ st.cost + 6 * G.m + 2) ?_ ?_ st0 ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- step
+    intro k hk s' ⟨hF', hAF', he, hle, hchain, hc⟩
+    have hcap' : G.n + G.m + 2 ≤ s'.cap := hF'.hcap
+    have hcond : evalW s' (lt (var "e") (var "m")) = some 1 := by
+      rw [evalW_lt_of (x := k) (y := G.m) (by rw [evalW_var, he]) (by rw [evalW_var, hF'.hm])
+        (by have := hcap'; omega)]
+      simp [hk]
+    refine ⟨1, hcond, one_ne_zero, ?_⟩
+    set t0 := s'.charge 1 with ht0
+    set uu : ℕ := (G.src ⟨k, hk⟩ : ℕ)
+    have huu : s'.wa "src" k = uu := hF'.hsrc k hk
+    have huE : evalW t0 (load "src" (var "e")) = some uu := by
+      have hiE : evalW t0 (var "e") = some k := by rw [ht0, evalW_charge, evalW_var, he]
+      have hjE : k < t0.wlen "src" := by rw [ht0, wlen_charge, hF'.hsrcL]; exact hk
+      have hwaE : t0.wa "src" k = uu := by rw [ht0, wa_charge, huu]
+      rw [evalW_load_of hiE hjE, hwaE]
+    refine runs_seq (runs_wset (a := uu) huE ?_)
+    set t1 := (t0.setW "u" uu).charge 1 with ht1
+    set q0 : ℕ := s'.wa "head" uu
+    have hqE : evalW t1 (load "head" (var "u")) = some q0 := by
+      have h1u : t1.w "u" = uu := by simp [ht1, ht0, State.setW, State.charge]
+      have h1l : uu < t1.wlen "head" := by
+        rw [ht1, wlen_charge, wlen_setW, ht0, wlen_charge, hAF'.headL]
+        exact (G.src ⟨k, hk⟩).isLt
+      have hiQ : evalW t1 (var "u") = some uu := by rw [evalW_var, h1u]
+      have hwaQ : t1.wa "head" uu = q0 := by
+        rw [ht1, wa_charge, wa_setW, ht0, wa_charge]
+      rw [evalW_load_of hiQ h1l, hwaQ]
+    refine runs_seq (runs_wset (a := q0) hqE ?_)
+    set t2 := (t1.setW "q" q0).charge 1 with ht2
+    have hnxtE : evalW t2 (var "e") = some k := by
+      rw [evalW_var, ht2, w_charge, w_setW, if_neg (by decide : ("e" : String) ≠ "q"),
+        ht1, w_charge, w_setW, if_neg (by decide), ht0, w_charge, he]
+    have hqvE : evalW t2 (var "q") = some q0 := by
+      rw [evalW_var, ht2, w_charge, w_setW, if_pos rfl]
+    refine runs_seq (runs_wstore (arr := "nxt") hnxtE hqvE
+      (by rw [ht2, wlen_charge, wlen_setW, ht1, wlen_charge, wlen_setW, ht0, wlen_charge,
+        hAF'.nxtL]; exact hk) ?_)
+    set t3 := (t2.storeW "nxt" k q0).charge 1 with ht3
+    have hcap3 : G.n + G.m + 2 ≤ t3.cap := by
+      rw [ht3, cap_charge, cap_storeW, ht2, cap_charge, cap_setW, ht1, cap_charge, cap_setW,
+        ht0, cap_charge]; exact hcap'
+    have huuE : evalW t3 (var "u") = some uu := by
+      rw [evalW_var, ht3, w_charge, w_storeW, ht2, w_charge, w_setW,
+        if_neg (by decide : ("u" : String) ≠ "q"), ht1, w_charge, w_setW, if_pos rfl]
+    have haddE : evalW t3 (add (var "e") (lit 1)) = some (k + 1) := by
+      apply evalW_add_of
+      · rw [evalW_var, ht3, w_charge, w_storeW, ht2, w_charge, w_setW,
+          if_neg (by decide : ("e" : String) ≠ "q"), ht1, w_charge, w_setW,
+          if_neg (by decide), ht0, w_charge, he]
+      · exact evalW_lit_of (by have := hcap3; omega)
+      · have := hcap3; omega
+    refine runs_seq (runs_wstore (arr := "head") huuE haddE
+      (by rw [ht3, wlen_charge, wlen_storeW, ht2, wlen_charge, wlen_setW, ht1, wlen_charge,
+        wlen_setW, ht0, wlen_charge, hAF'.headL]; exact (G.src ⟨k, hk⟩).isLt) ?_)
+    set t4 := (t3.storeW "head" uu (k + 1)).charge 1 with ht4
+    have hcap4 : G.n + G.m + 2 ≤ t4.cap := by
+      rw [ht4, cap_charge, cap_storeW]; exact hcap3
+    have hfinE : evalW t4 (add (var "e") (lit 1)) = some (k + 1) := by
+      apply evalW_add_of
+      · rw [evalW_var, ht4, w_charge, w_storeW, ht3, w_charge, w_storeW, ht2, w_charge,
+          w_setW, if_neg (by decide : ("e" : String) ≠ "q"), ht1, w_charge, w_setW,
+          if_neg (by decide), ht0, w_charge, he]
+      · exact evalW_lit_of (by have := hcap4; omega)
+      · have := hcap4; omega
+    refine runs_wset (a := k + 1) hfinE ?_
+    set t5 := (t4.setW "e" (k + 1)).charge 1 with ht5
+    -- the composed array effects of one iteration
+    have hwa5 : ∀ x i, t5.wa x i = if x = "head" ∧ i = uu then k + 1
+        else if x = "nxt" ∧ i = k then q0 else s'.wa x i := by
+      intro x i
+      rw [ht5, wa_charge, wa_setW, ht4, wa_charge, wa_storeW, ht3, wa_charge, wa_storeW,
+        ht2, wa_charge, wa_setW, ht1, wa_charge, wa_setW, ht0, wa_charge]
+    -- post: I (k + 1) t5
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    · refine F0.charge ?_ 1
+      refine F0.setW ?_ (by simp) _
+      refine F0.charge ?_ 1
+      refine F0.storeW ?_ _ _ (by simp)
+      refine F0.charge ?_ 1
+      refine F0.storeW ?_ _ _ (by simp)
+      refine F0.charge ?_ 1
+      refine F0.setW ?_ (by simp) _
+      refine F0.charge ?_ 1
+      refine F0.setW ?_ (by simp) _
+      exact hF'.charge 1
+    · refine AF.charge ?_ 1
+      refine AF.setW ?_ _
+      refine AF.charge ?_ 1
+      refine AF.storeW ?_ _ _ _
+      refine AF.charge ?_ 1
+      refine AF.storeW ?_ _ _ _
+      refine AF.charge ?_ 1
+      refine AF.setW ?_ _
+      refine AF.charge ?_ 1
+      refine AF.setW ?_ _
+      exact hAF'.charge 1
+    · rw [ht5, w_charge, w_setW, if_pos rfl]
+    · omega
+    · -- the chain equations
+      intro u
+      by_cases hu : u = uu
+      · subst hu
+        have hhead5 : t5.wa "head" uu = k + 1 := by rw [hwa5, if_pos ⟨rfl, rfl⟩]
+        have hnxt5 : t5.wa "nxt" k = q0 := by
+          rw [hwa5, if_neg (fun hh => (by decide : ("nxt" : String) ≠ "head") hh.1),
+            if_pos ⟨rfl, rfl⟩]
+        rw [chainOf, hhead5, chainWalk_succ, if_neg (by omega : (k + 1 : ℕ) ≠ 0),
+          Nat.add_sub_cancel, hnxt5]
+        have hwalk0 : chainWalk s' q0 (G.m + 1) = outChainK G k uu := by
+          rw [← hchain uu, chainOf]
+        have hwalk0m : chainWalk s' q0 G.m = outChainK G k uu := by
+          rw [chainWalk_take s' G.m q0 1, hwalk0]
+          exact List.take_of_length_le
+            ((outChainK_length_le k uu).trans (Nat.le_of_lt hk))
+        have hstab : chainWalk t5 q0 G.m = chainWalk s' q0 G.m := by
+          apply chainWalk_congr
+          intro j hj
+          have hjk : j < k := by
+            rw [hwalk0m] at hj
+            exact outChainK_lt k uu j hj
+          rw [hwa5, if_neg (fun hh => (by decide : ("nxt" : String) ≠ "head") hh.1),
+            if_neg (fun hh => by omega)]
+        rw [hstab, hwalk0m, outChainK_succ_same (by rw [srcN, dif_pos hk])]
+      · have hhead5 : t5.wa "head" u = s'.wa "head" u := by
+          rw [hwa5, if_neg (fun hh => hu hh.2),
+            if_neg (fun hh => (by decide : ("head" : String) ≠ "nxt") hh.1)]
+        rw [chainOf, hhead5]
+        have hstab : chainWalk t5 (s'.wa "head" u) (G.m + 1)
+            = chainWalk s' (s'.wa "head" u) (G.m + 1) := by
+          apply chainWalk_congr
+          intro j hj
+          have hjk : j < k := by
+            have h := hchain u
+            rw [chainOf] at h
+            rw [h] at hj
+            exact outChainK_lt k u j hj
+          rw [hwa5, if_neg (fun hh => (by decide : ("nxt" : String) ≠ "head") hh.1),
+            if_neg (fun hh => by omega)]
+        rw [hstab, ← chainOf, hchain, outChainK_succ_ne (by
+          have hsn : srcN G k = uu := by rw [srcN, dif_pos hk]
+          intro hh
+          rw [hsn] at hh
+          exact hu hh.symm)]
+    · -- cost
+      have hcc : t5.cost = s'.cost + 6 := by
+        rw [ht5, cost_charge, cost_setW, ht4, cost_charge, cost_storeW, ht3, cost_charge,
+          cost_storeW, ht2, cost_charge, cost_setW, ht1, cost_charge, cost_setW, ht0,
+          cost_charge]
+      rw [hcc]; omega
+  · -- exit
+    intro s' ⟨hF', hAF', he, hle, hchain, hc⟩
+    have hcond : evalW s' (lt (var "e") (var "m")) = some 0 := by
+      rw [evalW_lt_of (x := G.m) (y := G.m) (by rw [evalW_var, he]) (by rw [evalW_var, hF'.hm])
+        (by have := hF'.hcap; omega)]
+      simp
+    refine ⟨hcond, hF'.charge 1, hAF'.charge 1, fun u => ?_, ?_⟩
+    · rw [chainOf_charge]; exact hchain u
+    · rw [cost_charge]; omega
+  · exact (hF.setW (x := "e") (a := 0) (by simp)).charge 1
+  · exact (hAF.setW (x := "e") (a := 0)).charge 1
+  · rw [hst0, w_charge, w_setW, if_pos rfl]
+  · omega
+  · intro u
+    simp [chainOf, chainWalk, hst0, wa_charge, wa_setW, hzero, outChainK]
+  · simp [hst0, cost_charge, cost_setW]
 
 end Submission.DijkstraSim

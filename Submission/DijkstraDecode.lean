@@ -91,6 +91,10 @@ theorem outChainK_src (k u : ℕ) : ∀ e ∈ outChainK G k u, srcN G e = u := b
   simp only [outChainK, List.mem_reverse, List.mem_filter, List.mem_range] at he
   exact of_decide_eq_true he.2
 
+theorem outChainK_length_le (k u : ℕ) : (outChainK G k u).length ≤ k := by
+  simp only [outChainK, List.length_reverse]
+  exact (List.length_filter_le _ _).trans (by simp)
+
 theorem outChainK_nodup (k u : ℕ) : (outChainK G k u).Nodup := by
   simp only [outChainK, List.nodup_reverse]
   exact (List.nodup_range).filter _
