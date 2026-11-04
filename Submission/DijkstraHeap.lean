@@ -1124,4 +1124,130 @@ theorem SiftDownOK.swap {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {ori
   · rw [hh]; exact K.origOK
   · rw [hh]; exact hcin
 
+/-! ## `siftDown` loop: rank machinery -/
+
+/-- Sift-down rank: the descent budget of hole `i` in a heap of size `h`. -/
+def rkD (h i : ℕ) : ℕ := Nat.log 2 (h / (i + 1))
+
+theorem rkD_zero (h : ℕ) : rkD h 0 = Nat.log 2 h := by
+  simp [rkD]
+
+/-- Division is antitone in the denominator (positive denominator). -/
+theorem div_le_of_le_den {x a b : ℕ} (ha : 0 < a) (hab : a ≤ b) : x / b ≤ x / a :=
+  (Nat.le_div_iff_mul_le ha).2
+    ((Nat.mul_le_mul_left (x / b) hab).trans (Nat.div_mul_le_self x b))
+
+/-- One descent step drops the sift-down rank by at least one. -/
+theorem rkD_succ_of_child {h i c : ℕ} (hc : c = 2 * i + 1 ∨ c = 2 * i + 2)
+    (hi : 2 * i + 1 < h) : rkD h c + 1 ≤ rkD h i := by
+  have hcd : 2 * (i + 1) ≤ c + 1 := by omega
+  have hle : h / (c + 1) ≤ h / (2 * (i + 1)) := div_le_of_le_den (by omega) hcd
+  have hm : h / (2 * (i + 1)) = (h / (i + 1)) / 2 := by
+    rw [Nat.div_div_eq_div_mul]; congr 1; omega
+  have hy : 2 ≤ h / (i + 1) := (Nat.le_div_iff_mul_le (by omega : 0 < i + 1)).2 (by omega)
+  have hdrop : Nat.log 2 (h / (c + 1)) + 1 ≤ Nat.log 2 (h / (i + 1)) := by
+    have h1 : Nat.log 2 (h / (c + 1)) ≤ Nat.log 2 ((h / (i + 1)) / 2) := by
+      rw [← hm]; exact Nat.log_mono_right hle
+    rw [Nat.log_div_base] at h1
+    have h2 : 1 ≤ Nat.log 2 (h / (i + 1)) :=
+      (Nat.le_log_iff_pow_le (by norm_num) (by omega : h / (i + 1) ≠ 0)).2 (by norm_num; omega)
+    omega
+  simpa [rkD] using hdrop
+
+/-- A hole with a child has sift-down rank at least one. -/
+theorem rkD_pos_of_child {h i : ℕ} (hi : 2 * i + 1 < h) : 1 ≤ rkD h i := by
+  have hy : 2 ≤ h / (i + 1) := (Nat.le_div_iff_mul_le (by omega : 0 < i + 1)).2 (by omega)
+  have hz : h / (i + 1) ≠ 0 := by omega
+  rw [rkD]
+  exact (Nat.le_log_iff_pow_le (by norm_num) hz).2 (by simpa using hy)
+
+/-- The min child is minimal among the children. -/
+theorem mchOf_min (origHd : ℕ → ℝ≥0) {h i c j : ℕ}
+    (hc : c = mchOf origHd h i) (hj : j < h) (hjr : j = 2 * i + 1 ∨ j = 2 * i + 2) :
+    origHd c ≤ origHd j := by
+  by_cases hri : 2 * i + 2 < h
+  · by_cases hle : origHd (2 * i + 2) ≤ origHd (2 * i + 1)
+    · have hcm : c = 2 * i + 2 := by
+        rw [hc]; simp only [mchOf]; rw [if_pos hri, if_pos hle]
+      subst hcm
+      rcases hjr with hr | hr
+      · rw [hr]; exact hle
+      · exact le_of_eq (congrArg origHd hr.symm)
+    · have hcm : c = 2 * i + 1 := by
+        rw [hc]; simp only [mchOf]; rw [if_pos hri, if_neg hle]
+      subst hcm
+      rcases hjr with hr | hr
+      · exact le_of_eq (congrArg origHd hr.symm)
+      · rw [hr]; exact le_of_lt (lt_of_not_ge hle)
+  · have hcm : c = 2 * i + 1 := by
+      rw [hc]; simp only [mchOf]; rw [if_neg hri]
+    subst hcm
+    rcases hjr with hr | hr
+    · exact le_of_eq (congrArg origHd hr.symm)
+    · rw [hr] at hj; omega
+
+/-- Children of the hole hold their original pairs: the min-child path strictly
+increases indices, so no child of the hole is on it. -/
+theorem SiftDownOK.child_orig {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+    {x : Fin G.n} {xk : ℝ≥0} {ii j : ℕ}
+    (K : SiftDownOK s st origHv origHd x xk ii)
+    (hj : j < st.w "h") (hjr : j = 2 * ii + 1 ∨ j = 2 * ii + 2) :
+    hvD s st j = origHv j ∧ st.va "hd" j = origHd j := by
+  have hjgt : ii < j := by omega
+  have hne : j ≠ ii := by omega
+  have hnreach : ¬sreach (mchOf origHd (st.w "h")) j ii := by
+    rintro ⟨t, ht⟩
+    have hle : j ≤ (mchOf origHd (st.w "h"))^[t] j := mchOf_iter_le origHd (st.w "h") j t
+    rw [ht] at hle
+    omega
+  rcases K.pairsV j hj with h1 | h2 | h3
+  · exact absurd h1.1 hne
+  · exact absurd h2.2.1 hnreach
+  · rcases K.pairsK j hj with a1 | a2 | a3
+    · exact absurd a1.1 hne
+    · exact absurd a2.2.1 hnreach
+    · exact ⟨h3.2, a3.2⟩
+
+/-- A sift-down state survives updates that leave the heap arrays, decoded labels and
+sizes alone (register writes and charges). -/
+theorem SiftDownOK.stable {st st' : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : ℕ → ℝ≥0}
+    {x : Fin G.n} {xk : ℝ≥0} {ii : ℕ}
+    (K : SiftDownOK s st origHv origHd x xk ii)
+    (hvE : ∀ i, st'.wa "hv" i = st.wa "hv" i)
+    (hdE : ∀ i, st'.va "hd" i = st.va "hd" i)
+    (hdistE : ∀ (v : Fin G.n), st'.va "dist" v = st.va "dist" v)
+    (hreachE : ∀ (v : Fin G.n), st'.wa "reach" v = st.wa "reach" v)
+    (hdoneE : ∀ (v : Fin G.n), st'.wa "done" v = st.wa "done" v)
+    (hhE : st'.w "h" = st.w "h") (hinsE : st'.w "ins" = st.w "ins") :
+    SiftDownOK s st' origHv origHd x xk ii := by
+  have hdd : (fun (v : Fin G.n) => st'.va "dist" v) = (fun (v : Fin G.n) => st.va "dist" v) :=
+    funext hdistE
+  have hrr : (fun (v : Fin G.n) => st'.wa "reach" v) = (fun (v : Fin G.n) => st.wa "reach" v) :=
+    funext hreachE
+  have hdn : (fun (v : Fin G.n) => st'.wa "done" v) = (fun (v : Fin G.n) => st.wa "done" v) :=
+    funext hdoneE
+  have hhh : (fun i => st'.va "hd" i) = (fun i => st.va "hd" i) := funext hdE
+  have hvv : hvD s st' = hvD s st := funext (fun i => hvD_eq_of_wa (hvE i))
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [hdd, hrr, hdn, hvv, hhh, hhE, hinsE]; exact K.soft
+  · rw [hvv, hdE ii]; exact K.hole
+  · intro i hi
+    have hi' : i < st.w "h" := by rw [← hhE]; exact hi
+    rcases K.pairsV i hi' with h1 | h2 | h3
+    · exact Or.inl ⟨h1.1, by rw [hvv]; exact h1.2⟩
+    · exact Or.inr (Or.inl ⟨h2.1, by rw [hhE]; exact h2.2.1,
+        by rw [hhE]; exact h2.2.2.1, by rw [hvv, hhE]; exact h2.2.2.2⟩)
+    · exact Or.inr (Or.inr ⟨by rw [hhE]; exact h3.1, by rw [hvv]; exact h3.2⟩)
+  · intro i hi
+    have hi' : i < st.w "h" := by rw [← hhE]; exact hi
+    rcases K.pairsK i hi' with h1 | h2 | h3
+    · exact Or.inl ⟨h1.1, by rw [hdE i]; exact h1.2⟩
+    · exact Or.inr (Or.inl ⟨h2.1, by rw [hhE]; exact h2.2.1,
+        by rw [hhE]; exact h2.2.2.1, by rw [hdE i, hhE]; exact h2.2.2.2⟩)
+    · exact Or.inr (Or.inr ⟨by rw [hhE]; exact h3.1, by rw [hdE i]; exact h3.2⟩)
+  · rw [hhh, hhE]; exact K.ok
+  · rw [hhE]; exact K.origOK
+  · rw [hhE]; exact K.pre0
+  · rw [hhE]; exact K.hiir
+
 end Submission.DijkstraHeap
