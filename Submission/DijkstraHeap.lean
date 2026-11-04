@@ -183,6 +183,21 @@ theorem EntrySoft.swap {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n →
           by rw [if_neg hja, if_neg hjb]
         rw [heqd j, e2]; exact hjd
 
+/-- The entry fields with one waived entry: the vertex `holev` being pushed by the caller has
+not been inserted into the heap yet (`pushBody` inserts it itself), so no entry is demanded. -/
+structure EntrySoftH (holev : Fin G.n) (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
+    (reachA doneA : Fin G.n → ℕ) (hv : ℕ → Fin G.n) (hd : ℕ → ℝ≥0) (h ins : ℕ) : Prop where
+  entry_hole : ∀ v, v ≠ holev → reachA v ≠ 0 → doneA v = 0 →
+    ∃ i, i < h ∧ hv i = v ∧ hd i = distA v
+  entry_mono : ∀ i, i < h → distA (hv i) ≤ hd i
+  entry_reach : ∀ i, i < h → reachA (hv i) ≠ 0
+
+theorem EntrySoftH.ofSoft {distA : Fin G.n → ℝ≥0} {reachA doneA : Fin G.n → ℕ}
+    {hv : ℕ → Fin G.n} {hd : ℕ → ℝ≥0} {h ins : ℕ} {holev : Fin G.n}
+    (S : EntrySoft s distA reachA doneA hv hd h ins) :
+    EntrySoftH holev s distA reachA doneA hv hd h ins :=
+  ⟨fun v _ => S.entry_cur v, S.entry_mono, S.entry_reach⟩
+
 /-- `SoftInv` with one waived `entry_cur` hole: the freshly popped vertex `holev`
 has no heap entry between `popBody` and `settleBody`'s done-store. -/
 structure SoftInvH (holev : Fin G.n) (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
@@ -868,10 +883,10 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
 guarantees the pushed vertex `pv` is reached (`reach[pv] ≠ 0`).  Cost: `12 * rk h + 13`. -/
 theorem pushBody_runs {st : State ℝ≥0}
     (hF : F0 G s st) (hAF : AF G st)
-    (hsoft : EntrySoft s (fun v => st.va "dist" v) (fun v => st.wa "reach" v) (fun v => st.wa "done" v)
-      (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
-    (hheap : HeapOK (hvD s st) (fun i => st.va "hd" i) (st.w "h"))
     (hpv : st.w "pv" < G.n)
+    (hsoft : EntrySoftH ⟨st.w "pv", hpv⟩ s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+      (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
+    (hheap : HeapOK (hvD s st) (fun i => st.va "hd" i) (st.w "h"))
     (hreachv : st.wa "reach" (st.w "pv") ≠ 0)
     (hbound : st.w "h" ≤ G.m) (hinsb : st.w "ins" ≤ G.m) :
     Runs realOps pushBody st (fun st' =>
@@ -952,10 +967,14 @@ theorem pushBody_runs {st : State ℝ≥0}
     · -- soft
       refine ⟨?_, ?_, ?_⟩
       · intro v hrv hd0
-        obtain ⟨i, hi, hvi, hdi⟩ := hsoft.entry_cur v hrv hd0
-        refine ⟨i, by rw [hh5]; omega, ?_, ?_⟩
-        · rw [hhv5, if_neg (by omega)]; exact hvi
-        · rw [hhd5, if_neg (by omega)]; exact hdi
+        by_cases hvp : v = ⟨st.w "pv", hpv⟩
+        · rw [hvp]
+          exact ⟨st.w "h", by rw [hh5]; omega, by rw [hhv5, if_pos rfl],
+            by rw [hhd5, if_pos rfl]; rfl⟩
+        · obtain ⟨i, hi, hvi, hdi⟩ := hsoft.entry_hole v hvp hrv hd0
+          refine ⟨i, by rw [hh5]; omega, ?_, ?_⟩
+          · rw [hhv5, if_neg (by omega)]; exact hvi
+          · rw [hhd5, if_neg (by omega)]; exact hdi
       · intro i hi
         by_cases hiz : i = st.w "h"
         · rw [hiz, hhd5, if_pos rfl, hhv5, if_pos rfl]
