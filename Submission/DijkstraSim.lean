@@ -80,9 +80,9 @@ theorem F0.init_state (P : Program) (s : Fin G.n) : F0 G s (initState P G s) := 
   refine ⟨rfl, rfl, rfl, ?_, ?_, ?_, ?_, rfl, rfl, rfl⟩
   · calc G.n + G.m + 2 = (G.n + G.m + 2) ^ 1 := (pow_one _).symm
       _ ≤ (G.n + G.m + 2) ^ (P.wordExp + 1) := Nat.pow_le_pow_right (by omega) (by omega)
-  · intro j hj; unfold Frontier.RAM.initState; rw [if_pos rfl]; exact dif_pos hj
-  · intro j hj; unfold Frontier.RAM.initState; rw [if_pos rfl]; exact dif_pos hj
-  · intro j hj; unfold Frontier.RAM.initState; rw [if_pos rfl]; exact dif_pos hj
+  · intro j hj; simp [Frontier.RAM.initState, hj]
+  · intro j hj; simp [Frontier.RAM.initState, hj]
+  · intro j hj; simp [Frontier.RAM.initState, hj]
 
 /-! ## Dijkstra array frame -/
 
@@ -187,26 +187,25 @@ theorem calcPa_runs (st : State ℝ≥0) (hF : F0 G s st) :
       refine ⟨0, ?_, fun hz => (hz rfl).elim, ?_⟩
       · rw [hcond, if_neg hq]
       · have hple' : Nat.log 2 G.n ≤ st'.w "pa" := by
-          by_contra! hlt
+        rcases Nat.eq_zero_or_pos G.n with h0 | hpos
+        · rw [h0]; exact Nat.zero_le _
+        · by_contra! hlt
           -- p < log → 2^(p+1) ≤ n → q = n/2^p ≥ 2 → 1 < q, contradicting ¬(1 < q)
-          have h2 : 2 ^ Nat.log 2 G.n ≤ G.n := Nat.pow_log_le_self 2 (by
-            by_contra! hh
-            have : G.n = 0 := by omega
-            subst this
-            simp at hrel)
+          have h2 : 2 ^ Nat.log 2 G.n ≤ G.n := Nat.pow_log_le_self 2 (by omega)
           have hpow : 2 ^ (st'.w "pa" + 1) ≤ G.n :=
             (Nat.pow_le_pow_right (by norm_num) (show st'.w "pa" + 1 ≤ Nat.log 2 G.n by
               omega)).trans h2
           have h1 : 2 ≤ q := by
-            rw [← hrel, Nat.le_div_iff_mul_le (by positivity)]
+            rw [hrel, Nat.le_div_iff_mul_le (by positivity)]
             have h3 : 2 ^ (st'.w "pa") * 2 ≤ G.n := by rw [Nat.pow_succ] at hpow; exact hpow
             rw [Nat.mul_comm]; exact h3
           omega
+        show F0 G s (st'.charge 1) ∧ (st'.charge 1).w "pa" = Nat.log 2 G.n ∧
+          (st'.charge 1).cost ≤ st.cost + 4 * (Nat.log 2 G.n + 1) + 2
         refine ⟨hF'.charge 1, ?_, ?_⟩
         · simp; omega
         · have := hF'.hcap; simp at hc ⊢; omega
-  · show G.n = G.n / 2 ^ 0
-    simp
+  · rfl
   · exact Nat.zero_le _
   · simp; omega
 
