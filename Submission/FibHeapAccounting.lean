@@ -159,4 +159,21 @@ theorem total_fallback {r n m L : ℕ} (hr : r ≤ m + 1) (hL : L ≤ n) :
 theorem tiny_one_zero : total 1 1 0 0 = 447 ∧ total 1 1 0 0 ≤ 1010 * (1 + 1) * (0 + 1) := by
   norm_num [total]
 
+/-- Real-arithmetic core: the sparse Nat bound is below `1000·n·ln n` for `n≥16`. -/
+theorem sparse_real_arith {n L ell : ℝ} (hn : 16 ≤ n) (hl : 2.7 ≤ ell) (_hL0 : 0 ≤ L)
+    (hLb : L ≤ 1.5 * ell) : 559 * n * L + 397 * n + 4 * L + 50 ≤ 1000 * n * ell := by
+  have hn0 : 0 ≤ n := by linarith
+  have hl0 : 0 ≤ ell := by linarith
+  have hnl : 2.7 * n ≤ n * ell := by
+    have h := mul_le_mul_of_nonneg_left hl hn0
+    nlinarith
+  have hmain := mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left hLb hn0)
+    (by norm_num : (0 : ℝ) ≤ 559)
+  have h397 : 397 * n ≤ 148 * (n * ell) := by nlinarith
+  have h4 : 4 * L ≤ n * ell := by
+    have h6 : 6 * ell ≤ n * ell := mul_le_mul_of_nonneg_right (by linarith : (6 : ℝ) ≤ n) hl0
+    nlinarith
+  have h50 : 50 ≤ 2 * (n * ell) := by nlinarith
+  nlinarith
+
 end Submission.FibHeapAccounting
