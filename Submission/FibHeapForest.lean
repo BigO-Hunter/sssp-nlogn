@@ -308,4 +308,16 @@ theorem cascade_marks_bound {l : List Bool} {μ μ' k : ℕ} (h : CascadeMarks l
   | mark => omega
   | clear hμ _ ih => omega
 
+/-- Decrease-key's full marking chain, proved end to end: `c = k+1` total cuts (the original
+cut plus `k` cascade cuts) under the CLRS discipline give exactly `μ' + c ≤ μ + 2`, so — by
+the proved `cascade_potential_delta` — `Φ' + c ≤ Φ + 4`, and the amortized decrease-key
+bound `D0 + 3K + D1` follows.  No step is an assumption: the marking effect is
+`cascade_marks_bound`, the potential step is `FibHeapAccounting.cascade_potential_delta`,
+and the ledger step is `FibHeapAccounting.decrease_amortized_clrs`. -/
+theorem decrease_amortized_of_marks {K D0 D1 : ℕ} {l : List Bool} {μ μ' k t t' : ℕ}
+    (hK : D1 ≤ K) (ht : t' = t + (k + 1)) (h : CascadeMarks l μ μ' k) :
+    D0 + D1 * (k + 1) + FibHeapAccounting.scaledPotential K t' μ'
+      ≤ FibHeapAccounting.scaledPotential K t μ + (D0 + 3 * K + D1) :=
+  FibHeapAccounting.decrease_amortized_clrs (by omega) hK ht (cascade_marks_bound h)
+
 end Submission.FibHeapForest
