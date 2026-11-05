@@ -203,4 +203,10 @@ theorem total_fallback_real {r n m L : ℕ} (hr : r ≤ m + 1) (hL : L ≤ n) :
   push_cast at hR ⊢
   nlinarith
 
+/-- The existing race time function at exponents `(1,1,0)` is `n·ln n`. -/
+theorem time_one_one_zero (n : ℕ) :
+    BigOSpeedrun.DirectedSSSP.Time ((1 : ℚ) / 1) ((1 : ℚ) / 1) ((0 : ℚ) / 1) n
+      = (n : ℝ) * Real.log n := by
+  simp [BigOSpeedrun.DirectedSSSP.Time, div_one, Real.rpow_one, Real.rpow_zero]
+
 end Submission.FibHeapAccounting
