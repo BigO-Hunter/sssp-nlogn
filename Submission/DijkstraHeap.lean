@@ -3985,4 +3985,104 @@ theorem settleBody_runs {st : State ℝ≥0} {u : Fin G.n}
   refine ⟨?_, S.settled_exact, S.val, S.chainWF, hF', hAF', hc'⟩
   exact S.toInv (by rw [hch'])
 
+/-! ### Push-room accounting for the main loop
+
+A push needs `h ≤ m` and `ins ≤ m`; both counts grow only when a scan pushes, and at most one
+push happens per scanned edge.  So the accounting is: the total out-degree over settled vertices
+(`RoomSt`) bounds `ins - 1`, and `h ≤ ins`.  The sum identity is the fibers of `src`. -/
+
+/-- The out-degrees of all vertices sum to the edge count. -/
+theorem sum_outdeg : (∑ v : Fin G.n, (outChainK G G.m (v : ℕ)).length) = G.m := by
+  have hsrc_lt : ∀ e : ℕ, e < G.m → srcN G e < G.n := by
+    intro e he; rw [srcN, dif_pos he]; exact (G.src ⟨e, he⟩).isLt
+  have key : ∀ k : ℕ, (∀ e : ℕ, e < k → srcN G e < G.n) →
+      (∑ v : Fin G.n, (outChainK G k (v : ℕ)).length) = k := by
+    intro k
+    induction k with
+    | zero => intro _; simp [outChainK_zero]
+    | succ k ih =>
+      intro hk
+      have hk' : ∀ e : ℕ, e < k → srcN G e < G.n := fun e he => hk e (by omega)
+      have hstep : ∀ v : Fin G.n, (outChainK G (k + 1) (v : ℕ)).length
+          = (outChainK G k (v : ℕ)).length + (if srcN G k = (v : ℕ) then 1 else 0) := by
+        intro v
+        by_cases h : srcN G k = (v : ℕ)
+        · rw [outChainK_succ_same h, List.length_cons, if_pos h]
+        · rw [outChainK_succ_ne h, if_neg h]; simp
+      have hsingle : (∑ v : Fin G.n, (if srcN G k = (v : ℕ) then 1 else 0)) = 1 := by
+        have hlt : srcN G k < G.n := hk k (Nat.lt_succ_self k)
+        rw [Finset.sum_eq_single (⟨srcN G k, hlt⟩ : Fin G.n)]
+        · exact if_pos rfl
+        · intro b _ hb
+          exact if_neg (fun hh => hb (Fin.ext hh.symm))
+        · intro hc; exact absurd (Finset.mem_univ _) hc
+      rw [Finset.sum_congr rfl (fun v _ => hstep v), Finset.sum_add_distrib, ih hk', hsingle]
+  exact key G.m hsrc_lt
+
+/-- Number of edges whose source is already settled. -/
+noncomputable def RoomSt (G : Graph) (st : State ℝ≥0) : ℕ :=
+  ∑ v : Fin G.n, if st.wa "done" v ≠ 0 then (outChainK G G.m (v : ℕ)).length else 0
+
+theorem RoomSt_le (G : Graph) (st : State ℝ≥0) : RoomSt G st ≤ G.m := by
+  have h := sum_outdeg (G := G)
+  rw [RoomSt]
+  calc (∑ v : Fin G.n,
+        (if st.wa "done" v ≠ 0 then (outChainK G G.m (v : ℕ)).length else 0))
+      ≤ ∑ v : Fin G.n, (outChainK G G.m (v : ℕ)).length := by
+        refine Finset.sum_le_sum (fun v _ => ?_)
+        by_cases hv : st.wa "done" v ≠ 0
+        · rw [if_pos hv]
+        · rw [if_neg hv]; omega
+    _ = G.m := h
+
+/-- Settling one more vertex keeps the scanned-edge count under the edge cap. -/
+theorem RoomSt_add_outdeg {st : State ℝ≥0} {u : Fin G.n} (hdu : st.wa "done" u = 0) :
+    RoomSt G st + (outChainK G G.m (u : ℕ)).length ≤ G.m := by
+  have hsplit : RoomSt G st
+      = ∑ v ∈ Finset.univ.erase u,
+        (if st.wa "done" v ≠ 0 then (outChainK G G.m (v : ℕ)).length else 0) := by
+    rw [RoomSt, ← Finset.sum_erase_add _ _ (Finset.mem_univ u)]
+    simp [hdu]
+  have hterm : u ∈ (Finset.univ : Finset (Fin G.n)) := Finset.mem_univ u
+  have hsum : (∑ v ∈ Finset.univ.erase u, (outChainK G G.m (v : ℕ)).length)
+      + (outChainK G G.m (u : ℕ)).length = G.m := by
+    rw [Finset.sum_erase_add _ _ hterm, sum_outdeg]
+  have hle : RoomSt G st ≤ ∑ v ∈ Finset.univ.erase u, (outChainK G G.m (v : ℕ)).length := by
+    rw [hsplit]
+    refine Finset.sum_le_sum (fun v _ => ?_)
+    by_cases hv : st.wa "done" v ≠ 0
+    · rw [if_pos hv]
+    · rw [if_neg hv]; omega
+  omega
+
+/-- The done-store adds exactly the settled vertex's out-degree to the scanned count. -/
+theorem RoomSt_store {st : State ℝ≥0} {u : Fin G.n} (hdu : st.wa "done" u = 0) :
+    RoomSt G (st.storeW "done" (u : ℕ) 1)
+      = RoomSt G st + (outChainK G G.m (u : ℕ)).length := by
+  have hd : ∀ v : Fin G.n, (st.storeW "done" (u : ℕ) 1).wa "done" v
+      = if v = u then 1 else st.wa "done" v := by
+    intro v
+    rw [wa_storeW]
+    simp [Fin.ext_iff]
+  have hpoint : ∀ v : Fin G.n,
+      (if (st.storeW "done" (u : ℕ) 1).wa "done" v ≠ 0
+        then (outChainK G G.m (v : ℕ)).length else 0)
+      = (if st.wa "done" v ≠ 0 then (outChainK G G.m (v : ℕ)).length else 0)
+        + (if v = u then (outChainK G G.m (v : ℕ)).length else 0) := by
+    intro v
+    rw [hd v]
+    by_cases hvu : v = u
+    · rw [if_pos hvu, if_pos hvu]
+      have hdv : st.wa "done" v = 0 := by rw [hvu]; exact hdu
+      rw [hdv]; simp
+    · rw [if_neg hvu, if_neg hvu]; simp
+  have hsingle : (∑ v : Fin G.n, (if v = u then (outChainK G G.m (v : ℕ)).length else 0))
+      = (outChainK G G.m (u : ℕ)).length := by
+    rw [Finset.sum_eq_single u]
+    · exact if_pos rfl
+    · intro b _ hb; exact if_neg hb
+    · intro hc; exact absurd (Finset.mem_univ _) hc
+  rw [RoomSt, Finset.sum_congr rfl (fun v _ => hpoint v), Finset.sum_add_distrib, hsingle]
+  rfl
+
 end Submission.DijkstraHeap
