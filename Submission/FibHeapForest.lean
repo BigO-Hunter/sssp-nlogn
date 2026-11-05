@@ -261,4 +261,30 @@ theorem degree_le_rankCap_of_invOK {t : Tree} {n : ℕ} (h : InvOK t) (hs : t.si
     t.degree ≤ FibHeapAccounting.rankCap n :=
   FibHeapAccounting.degree_rankCap_of_fib_size ((size_ge_fib_of_invOK t h).trans hs)
 
+/-- A list of pairwise-distinct naturals, all bounded by `R`, has at most `R+1` elements. -/
+theorem nodup_length_le_succ {R : ℕ} {l : List ℕ} (hnd : l.Nodup) (hle : ∀ d ∈ l, d ≤ R) :
+    l.length ≤ R + 1 := by
+  have hsub : l.toFinset ⊆ Finset.range (R + 1) := fun d hd =>
+    Finset.mem_range.mpr (Nat.lt_succ_of_le (hle d (List.mem_toFinset.mp hd)))
+  calc l.length = l.toFinset.card := (List.toFinset_card_of_nodup hnd).symm
+    _ ≤ (Finset.range (R + 1)).card := Finset.card_le_card hsub
+    _ = R + 1 := Finset.card_range _
+
+/-- The exact `t1 ≤ Q` chain.  After consolidation the root degrees are pairwise distinct;
+every root tree satisfies `InvOK`; every root tree has size at most `n` (all live nodes fit
+the heap).  Then each root degree is at most `rankCap n` (by `degree_le_rankCap_of_invOK`,
+which reuses the scalar lane), distinctness bounds the root count by the number of admissible
+degrees, and `rootCap n = rankCap n + 1 = 2·log₂ n + 2` is exactly `Q`. -/
+theorem t1_le_Q {roots : List Tree} {n : ℕ}
+    (hnd : (roots.map Tree.degree).Nodup)
+    (hinv : ∀ t ∈ roots, InvOK t) (hsz : ∀ t ∈ roots, t.size ≤ n) :
+    roots.length ≤ FibHeapAccounting.rootCap n := by
+  have hdeg : ∀ d ∈ roots.map Tree.degree, d ≤ FibHeapAccounting.rankCap n := by
+    intro d hd
+    obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hd
+    exact degree_le_rankCap_of_invOK (hinv t ht) (hsz t ht)
+  have h := nodup_length_le_succ hnd hdeg
+  rw [List.length_map] at h
+  exact h.trans (by rfl)
+
 end Submission.FibHeapForest
