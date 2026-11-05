@@ -253,4 +253,12 @@ degree `k` represents at least `fib (k+2)` live nodes. -/
 theorem size_ge_fib_of_invOK (t : Tree) (h : InvOK t) : Nat.fib (t.degree + 2) ≤ t.size :=
   fib_size_of_invOK t.size t (Nat.le_refl _) h
 
+/-- The exact feed into the scalar accounting lane: an `InvOK` tree over at most `n` live
+nodes has degree at most `rankCap n = 2·log₂ n + 1`.  This REUSES
+`FibHeapAccounting.degree_rankCap_of_fib_size` — the Fibonacci lower bound is proved above,
+and the elementary rank cap is not re-proved here. -/
+theorem degree_le_rankCap_of_invOK {t : Tree} {n : ℕ} (h : InvOK t) (hs : t.size ≤ n) :
+    t.degree ≤ FibHeapAccounting.rankCap n :=
+  FibHeapAccounting.degree_rankCap_of_fib_size ((size_ge_fib_of_invOK t h).trans hs)
+
 end Submission.FibHeapForest
