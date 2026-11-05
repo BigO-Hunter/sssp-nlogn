@@ -220,4 +220,37 @@ theorem sizeSum_ge_fib_aux
     have hfib : Nat.fib (k + 1) ≤ c.tree.size := hk1.trans hsc
     omega
 
+/-- Strong induction on the abstract live size: every `InvOK` tree of size at most `N`
+has size at least `fib (degree + 2)`.  The strong hypothesis of `sizeSum_ge_fib_aux` is
+discharged for every smaller tree, not only for siblings: a child's size is strictly below
+its parent's (`size_le_sizeSum`), so `M = t.size` makes the hypothesis universal below `M`. -/
+theorem fib_size_of_invOK :
+    ∀ (N : ℕ) (t : Tree), t.size ≤ N → InvOK t → Nat.fib (t.degree + 2) ≤ t.size := by
+  intro N
+  induction N with
+  | zero =>
+    intro t hN _
+    exact absurd hN (by have := size_pos t; omega)
+  | succ N ih =>
+    intro t hN hinv
+    cases t with
+    | node id children =>
+      simp only [size_node] at hN
+      cases hinv with
+      | mk _ _ hco hpos hrec =>
+        have hbound : ∀ a : Tree, a.size < 1 + sizeSum children → InvOK a
+            → Nat.fib (a.degree + 2) ≤ a.size := by
+          intro a ha hai
+          exact ih a (by omega) hai
+        have hkey := sizeSum_ge_fib_aux (1 + sizeSum children) hbound children 0
+          (by omega) (fun j hj => by have := hpos j hj; omega) hco hrec
+        rw [show Nat.fib (0 + 2) = 1 from rfl, Nat.add_zero] at hkey
+        simp only [Tree.degree, size_node]
+        omega
+
+/-- The CLRS minimum-size theorem for Fibonacci trees: an `InvOK` tree whose root has
+degree `k` represents at least `fib (k+2)` live nodes. -/
+theorem size_ge_fib_of_invOK (t : Tree) (h : InvOK t) : Nat.fib (t.degree + 2) ≤ t.size :=
+  fib_size_of_invOK t.size t (Nat.le_refl _) h
+
 end Submission.FibHeapForest
