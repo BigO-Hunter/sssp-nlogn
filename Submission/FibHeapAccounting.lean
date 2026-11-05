@@ -193,4 +193,14 @@ theorem total_sparse_real (G : Frontier.Graph) {r : ℕ} (hr : r ≤ G.n)
       ≤ ((sparseTotal G.n (Nat.log 2 G.n) : ℕ) : ℝ) := by exact_mod_cast hN
   exact hR.trans (sparseTotal_real G hn)
 
+/-- `C=2000` covers the Dijkstra-side fallback with substantial margin over 1010. -/
+theorem total_fallback_real {r n m L : ℕ} (hr : r ≤ m + 1) (hL : L ≤ n) :
+    ((total r n m L : ℕ) : ℝ) ≤ 2000 * ((n : ℝ) + 1) * ((m : ℝ) + 1) := by
+  have hN := total_fallback (r := r) (n := n) (m := m) (L := L) hr hL
+  have hR : ((total r n m L : ℕ) : ℝ) ≤ ((1010 * (n + 1) * (m + 1) : ℕ) : ℝ) := by
+    exact_mod_cast hN
+  have hB : 0 ≤ ((n : ℝ) + 1) * ((m : ℝ) + 1) := by positivity
+  push_cast at hR ⊢
+  nlinarith
+
 end Submission.FibHeapAccounting
