@@ -2737,6 +2737,7 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       SweepInv G s u t' (k + 1) ∧ F0 G s t' ∧ AF G t' ∧
       chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) ∧
       t'.w "v" = t.w "v" ∧
+      t'.w "h" = t.w "h" + 1 ∧
       t'.cost ≤ t.cost + 12 * rk (t.w "h") + 20) := by
   have hcap0 : 0 < t.cap := by have := hF.hcap; omega
   have hcap1 : 1 < t.cap := by have := hF.hcap; omega
@@ -2878,7 +2879,7 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
         (hfr4.dist u).trans (hdistT (u : ℕ) (hNatNe u hxnot.symm))
       rw [hdstv, hsrcv, hxl, hul, ← hcand, ENNReal.coe_add]
   refine ⟨SweepInv.push_relax (st := t) (t := t4) S hdx0 hxnot hxs hsrcv hdstv hcand htake hEk
-    hES4 hHOK4 hval4 ?_ ?_ ?_ ?_ ?_ ?_ ?_ hle hsw, hF4, hAF4, ?_, ?_, ?_⟩
+    hES4 hHOK4 hval4 ?_ ?_ ?_ ?_ ?_ ?_ ?_ hle hsw, hF4, hAF4, ?_, ?_, ?_, ?_⟩
   · intro w
     rw [hfr4.head w, hheadT w]
   · intro j
@@ -2903,6 +2904,8 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
     rw [hfr4.regv, ht3, w_charge, w_setW, ht2, w_charge, w_charge, w_storeW, ht1,
       w_charge, w_storeV]
     rw [if_neg (by decide)]
+  · -- the heap grows by exactly one (the push)
+    rw [hh4, hhT]
   · -- cost
     have hc3 : t3.cost = t.cost + 4 := rfl
     rw [hc3, hhT] at hcost4
@@ -2928,6 +2931,7 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       SweepInv G s u t' (k + 1) ∧ F0 G s t' ∧ AF G t' ∧
       chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) ∧
       t'.w "v" = t.w "v" ∧
+      t'.w "h" ≤ t.w "h" + 1 ∧
       t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25) := by
   have hcap0 : 0 < t.cap := by have := hF.hcap; omega
   have hcap1 : 1 < t.cap := by have := hF.hcap; omega
@@ -2985,10 +2989,12 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       hxv hcandv hcand hvalB hbound hinsb
       hdx0 hxnot hxs hsrcv hdstv (by rw [hchB]; exact htake) hSB
       (by rw [hchB]; exact hsw) hleB).mono ?_
-    rintro t' ⟨hS', hF', hAF', hch', hv', hc'⟩
-    refine ⟨hS', hF', hAF', hch'.trans hchB, hv'.trans rfl, ?_⟩
-    rw [hcostB, hhB] at hc'
-    omega
+    rintro t' ⟨hS', hF', hAF', hch', hv', hst', hc'⟩
+    refine ⟨hS', hF', hAF', hch'.trans hchB, hv'.trans rfl, ?_, ?_⟩
+    · rw [hst'] at *
+      omega
+    · rw [hcostB, hhB] at hc'
+      omega
   · -- arms B/C: `reach x ≠ 0` — the improvement test decides
     refine runs_ite_false (by rw [hcondE, if_neg hr]) ?_
     have hdistE : evalV realOps (t.charge 1) (.load "dist" (var "x"))
@@ -3037,7 +3043,7 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       have hcostF : tF.cost = t.cost + 6 := by
         simp only [htF, htE, htD, htC, cost_charge, cost_setW]
       refine ⟨hSF, ?_, AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl,
-        hchfix (fun _ => rfl) (fun _ => rfl), rfl, ?_⟩
+        hchfix (fun _ => rfl) (fun _ => rfl), rfl, by omega, ?_⟩
       · exact F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
           (fun _ _ => rfl) rfl rfl rfl
       · rw [hcostF]
@@ -3082,9 +3088,11 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
         hxv hcandv hcand hvalG hbound hinsb
         hdx0 hxnot hxs hsrcv hdstv (by rw [hchG]; exact htake) hSG
         (by rw [hchG]; exact hsw) hleG).mono ?_
-      rintro t' ⟨hS', hF', hAF', hch', hv', hc'⟩
-      refine ⟨hS', hF', hAF', hch'.trans hchG, hv'.trans rfl, ?_⟩
-      rw [hcostG, hhG] at hc'
-      omega
+      rintro t' ⟨hS', hF', hAF', hch', hv', hst', hc'⟩
+      refine ⟨hS', hF', hAF', hch'.trans hchG, hv'.trans rfl, ?_, ?_⟩
+      · rw [hst'] at *
+        omega
+      · rw [hcostG, hhG] at hc'
+        omega
 
 end Submission.DijkstraHeap
