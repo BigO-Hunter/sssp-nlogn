@@ -46,4 +46,49 @@ theorem bf_branch_from (st : State ℝ≥0) (hF : F0 G s st) :
     _ = Frontier.RAM.BF.rounds G s G.n v := congrFun hlab v
     _ = G.dist s v := Frontier.RAM.BF.rounds_n_eq_dist s v
 
+/-- The dispatch test evaluated at the post-`calcPa` state. -/
+theorem test_eval {st1 : State ℝ≥0} (hF1 : F0 G s st1) (hpa1 : st1.w "pa" = Nat.log 2 G.n) :
+    evalW st1 (lt (var "pa") (div (var "m") (var "n")))
+      = some (if Nat.log 2 G.n < G.m / G.n then 1 else 0) := by
+  have hcap1 : 1 < st1.cap := by have := hF1.hcap; omega
+  have hpaE : evalW st1 (var "pa") = some (Nat.log 2 G.n) := by rw [evalW_var, hpa1]
+  have hmE : evalW st1 (var "m") = some G.m := by rw [evalW_var, hF1.hm]
+  have hnE : evalW st1 (var "n") = some G.n := by rw [evalW_var, hF1.hn]
+  have hnne : G.n ≠ 0 := by have := s.isLt; omega
+  have hdivE : evalW st1 (div (var "m") (var "n")) = some (G.m / G.n) :=
+    evalW_div_of hmE hnE hnne
+  exact evalW_lt_of hpaE hdivE hcap1
+
+/-- `calcPa` then the dispatch test, in one step: the branch bodies both start at the state
+`st1.charge 1`. -/
+theorem prog_runs_dij (hdiv : G.m / G.n ≤ Nat.log 2 G.n) :
+    Runs realOps prog (initState p1 G s) (fun r => r.Solves G s ∧
+      r.cost ≤ 4 * Nat.log 2 G.n + 6 + 1 + (4 * G.n + 3 * G.m + 9) + (6 * G.m + 2) + 4
+        + (12 * rk 0 + 13) + (Kc G * (2 * G.m + 3) + 1)) := by
+  refine runs_seq ((calcPa_runs (G := G) (s := s) (initState p1 G s)
+    (F0.init_state (G := G) p1 s)).mono ?_)
+  rintro st1 ⟨hF1, hpa1, hc1⟩
+  have htest : evalW st1 (lt (var "pa") (div (var "m") (var "n"))) = some 0 := by
+    rw [test_eval hF1 hpa1, if_neg (by omega)]
+  refine runs_ite_false (a := Frontier.RAM.BF.prog) htest ?_
+  refine (dijkstra_branch_from (G := G) (s := s) (st := st1) hF1).mono ?_
+  rintro r ⟨hsv, hc⟩
+  have hinit : (initState p1 G s).cost = 0 := rfl
+  exact ⟨hsv, by omega⟩
+
+/-- The same run on the Bellman–Ford side of the dispatch. -/
+theorem prog_runs_bf (hdiv : Nat.log 2 G.n < G.m / G.n) :
+    Runs realOps prog (initState p1 G s) (fun r => r.Solves G s ∧
+      r.cost ≤ 4 * Nat.log 2 G.n + 6 + 1 + 2 * G.n + 4 + (9 * G.m + 4) * G.n + 1) := by
+  refine runs_seq ((calcPa_runs (G := G) (s := s) (initState p1 G s)
+    (F0.init_state (G := G) p1 s)).mono ?_)
+  rintro st1 ⟨hF1, hpa1, hc1⟩
+  have htest : evalW st1 (lt (var "pa") (div (var "m") (var "n"))) = some 1 := by
+    rw [test_eval hF1 hpa1, if_pos hdiv]
+  refine runs_ite_true (b := dijkstraBody) htest (by decide) ?_
+  refine (bf_branch_from (G := G) (s := s) (st := st1) hF1).mono ?_
+  rintro r ⟨hsv, hc⟩
+  have hinit : (initState p1 G s).cost = 0 := rfl
+  exact ⟨hsv, by omega⟩
+
 end Submission.DijkstraRow
