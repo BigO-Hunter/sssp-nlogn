@@ -209,4 +209,17 @@ theorem time_one_one_zero (n : ℕ) :
       = (n : ℝ) * Real.log n := by
   simp [BigOSpeedrun.DirectedSSSP.Time, div_one, Real.rpow_one, Real.rpow_zero]
 
+/-- `C=2000,N=16` remains ample for the exact B2 scalar envelope at `Time 1 1 0`. -/
+theorem total_sparse_race (G : Frontier.Graph) {r : ℕ} (hr : r ≤ G.n)
+    (hm : G.m ≤ G.n * Nat.log 2 G.n) (hn : 16 ≤ G.n) :
+    ((total r G.n G.m (Nat.log 2 G.n) : ℕ) : ℝ)
+      ≤ 2000 * BigOSpeedrun.DirectedSSSP.Time ((1 : ℚ) / 1) ((1 : ℚ) / 1) ((0 : ℚ) / 1) G.n := by
+  rw [time_one_one_zero]
+  have h := total_sparse_real G hr hm hn
+  have hlog : 0 ≤ Real.log (G.n : ℝ) := by
+    have hg := Submission.DijkstraRow.log_ge (G := G) hn
+    linarith
+  have hB : 0 ≤ (G.n : ℝ) * Real.log G.n := mul_nonneg (Nat.cast_nonneg _) hlog
+  nlinarith
+
 end Submission.FibHeapAccounting
