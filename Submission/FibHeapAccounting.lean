@@ -55,4 +55,19 @@ theorem degree_log_bound {k n : ℕ} (hsize : Nat.fib (k + 2) ≤ n) :
 theorem degree_slot_bound {d N n : ℕ} (hd : d < N) (hN : N ≤ n) : d < n + 1 := by
   omega
 
+/-- Base Fibonacci potential: trees plus twice the marked-live-node count. -/
+def potential (t μ : ℕ) : ℕ := t + 2 * μ
+
+/-- RAM-scaled potential, used to cancel multi-statement root-processing loops. -/
+def scaledPotential (K t μ : ℕ) : ℕ := K * potential t μ
+
+/-- The loose elementary rank cap, avoiding any golden-ratio formalization. -/
+def rankCap (n : ℕ) : ℕ := 2 * Nat.log 2 n + 1
+
+/-- One more than the rank cap: the post-consolidation root-count cap. -/
+def rootCap (n : ℕ) : ℕ := rankCap n + 1
+
+/-- The empty heap has zero base potential. -/
+theorem potential_empty : potential 0 0 = 0 := rfl
+
 end Submission.FibHeapAccounting
