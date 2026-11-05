@@ -159,4 +159,65 @@ theorem fib_le_of_le {m n : ℕ} (h : m ≤ n) : Nat.fib m ≤ Nat.fib n := by
     · exact Nat.le_refl _
     · exact (ih (by omega)).trans Nat.fib_le_fib_succ
 
+/-- The offset list lemma behind the CLRS minimum-size argument.  If every child at link
+position `j` has link degree at least `j + k` (link order, shifted by `k`), each sibling
+subtree satisfies `InvOK`, each sibling obeys link-time degree equality with at most one
+loss, and every tree smaller than `M` with `InvOK` has size at least `fib (degree + 2)`
+(the strong hypothesis), then the summed sibling sizes dominate the Fibonacci value at the
+total link count.  Left induction: the head contributes `fib (k+1)`, and the tail is
+re-indexed at offset `k+1` because `(a :: l).getD (j+1) d = l.getD j d`. -/
+theorem sizeSum_ge_fib_aux
+    (M : ℕ) (hbound : ∀ a : Tree, a.size < M → InvOK a → Nat.fib (a.degree + 2) ≤ a.size) :
+    ∀ (children : List Child) (k : ℕ), sizeSum children + 1 ≤ M →
+      (∀ j, j < children.length → j + k ≤ (children.getD j (Child.mk (.node 0 []) 0 0)).linkDegree) →
+      (∀ c ∈ children, c.tree.degree + c.lost = c.linkDegree ∧ c.lost ≤ 1) →
+      (∀ c ∈ children, InvOK c.tree) →
+      Nat.fib (k + 2) + sizeSum children ≥ Nat.fib (children.length + k + 2) := by
+  intro children
+  induction children with
+  | nil => intro k _ _ _ _; simpa [sizeSum] using Nat.le_refl _
+  | cons c tail ih =>
+    intro k hM hord hco hrec
+    have h0 : k ≤ c.linkDegree := by
+      have h := hord 0 (by simp)
+      simpa using h
+    obtain ⟨hdeq, hloss⟩ := hco c (by simp)
+    have hk : k + 1 ≤ c.tree.degree + 2 := by omega
+    have hk1 : Nat.fib (k + 1) ≤ Nat.fib (c.tree.degree + 2) := fib_le_of_le hk
+    have hIc : InvOK c.tree := hrec c (by simp)
+    have hcs : c.tree.size ≤ sizeSum (c :: tail) := size_le_sizeSum (by simp)
+    have hsc : Nat.fib (c.tree.degree + 2) ≤ c.tree.size := hbound c.tree (by omega) hIc
+    have hcons : sizeSum (c :: tail) = c.tree.size + sizeSum tail := by
+      simp only [sizeSum, Child.size, List.map_cons, List.sum_cons]
+    have hM' : sizeSum tail + 1 ≤ M := by omega
+    have hord' : ∀ j, j < tail.length → j + (k + 1) ≤ (tail.getD j (Child.mk (.node 0 []) 0 0)).linkDegree := by
+      intro j hj
+      have h := hord (j + 1) (by rw [List.length_cons]; omega)
+      rw [List.getD_cons_succ] at h
+      omega
+    have hco' : ∀ a ∈ tail, a.tree.degree + a.lost = a.linkDegree ∧ a.lost ≤ 1 :=
+      fun a ha => hco a (by simp [ha])
+    have hrec' : ∀ a ∈ tail, InvOK a.tree := fun a ha => hrec a (by simp [ha])
+    have hkey := ih (k + 1) hM' hord' hco' hrec'
+    have expandL : Nat.fib (k + 1 + 2) = Nat.fib (k + 1) + Nat.fib (k + 2) := by
+      have h := Nat.fib_add_two (n := k + 1)
+      have he : k + 1 + 1 = k + 2 := by omega
+      rw [he] at h
+      exact h
+    rw [expandL] at hkey
+    have expandR : Nat.fib (tail.length + (k + 1) + 2)
+        = Nat.fib (tail.length + k + 1) + Nat.fib (tail.length + k + 2) := by
+      have h := Nat.fib_add_two (n := tail.length + k + 1)
+      have he : tail.length + k + 1 + 1 = tail.length + k + 2 := by omega
+      rw [he] at h
+      exact h
+    rw [expandR] at hkey
+    rw [show (c :: tail).length + k + 2 = tail.length + (k + 1) + 2 from by
+      rw [List.length_cons]; omega]
+    rw [expandR]
+    simp only [sizeSum, List.map_cons, List.sum_cons, Child.size]
+    simp only [sizeSum] at hkey
+    have hfib : Nat.fib (k + 1) ≤ c.tree.size := hk1.trans hsc
+    omega
+
 end Submission.FibHeapForest
