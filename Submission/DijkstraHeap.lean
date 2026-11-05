@@ -328,6 +328,43 @@ theorem HeapFrame.charge {st st' : State ℝ≥0} (h : HeapFrame st st') (k : �
   regv := h.regv
   regq := h.regq
 
+/-- The arrays no heap or settle operation touches (`hv`/`hd` are the only arrays a sift
+writes).  `HeapFrame` minus the register fields, so it survives `popBody`, which does write
+`v`. -/
+structure ArrayFrame (st st' : State ℝ≥0) : Prop where
+  dist : ∀ j, st'.va "dist" j = st.va "dist" j
+  reach : ∀ j, st'.wa "reach" j = st.wa "reach" j
+  done : ∀ j, st'.wa "done" j = st.wa "done" j
+  head : ∀ w, st'.wa "head" w = st.wa "head" w
+  nxt : ∀ j, st'.wa "nxt" j = st.wa "nxt" j
+
+theorem ArrayFrame.trivial (st : State ℝ≥0) : ArrayFrame st st :=
+  ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl⟩
+
+theorem HeapFrame.toArrayFrame {st st' : State ℝ≥0} (h : HeapFrame st st') :
+    ArrayFrame st st' :=
+  ⟨h.dist, h.reach, h.done, h.head, h.nxt⟩
+
+/-- A charge never moves an array. -/
+theorem ArrayFrame.chargeA {st a : State ℝ≥0} (h : ArrayFrame st a) (k : ℕ) :
+    ArrayFrame st (a.charge k) := ⟨h.dist, h.reach, h.done, h.head, h.nxt⟩
+
+/-- A register write never moves an array. -/
+theorem ArrayFrame.setWA {st a : State ℝ≥0} (h : ArrayFrame st a) (x : String) (v : ℕ) :
+    ArrayFrame st (a.setW x v) := ⟨h.dist, h.reach, h.done, h.head, h.nxt⟩
+
+/-- A value-register write never moves an array. -/
+theorem ArrayFrame.setVA {st a : State ℝ≥0} (h : ArrayFrame st a) (x : String) (v : ℝ≥0) :
+    ArrayFrame st (a.setV x v) := ⟨h.dist, h.reach, h.done, h.head, h.nxt⟩
+
+theorem ArrayFrame.trans {a b c : State ℝ≥0} (h1 : ArrayFrame a b) (h2 : ArrayFrame b c) :
+    ArrayFrame a c where
+  dist j := (h2.dist j).trans (h1.dist j)
+  reach j := (h2.reach j).trans (h1.reach j)
+  done j := (h2.done j).trans (h1.done j)
+  head w := (h2.head w).trans (h1.head w)
+  nxt j := (h2.nxt j).trans (h1.nxt j)
+
 /-- `Inv` with one waived `entry_cur` hole: the pop-window invariant between
 `popBody` and `settleBody`'s done-store (or the stale-skip). -/
 structure InvH (holev : Fin G.n) (s : Fin G.n) (distA : Fin G.n → ℝ≥0)
@@ -1559,7 +1596,7 @@ def SiftDownInv (holev : Fin G.n) (st : State ℝ≥0) (origHv : ℕ → Fin G.n
           st'.va "hd" ii' ≤ st'.va "hd" j) ∧
         st'.cost ≤ st.cost + 2 + 18 * rkD (st.w "h") 0 + 15)) ∧
     st'.w "v" = st.w "v" ∧ st'.v "dv" = st.v "dv" ∧
-    HeapV (G := G) st' (st'.w "h")
+    HeapV (G := G) st' (st'.w "h") ∧ ArrayFrame st st'
 
 /-- The root rank dominates every hole rank. -/
 theorem rkD_le_zero {h i : ℕ} : rkD h i ≤ rkD h 0 := by
@@ -1596,7 +1633,7 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
       st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
       st'.w "v" = st.w "v" ∧ st'.v "dv" = st.v "dv" ∧
       st'.cost ≤ st.cost + 18 * rkD (st.w "h") 0 + 18 ∧
-      HeapV (G := G) st' (st'.w "h")) := by
+      HeapV (G := G) st' (st'.w "h") ∧ ArrayFrame st st') := by
   have hnpos : 0 < G.n := lt_of_le_of_lt (Nat.zero_le _) s.isLt
   have hcap0 : 2 < st.cap := by have := hF.hcap; omega
   refine runs_seq (runs_wset (x := "ii") (a := 0)
@@ -1618,14 +1655,15 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
         st'.w "h" = st.w "h" ∧ st'.w "ins" = st.w "ins" ∧
         st'.w "v" = st.w "v" ∧ st'.v "dv" = st.v "dv" ∧
         st'.cost ≤ st.cost + 18 * rkD (st.w "h") 0 + 18 ∧
-        HeapV (G := G) st' (st'.w "h"))
+        HeapV (G := G) st' (st'.w "h") ∧ ArrayFrame st st')
       ?_ (rkD (st.w "h") 0 + 1) t1
       ⟨0, hK1, hF1, hAF1, rfl, rfl, Or.inl ⟨rfl, rfl, rfl,
         by rw [show t1.cost = st.cost + 2 from rfl]
            have hsub0 : rkD (st.w "h") 0 - rkD (st.w "h") 0 ≤ rkD (st.w "h") 0 :=
              Nat.sub_le _ _
-           omega⟩, rfl, rfl, by intro i hi; exact hval i hi⟩
-  · intro m s' ⟨ii', K', hF', hAF', hh', hins', hmode, hvR, hdvR, hvalR⟩
+           omega⟩, rfl, rfl, by intro i hi; exact hval i hi,
+        ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl⟩⟩
+  · intro m s' ⟨ii', K', hF', hAF', hh', hins', hmode, hvR, hdvR, hvalR, hfrR⟩
     have hcap' : 2 < s'.cap := by have := hF'.hcap; omega
     have hhdL : s'.vlen "hd" = G.m + 1 := hAF'.hdL
     have hhvL : s'.wlen "hv" = G.m + 1 := hAF'.hvL
@@ -1636,7 +1674,7 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
       · omega
       · have hedge : ∀ j, j < s'.w "h" → (j = 2 * ii' + 1 ∨ j = 2 * ii' + 2) →
             s'.va "hd" ii' ≤ s'.va "hd" j := h2.2.2.1
-        refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        refine ⟨F0.charge hF' 1, AF.charge hAF' 1, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
         · exact ⟨K'.soft, HeapOKExceptFrom.toHeapOK K'.ok (fun j hj hjr => hedge j hj hjr)⟩
         · rw [show (s'.charge 1).w "h" = s'.w "h" from rfl, hh']
         · rw [show (s'.charge 1).w "ins" = s'.w "ins" from rfl, hins']
@@ -1647,10 +1685,12 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
           have hc2 : s'.cost ≤ st.cost + 2 + 18 * rkD (st.w "h") 0 + 15 := h2.2.2.2
           omega
         · intro i hi; exact hvalR i hi
+        · exact ArrayFrame.chargeA hfrR 1
     · -- body: only mode 1 reaches it
       rcases hmode with h1 | h2
       · obtain ⟨hgo1, hii1, hm1, hc1⟩ := h1
         set t0 := s'.charge 1 with ht0
+        have hfr0 : ArrayFrame st t0 := ArrayFrame.chargeA hfrR 1
         have h0E : evalW t0 (lit 0) = some 0 := evalW_lit_of (by show 0 < s'.cap; omega)
         have h1E : evalW t0 (lit 1) = some 1 := evalW_lit_of (by show 1 < s'.cap; omega)
         have h2E : evalW t0 (lit 2) = some 2 := evalW_lit_of (by show 2 < s'.cap; omega)
@@ -1686,10 +1726,11 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
               cx = mchOf origHd (st.w "h") ii' →
               tX.cost ≤ s'.cost + 8 →
               tX.w "v" = st.w "v" → tX.v "dv" = st.v "dv" →
-              HeapV (G := G) tX (tX.w "h") →
+              HeapV (G := G) tX (tX.w "h") → ArrayFrame st tX →
               Runs realOps siftDownTail tX
                 (fun s'' => ∃ m', m' < m ∧ SiftDownInv (s := s) holev st origHv origHd x xk m' s'') := by
             intro tX cx hKX hFX hAFX hhX hinsX hiiX hcX hcxlt hgoX hcx0 hcm hcostX hvX hdvX hvalX
+              hfrX
             have h1lt : 1 < tX.cap := by have := hFX.hcap; have := hnpos; omega
             have hcxltT : cx < tX.w "h" := by rw [hhX, ← hh']; exact hcxlt
             have hcxorig : tX.va "hd" cx = origHd cx :=
@@ -1873,6 +1914,18 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
                   (fun _ _ => rfl) rfl rfl rfl
               have hAF9 : AF G t9 := AF.preserve hAFX rfl rfl rfl rfl rfl rfl rfl
               have hc9 : t9.cost = tX.cost + 9 := rfl
+              have hfr9 : ArrayFrame st t9 := by
+                refine ⟨?_, ?_, ?_, ?_, ?_⟩
+                · intro j; rw [← hfrX.dist j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7, ht8, ht9, va_charge, va_setW, va_storeV, va_storeW]
+                · intro j; rw [← hfrX.reach j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7, ht8, ht9, wa_charge, wa_setW, wa_storeV, wa_storeW]
+                · intro j; rw [← hfrX.done j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7, ht8, ht9, wa_charge, wa_setW, wa_storeV, wa_storeW]
+                · intro w; rw [← hfrX.head w]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7, ht8, ht9, wa_charge, wa_setW, wa_storeV, wa_storeW]
+                · intro j; rw [← hfrX.nxt j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7, ht8, ht9, wa_charge, wa_setW, wa_storeV, wa_storeW]
               refine ⟨rkD (st.w "h") cx + 1, ?_, cx, hK9, hF9, hAF9,
                 by rw [show t9.w "h" = tX.w "h" from rfl, hhX],
                 by rw [show t9.w "ins" = tX.w "ins" from rfl, hinsX],
@@ -1885,7 +1938,7 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
                   split_ifs
                   · exact hvalX ii' hKX.hiir
                   · exact hvalX cx hcxltT
-                  · exact hvalX i (by rw [show t9.w "h" = tX.w "h" from rfl] at hi; exact hi)⟩
+                  · exact hvalX i (by rw [show t9.w "h" = tX.w "h" from rfl] at hi; exact hi), hfr9⟩
               · omega
               · rw [hc9]
                 have hbs := budget_swap (x := rkD (st.w "h") 0) (q := rkD (st.w "h") ii')
@@ -1907,13 +1960,25 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
                   (fun _ _ => rfl) rfl rfl rfl
               have hAFS2 : AF G tS2 := AF.preserve hAFX rfl rfl rfl rfl rfl rfl rfl
               have hcS2 : tS2.cost = tX.cost + 3 := rfl
+              have hfrS2 : ArrayFrame st tS2 := by
+                refine ⟨?_, ?_, ?_, ?_, ?_⟩
+                · intro j; rw [← hfrX.dist j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, va_charge, va_setW, va_storeV, va_storeW]
+                · intro j; rw [← hfrX.reach j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+                · intro j; rw [← hfrX.done j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+                · intro w; rw [← hfrX.head w]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+                · intro j; rw [← hfrX.nxt j]
+                  simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
               refine ⟨0, by omega, ii', hKS2, hFS2, hAFS2,
                 by rw [show tS2.w "h" = tX.w "h" from rfl, hhX],
                 by rw [show tS2.w "ins" = tX.w "ins" from rfl, hinsX],
                 Or.inr ⟨rfl, rfl, ?_, ?_⟩,
                 by rw [show tS2.w "v" = tX.w "v" from rfl]; exact hvX,
                 by rw [show tS2.v "dv" = tX.v "dv" from rfl]; exact hdvX,
-                by intro i hi; exact hvalX i hi⟩
+                by intro i hi; exact hvalX i hi, hfrS2⟩
               · intro j hj hjr
                 have hjh : j < s'.w "h" := by
                   rw [show tS2.w "h" = tX.w "h" from rfl, hhX, ← hh'] at hj; exact hj
@@ -1954,10 +2019,14 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
             exact congrArg some (by omega)
           refine runs_seq (runs_wset hclE ?_)
           set d1 := ((t0.charge 1).setW "cl" (2 * ii' + 1)).charge 1 with hd1
+          have hfrD1 : ArrayFrame st d1 :=
+            ArrayFrame.chargeA (ArrayFrame.setWA (ArrayFrame.chargeA hfr0 1) "cl" _) 1
           have hcl1 : evalW d1 (var "cl") = some (2 * ii' + 1) := by rw [evalW_var]; rfl
           -- 2. c := cl
           refine runs_seq (runs_wset hcl1 ?_)
           set d2 := (d1.setW "c" (2 * ii' + 1)).charge 1 with hd2
+          have hfrD2 : ArrayFrame st d2 :=
+            ArrayFrame.chargeA (ArrayFrame.setWA hfrD1 "c" _) 1
           have hcl2 : evalW d2 (var "cl") = some (2 * ii' + 1) := by rw [evalW_var]; rfl
           have h1d2 : evalW d2 (lit 1) = some 1 := evalW_lit_of (by show 1 < s'.cap; omega)
           have hcl1E : evalW d2 (add (var "cl") (lit 1)) = some (2 * ii' + 2) :=
@@ -1971,6 +2040,7 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
           by_cases hright : 2 * ii' + 2 < s'.w "h"
           · refine runs_seq (runs_ite_true hcond2 (by rw [if_pos hright]; norm_num) ?_)
             set d3 := d2.charge 1 with hd3
+            have hfrD3a : ArrayFrame st d3 := ArrayFrame.chargeA hfrD2 1
             have hcl3 : evalW d3 (var "cl") = some (2 * ii' + 1) := by rw [evalW_var]; rfl
             have h1d3 : evalW d3 (lit 1) = some 1 := evalW_lit_of (by show 1 < s'.cap; omega)
             have hcl13 : evalW d3 (add (var "cl") (lit 1)) = some (2 * ii' + 2) :=
@@ -1988,6 +2058,8 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
                 (by show 1 < s'.cap; omega) ?_)
             set d4 := (d3.setW "b" (if realOps.le (d3.va "hd" (2 * ii' + 2))
                 (d3.va "hd" (2 * ii' + 1)) then 1 else 0)).charge 1 with hd4
+            have hfrD4 : ArrayFrame st d4 :=
+              ArrayFrame.chargeA (ArrayFrame.setWA hfrD3a "b" _) 1
             have hco2 : s'.va "hd" (2 * ii' + 2) = origHd (2 * ii' + 2) :=
               (K'.child_orig hright (Or.inr rfl)).2
             have hco1 : s'.va "hd" (2 * ii' + 1) = origHd (2 * ii' + 1) :=
@@ -2015,6 +2087,8 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
                     (by show 2 * ii' + 2 < s'.cap; omega)
               refine runs_wset (x := "c") hcl4 ?_
               set d5 := ((d4.charge 1).setW "c" (2 * ii' + 2)).charge 1 with hd5
+              have hfrD5 : ArrayFrame st d5 :=
+                ArrayFrame.chargeA (ArrayFrame.setWA (ArrayFrame.chargeA hfrD4 1) "c" _) 1
               have hcm5 : (2:ℕ) * ii' + 2 = mchOf origHd (st.w "h") ii' := by
                 have hrightS : 2 * ii' + 2 < st.w "h" := by rw [← hh']; exact hright
                 have hbbO : origHd (2 * ii' + 2) ≤ origHd (2 * ii' + 1) := by
@@ -2038,12 +2112,14 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
                 (by show s'.cost + 8 ≤ s'.cost + 8; omega)
                 (by rw [show d5.w "v" = s'.w "v" from rfl]; exact hvR)
                 (by rw [show d5.v "dv" = s'.v "dv" from rfl]; exact hdvR)
-                (by intro i hi; exact hvalR i hi)
+                (by intro i hi; exact hvalR i hi) hfrD5
             · -- b = 0: skip, c stays 2*ii'+1
               have hb0 : d4.w "b" = 0 := by rw [hbval, if_neg hbb]
               refine runs_ite_false (by rw [hbE, hb0]) ?_
               refine runs_skip ?_
               set d5 := ((d4.charge 1).charge 1) with hd5
+              have hfrD5 : ArrayFrame st d5 :=
+                ArrayFrame.chargeA (ArrayFrame.chargeA hfrD4 1) 1
               have hcm5 : (2:ℕ) * ii' + 1 = mchOf origHd (st.w "h") ii' := by
                 have hrightS : 2 * ii' + 2 < st.w "h" := by rw [← hh']; exact hright
                 have hbbN : ¬(origHd (2 * ii' + 2) ≤ origHd (2 * ii' + 1)) := by
@@ -2067,11 +2143,13 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
                 (by show s'.cost + 8 ≤ s'.cost + 8; omega)
                 (by rw [show d5.w "v" = s'.w "v" from rfl]; exact hvR)
                 (by rw [show d5.v "dv" = s'.v "dv" from rfl]; exact hdvR)
-                (by intro i hi; exact hvalR i hi)
+                (by intro i hi; exact hvalR i hi) hfrD5
           · -- no right child: skip the pick, c = 2*ii'+1
             refine runs_seq (runs_ite_false (by rw [hcond2, if_neg hright]) ?_)
             refine runs_skip ?_
             set d3 := ((d2.charge 1).charge 1) with hd3
+            have hfrD3 : ArrayFrame st d3 :=
+              ArrayFrame.chargeA (ArrayFrame.chargeA hfrD2 1) 1
             have hcm3 : (2:ℕ) * ii' + 1 = mchOf origHd (st.w "h") ii' := by
               have hrightN : ¬(2 * ii' + 2 < st.w "h") := by rw [← hh']; exact hright
               simp only [mchOf]
@@ -2093,7 +2171,7 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
               (by show s'.cost + 6 ≤ s'.cost + 8; omega)
               (by rw [show d3.w "v" = s'.w "v" from rfl]; exact hvR)
               (by rw [show d3.v "dv" = s'.v "dv" from rfl]; exact hdvR)
-              (by intro i hi; exact hvalR i hi)
+              (by intro i hi; exact hvalR i hi) hfrD3
         · have hge : s'.w "h" ≤ 2 * ii' + 1 := by
             have h1' : s'.w "h" / 2 ≤ ii' := by omega
             have hmod := Nat.div_add_mod (s'.w "h") 2
@@ -2102,6 +2180,8 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
           refine runs_ite_false (by rw [hcondE, if_neg hlt]) ?_
           refine runs_wset (x := "go") (a := 0) h0E ?_
           set tS := ((t0.charge 1).setW "go" 0).charge 1 with htS
+          have hfrS0 : ArrayFrame st tS :=
+            ArrayFrame.chargeA (ArrayFrame.setWA (ArrayFrame.chargeA hfr0 1) "go" 0) 1
           have hKS : SiftDownOK holev s tS origHv origHd x xk ii' :=
             SiftDownOK.stable K' (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
               (fun _ => rfl) (fun _ => rfl) rfl rfl
@@ -2110,13 +2190,15 @@ theorem siftDown_runs {holev : Fin G.n} {st : State ℝ≥0} {origHv : ℕ → F
               (fun _ _ => rfl) rfl rfl rfl
           have hAFS : AF G tS := AF.preserve hAF' rfl rfl rfl rfl rfl rfl rfl
           have hcS : tS.cost = s'.cost + 3 := rfl
+          have hfrS : ArrayFrame st tS :=
+            ArrayFrame.chargeA (ArrayFrame.setWA (ArrayFrame.chargeA hfr0 1) "go" 0) 1
           refine ⟨0, by omega, ii', hKS, hFS, hAFS,
             by rw [show tS.w "h" = s'.w "h" from rfl, hh'],
             by rw [show tS.w "ins" = s'.w "ins" from rfl, hins'],
             Or.inr ⟨rfl, rfl, ?_, ?_⟩,
             by rw [show tS.w "v" = s'.w "v" from rfl]; exact hvR,
             by rw [show tS.v "dv" = s'.v "dv" from rfl]; exact hdvR,
-            by intro i hi; exact hvalR i hi⟩
+            by intro i hi; exact hvalR i hi, hfrS⟩
           · intro j hj hjr
             have hjh : j < s'.w "h" := by
               rw [show tS.w "h" = s'.w "h" from rfl] at hj; exact hj
@@ -2143,7 +2225,7 @@ theorem popBody_runs {st : State ℝ≥0}
         (fun v => st'.wa "done" v) (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
       st'.w "h" = st.w "h" - 1 ∧ st'.w "ins" = st.w "ins" ∧
       st'.w "v" = st.wa "hv" 0 ∧ st'.v "dv" = st.va "hd" 0 ∧
-      st'.w "v" < G.n ∧ HeapV (G := G) st' (st'.w "h") ∧
+      st'.w "v" < G.n ∧ HeapV (G := G) st' (st'.w "h") ∧ ArrayFrame st st' ∧
       st'.cost ≤ st.cost + 18 * rkD (st.w "h") 0 + 25) := by
   have hnpos : 0 < G.n := lt_of_le_of_lt (Nat.zero_le _) s.isLt
   have hcap : 2 < st.cap := by have := hF.hcap; omega
@@ -2198,7 +2280,8 @@ theorem popBody_runs {st : State ℝ≥0}
       · intro i hi j hj hjr; rw [hzz] at hi; exact absurd hi (by omega)
     have hVS : HeapV (G := G) tS (tS.w "h") := by
       intro i hi; rw [hzz] at hi; exact absurd hi (by omega)
-    refine ⟨hFS, hAFS, hKS, rfl, rfl, rfl, rfl, hv0lt, hVS, ?_⟩
+    refine ⟨hFS, hAFS, hKS, rfl, rfl, rfl, rfl, hv0lt, hVS,
+      ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl⟩, ?_⟩
     · show tS.cost ≤ st.cost + 18 * rkD (st.w "h") 0 + 25
       have hc5 : tS.cost = st.cost + 5 := rfl
       omega
@@ -2223,6 +2306,13 @@ theorem popBody_runs {st : State ℝ≥0}
         (by show 0 < b1.vlen "hd"; rw [show b1.vlen "hd" = st.vlen "hd" from rfl, hhdL]; omega) ?_)
     set t5 := (b1.storeV "hd" 0 (b1.va "hd" (st.w "h" - 1))).charge 1 with ht5
     have hht : t5.w "h" = st.w "h" - 1 := rfl
+    have hfr5 : ArrayFrame st t5 := by
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · intro j; simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, va_charge, va_setW, va_storeV, va_storeW]
+      · intro j; simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_charge, wa_setW, wa_storeV, wa_storeW]
+      · intro j; simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_charge, wa_setW, wa_storeV, wa_storeW]
+      · intro w; simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_charge, wa_setW, wa_storeV, wa_storeW]
+      · intro j; simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_charge, wa_setW, wa_storeV, wa_storeW]
     -- moved-pair equations on the post-move arrays
     have ehd : ∀ i, t5.va "hd" i = if i = 0 then st.va "hd" (st.w "h" - 1) else st.va "hd" i := by
       intro i
@@ -2326,8 +2416,9 @@ theorem popBody_runs {st : State ℝ≥0}
       · exact hval (st.w "h" - 1) (by omega)
       · exact hval i (by rw [hht] at hi; omega)
     refine (siftDown_runs hF5 hAF5 hval5 hK5 (by rw [show t5.w "h" = st.w "h" - 1 from rfl]; omega)).mono ?_
-    rintro st' ⟨hF', hAF', hInv', hheq, hinseq, hvR2, hdvR2, hcost, hvalS⟩
-    refine ⟨hF', hAF', hInv', hheq.trans hht, hinseq, hvR2, hdvR2, ?_, hvalS, ?_⟩
+    rintro st' ⟨hF', hAF', hInv', hheq, hinseq, hvR2, hdvR2, hcost, hvalS, hfrS⟩
+    refine ⟨hF', hAF', hInv', hheq.trans hht, hinseq, hvR2, hdvR2, ?_, hvalS,
+      ArrayFrame.trans hfr5 hfrS, ?_⟩
     · rw [hvR2]; exact hv0lt
     · have hc5 : t5.cost = st.cost + 6 := rfl
       have hht : t5.w "h" = st.w "h" - 1 := rfl
