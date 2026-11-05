@@ -3294,7 +3294,7 @@ theorem ScanInv.of_step {G : Graph} {s u : Fin G.n} {D : List ℕ} {c0 k : ℕ}
     (hv' : t'.w "v" = t4.w "v") (hq' : t'.w "q" = t4.w "q")
     (hnt' : ∀ j, t'.wa "nxt" j = t4.wa "nxt" j)
     (hh' : t'.w "h" ≤ t4.w "h" + 1) (hi' : t'.w "ins" ≤ t4.w "ins" + 1)
-    (hc' : t'.cost ≤ st.cost + 12 * rk (G.m + 1) + 29)
+    (hc' : t'.cost ≤ st.cost + 12 * rk (G.m + 1) + 30)
     (hv0 : t4.w "v" = (u : ℕ)) (hch0 : chainOf t4 u (G.m + 1) = D)
     (hdec : D = D.take (k + 1) ++ chainWalk t4 (t4.w "q") (G.m - k))
     (hroom : t4.w "h" + (D.length - k) ≤ G.m + 1)
@@ -3331,7 +3331,7 @@ theorem scanBody_step_runs {st : State ℝ≥0} {u : Fin G.n} {D : List ℕ} {c0
           (seq (wset "x" (load "dst" (var "e")))
             (seq (vset "cand" (.add (.load "dist" (var "v")) (.load "w" (var "e"))))
               relaxBody))))
-      st (fun st' => ScanInv G s u D c0 st' (k + 1)) := by
+      (st.charge 1) (fun st' => ScanInv G s u D c0 st' (k + 1)) := by
   have hcap1 : 1 < st.cap := by have := I.f0.hcap; omega
   have hDm : D.length ≤ G.m := by
     rw [← I.chain]; exact chainWF_dlen I.sweep.chainWF u.isLt
@@ -3384,7 +3384,7 @@ theorem scanBody_step_runs {st : State ℝ≥0} {u : Fin G.n} {D : List ℕ} {c0
     rw [show st.w "q" - 1 = e0 from by rw [← hq0, ← he0]] at h
     exact h
   refine runs_seq (runs_wset (x := "e") heE ?_)
-  set t1 : State ℝ≥0 := ((st.setW "e" e0).charge 1) with ht1
+  set t1 : State ℝ≥0 := (((st.charge 1).setW "e" e0).charge 1) with ht1
   have he1 : evalW t1 (var "e") = some e0 := by
     simp [ht1]
   -- step 2: `q := nxt[e]`
@@ -3487,8 +3487,8 @@ theorem scanBody_step_runs {st : State ℝ≥0} {u : Fin G.n} {D : List ℕ} {c0
             rw [List.append_assoc]; rfl
       _ = (D.take k ++ [e0]) ++ chainWalk t4 (st.wa "nxt" e0) (G.m - k) := by rw [hcw]
       _ = D.take (k + 1) ++ chainWalk t4 (st.wa "nxt" e0) (G.m - k) := by rw [hTk]
-  have hcost4 : t4.cost = st.cost + 4 := rfl
-  have hcfit : 12 * rk (t4.w "h") + 25 ≤ 12 * rk (G.m + 1) + 29 := by
+  have hcost4 : t4.cost = st.cost + 5 := rfl
+  have hcfit : 12 * rk (t4.w "h") + 25 ≤ 12 * rk (G.m + 1) + 25 := by
     have h1 : rk (t4.w "h") ≤ rk (G.m + 1) := rk_mono (by omega)
     omega
   -- three-way dispatch on the head of the edge
@@ -3537,6 +3537,102 @@ theorem scanBody_step_runs {st : State ℝ≥0} {u : Fin G.n} {D : List ℕ} {c0
       refine ScanInv.of_step hS' hF' hAF' hch' hv' hq' hnt' hh' hi' ?_
         ht4v hch4 hdecomp4 I.room I.insroom hkL I.costb
       omega
+
+/-- `scanBody` run: the settle sweep walks the whole out-edge chain of `u`, one `relaxBody`
+per link, leaving the sweep invariant at full coverage.  The guard charge of the final test
+shows up as the `c0 + 1` in the postcondition. -/
+theorem scanBody_runs {st : State ℝ≥0} {u : Fin G.n} {D : List ℕ} {c0 : ℕ}
+    (I : ScanInv G s u D c0 st 0) :
+    Runs realOps scanBody st (fun st' => ScanInv G s u D (c0 + 1) st' D.length) := by
+  have hcap0 : 0 < st.cap := by have := I.f0.hcap; omega
+  have hcap1 : 1 < st.cap := by have := I.f0.hcap; omega
+  have hcond : evalW st (lt (lit 0) (var "q")) = some (if 0 < st.w "q" then 1 else 0) :=
+    evalW_lt_of (x := 0) (y := st.w "q") (evalW_lit_of hcap0) (evalW_var st "q") hcap1
+  refine runs_while_nat
+    (I := fun n st' => n ≤ D.length ∧ ScanInv G s u D c0 st' (D.length - n))
+    (Q := fun st' => ScanInv G s u D (c0 + 1) st' D.length) ?_ D.length st
+    ⟨le_rfl, by simpa [Nat.sub_self] using I⟩
+  intro n s' ⟨hn, hS⟩
+  have hcap' : 1 < s'.cap := by have := hS.f0.hcap; omega
+  have hcap0' : 0 < s'.cap := by omega
+  have hcond' : evalW s' (lt (lit 0) (var "q")) = some (if 0 < s'.w "q" then 1 else 0) :=
+    evalW_lt_of (x := 0) (y := s'.w "q") (evalW_lit_of hcap0') (evalW_var s' "q") hcap'
+  by_cases hq : s'.w "q" = 0
+  · -- exit: the cursor is exhausted, hence `k = |D|`
+    have hklen : D.length - n ≤ (chainOf s' u (G.m + 1)).length := by
+      rw [hS.chain]; exact Nat.sub_le _ _
+    have hwalk0 : chainWalk s' (s'.w "q") (G.m + 1 - (D.length - n)) = [] := by
+      rw [hq]
+      cases G.m + 1 - (D.length - n) with
+      | zero => rfl
+      | succ kk => rw [chainWalk_succ]; simp
+    have hlen : D.length ≤ D.length - n := by
+      have h2 : D.length = (D.take (D.length - n)).length :=
+        congrArg List.length (hS.decomp.trans (by rw [hwalk0, List.append_nil]))
+      calc D.length = (D.take (D.length - n)).length := h2
+        _ ≤ D.length - n := by rw [List.length_take]; exact Nat.min_le_left _ _
+    have hk : D.length - n = D.length := by omega
+    refine ⟨0, ?_, fun hx => absurd rfl hx, fun _ => ?_⟩
+    · rw [hcond', if_neg (by omega)]
+    · have hS' : ScanInv G s u D c0 s' D.length := by rw [← hk]; exact hS
+      refine ⟨?_, F0.charge hS'.f0 1, AF.charge hS'.af 1, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · exact hS'.sweep.congr (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+          (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) rfl rfl
+      · show (s'.charge 1).w "v" = (u : ℕ)
+        rw [show (s'.charge 1).w "v" = s'.w "v" from rfl]
+        exact hS'.vreg
+      · show chainOf (s'.charge 1) (u : ℕ) (G.m + 1) = D
+        simp only [chainOf]
+        rw [show (s'.charge 1).wa "head" (u : ℕ) = s'.wa "head" (u : ℕ) from rfl]
+        rw [chainWalk_congr (st := s') (st' := s'.charge 1) (fun j _ => rfl)]
+        exact hS'.chain
+      · show D = D.take D.length
+            ++ chainWalk (s'.charge 1) ((s'.charge 1).w "q") (G.m + 1 - D.length)
+        rw [show (s'.charge 1).w "q" = s'.w "q" from rfl]
+        rw [chainWalk_congr (st := s') (st' := s'.charge 1) (fun j _ => rfl)]
+        exact hS'.decomp
+      · show (s'.charge 1).w "h" + (D.length - D.length) ≤ G.m + 1
+        rw [show (s'.charge 1).w "h" = s'.w "h" from rfl]
+        exact hS'.room
+      · show (s'.charge 1).w "ins" + (D.length - D.length) ≤ G.m + 1
+        rw [show (s'.charge 1).w "ins" = s'.w "ins" from rfl]
+        exact hS'.insroom
+      · show (s'.charge 1).cost ≤ (c0 + 1) + (12 * rk (G.m + 1) + 30) * D.length
+        rw [show (s'.charge 1).cost = s'.cost + 1 from rfl]
+        have hc := hS'.costb
+        omega
+  · -- body: one link per iteration, and `n ≥ 1` because a non-zero cursor forbids `k = |D|`
+    have hDm : D.length ≤ G.m := by
+      rw [← hS.chain]; exact chainWF_dlen hS.sweep.chainWF u.isLt
+    have hnpos : 0 < n := by
+      rcases Nat.eq_zero_or_pos n with h0 | hpos
+      · exfalso
+        have hk0' : D.length - n = D.length := by omega
+        have hne : chainWalk s' (s'.w "q") (G.m + 1 - (D.length - n)) ≠ [] := by
+          have hkm : D.length - n ≤ G.m := le_trans (Nat.sub_le _ _) hDm
+          have hfuel : G.m + 1 - (D.length - n) = (G.m - (D.length - n)) + 1 := by omega
+          rw [hfuel, chainWalk_succ, if_neg hq]
+          simp
+        have hlen := congrArg List.length hS.decomp
+        rw [List.length_append] at hlen
+        have htake : (D.take (D.length - n)).length = D.length := by
+          rw [hk0', List.length_take, Nat.min_self]
+        rw [htake] at hlen
+        have hlen0 : (chainWalk s' (s'.w "q") (G.m + 1 - (D.length - n))).length = 0 := by
+          refine Nat.add_left_cancel (n := D.length) ?_
+          rw [Nat.add_zero]
+          exact hlen.symm
+        exact hne (List.eq_nil_of_length_eq_zero hlen0)
+      · exact hpos
+    have hklt : D.length - n < D.length := by omega
+    have hstep := scanBody_step_runs (u := u) (D := D) (c0 := c0) (k := D.length - n)
+      hS hq hklt
+    refine ⟨1, ?_, ?_, fun hx => absurd hx (by decide)⟩
+    · rw [hcond', if_pos (Nat.pos_of_ne_zero hq)]
+    · intro _
+      exact hstep.mono (fun t' hI' => by
+        have hsub : D.length - (n - 1) = D.length - n + 1 := by omega
+        exact ⟨n - 1, by omega, by omega, by rw [hsub]; exact hI'⟩)
 
 
 end Submission.DijkstraHeap
