@@ -85,4 +85,10 @@ theorem ids_list_length (children : List Child) :
     | mk tree link lost =>
       simpa [Child.size, Child.tree, ids] using ihh
 
+/-- The represented size of a node is one plus the sum of its child sizes. -/
+theorem size_node (id : ℕ) (children : List Child) :
+    (Tree.node id children).size = 1 + sizeSum children := by
+  simp [Tree.size, ids, sizeSum, ids_list_length]
+  omega
+
 end Submission.FibHeapForest
