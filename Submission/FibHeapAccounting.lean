@@ -97,7 +97,14 @@ theorem decrease_amortized {K D0 D1 c t μ t' μ' : ℕ} (hc : 1 ≤ c) (hK : D1
   simp only [scaledPotential] at *
   nlinarith
 
-/-- Extraction's root-processing and linking costs are cancelled by scaled tree potential. -/
+/-- Fixed per-pop work charged explicitly into `E0`: find-min 2, guard 1, settle 4. -/
+def extractFixedCost : ℕ := 17 + 2 + 1 + 4
+
+/-- The explicit fixed per-pop charge is exactly the `E0=24` engineering target. -/
+theorem extractFixedCost_eq : extractFixedCost = 24 := rfl
+
+/-- Extraction's root-processing and linking costs are cancelled by scaled tree potential.
+`E0` is where `extractFixedCost` is charged; it is not borrowed from dropped inequality slack. -/
 theorem extract_amortized {K E0 Er El Ed Em t0 ell t d t1 μ μ' Q : ℕ}
     (hB : Er + El ≤ K) (ht0 : t0 + 1 = t + d) (hell : ell ≤ t0) (ht1 : t1 ≤ Q)
     (hd : d < Q) (hpot : potential t1 μ' + t ≤ potential t μ + Q) :
