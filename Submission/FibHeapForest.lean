@@ -101,4 +101,13 @@ theorem degree_le_sizeSum (children : List Child) : children.length ≤ sizeSum 
     simp only [sizeSum, List.map_cons, List.sum_cons, List.length_cons]
     omega
 
+/-- A represented tree has fewer children than live nodes. -/
+theorem degree_lt_size (t : Tree) : t.degree < t.size := by
+  cases t with
+  | node id children =>
+    rw [size_node]
+    have h := degree_le_sizeSum children
+    simp only [Tree.degree]
+    omega
+
 end Submission.FibHeapForest
