@@ -148,4 +148,15 @@ theorem size_le_sizeSum {c : Child} {children : List Child} (h : c ∈ children)
       simp only [sizeSum, List.map_cons, List.sum_cons] at hih ⊢
       omega
 
+/-- Fibonacci monotonicity. -/
+theorem fib_le_of_le {m n : ℕ} (h : m ≤ n) : Nat.fib m ≤ Nat.fib n := by
+  induction n generalizing m with
+  | zero => cases m with
+    | zero => exact Nat.le_refl _
+    | succ m => omega
+  | succ n ih =>
+    rcases Nat.eq_or_lt_of_le h with rfl | hlt
+    · exact Nat.le_refl _
+    · exact (ih (by omega)).trans Nat.fib_le_fib_succ
+
 end Submission.FibHeapForest
