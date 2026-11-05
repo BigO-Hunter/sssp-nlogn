@@ -105,6 +105,12 @@ theorem decrease_amortized {K D0 D1 c t μ t' μ' : ℕ} (hc : 1 ≤ c) (hK : D1
   simp only [scaledPotential] at *
   nlinarith
 
+/-- The decrease-key bound driven directly by the proved CLRS cascade-marking discipline. -/
+theorem decrease_amortized_clrs {K D0 D1 c t μ t' μ' : ℕ} (hc : 1 ≤ c) (hK : D1 ≤ K)
+    (ht : t' = t + c) (hmarks : μ' + c ≤ μ + 2) :
+    D0 + D1 * c + scaledPotential K t' μ' ≤ scaledPotential K t μ + (D0 + 3 * K + D1) :=
+  decrease_amortized hc hK (cascade_potential_delta hc ht hmarks)
+
 /-- Fixed per-pop work charged explicitly into `E0`: find-min 2, guard 1, settle 4. -/
 def extractFixedCost : ℕ := 17 + 2 + 1 + 4
 
