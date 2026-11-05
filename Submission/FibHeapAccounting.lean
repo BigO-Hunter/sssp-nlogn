@@ -97,4 +97,22 @@ theorem decrease_amortized {K D0 D1 c t μ t' μ' : ℕ} (hc : 1 ≤ c) (hK : D1
   simp only [scaledPotential] at *
   nlinarith
 
+/-- Extraction's root-processing and linking costs are cancelled by scaled tree potential. -/
+theorem extract_amortized {K E0 Er El Ed Em t0 ell t d t1 μ μ' Q : ℕ}
+    (hB : Er + El ≤ K) (ht0 : t0 + 1 = t + d) (hell : ell ≤ t0) (ht1 : t1 ≤ Q)
+    (hd : d < Q) (hpot : potential t1 μ' + t ≤ potential t μ + Q) :
+    E0 + Er * t0 + El * ell + Ed * d + Em * t1 + scaledPotential K t1 μ'
+      ≤ scaledPotential K t μ + (E0 + (K + (Er + El) + Ed + Em) * Q) := by
+  have hEll := Nat.mul_le_mul_left El hell
+  have ht1m := Nat.mul_le_mul_left Em ht1
+  have hdQ : d ≤ Q := by omega
+  have hKd := Nat.mul_le_mul_left K hdQ
+  have hEd := Nat.mul_le_mul_left Ed hdQ
+  have hBt0 := Nat.mul_le_mul_right t0 hB
+  have hBQ := Nat.mul_le_mul_right Q hB
+  have hpotK := Nat.mul_le_mul_left K hpot
+  have ht0K := congrArg (fun x : ℕ => K * x) ht0
+  simp only [scaledPotential] at *
+  nlinarith
+
 end Submission.FibHeapAccounting
