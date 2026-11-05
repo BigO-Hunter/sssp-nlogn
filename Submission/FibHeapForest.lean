@@ -115,4 +115,11 @@ theorem degree_slot_of_live {t : Tree} {n : ℕ} (hs : t.size ≤ n) : t.degree 
   have h := degree_lt_size t
   omega
 
+/-- All represented live IDs are distinct, including IDs in different sibling subtrees. -/
+def LiveDistinct (t : Tree) : Prop := (ids t).Nodup
+
+/-- Under child/live distinctness, represented size is exactly the finite live-set cardinality. -/
+theorem live_card {t : Tree} (h : LiveDistinct t) : (ids t).toFinset.card = t.size := by
+  exact List.toFinset_card_of_nodup h
+
 end Submission.FibHeapForest
