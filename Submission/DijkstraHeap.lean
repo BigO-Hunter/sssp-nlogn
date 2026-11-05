@@ -2835,7 +2835,8 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       (∀ j, t'.wa "nxt" j = t.wa "nxt" j) ∧
       t'.w "h" = t.w "h" + 1 ∧
       t'.w "ins" = t.w "ins" + 1 ∧
-      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 20) := by
+      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 20 ∧
+      (∀ v : Fin G.n, t'.wa "done" v = t.wa "done" v)) := by
   have hcap0 : 0 < t.cap := by have := hF.hcap; omega
   have hcap1 : 1 < t.cap := by have := hF.hcap; omega
   have hdstLen : (x : ℕ) < t.vlen "dist" := by rw [hAF.distL]; exact x.isLt
@@ -2976,7 +2977,8 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
         (hfr4.dist u).trans (hdistT (u : ℕ) (hNatNe u hxnot.symm))
       rw [hdstv, hsrcv, hxl, hul, ← hcand, ENNReal.coe_add]
   refine ⟨SweepInv.push_relax (st := t) (t := t4) S hdx0 hxnot hxs hsrcv hdstv hcand htake hEk
-    hES4 hHOK4 hval4 ?_ ?_ ?_ ?_ ?_ ?_ ?_ hle hsw, hF4, hAF4, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    hES4 hHOK4 hval4 ?_ ?_ ?_ ?_ ?_ ?_ ?_ hle hsw, hF4, hAF4, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    ?_⟩
   · intro w
     rw [hfr4.head w, hheadT w]
   · intro j
@@ -3016,6 +3018,9 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
     have hc3 : t3.cost = t.cost + 4 := rfl
     rw [hc3, hhT] at hcost4
     omega
+  · -- `done` is untouched by the relax prefix and the push
+    intro v
+    exact (hfr4.done v).trans (hdoneT v)
 
 /-- `relaxBody`: the taken write arms (label unset, or `cand` strictly improves it) delegate
 to `relax_take_runs`; the arm where the improvement test fails takes no write and advances the
@@ -3041,7 +3046,8 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       (∀ j, t'.wa "nxt" j = t.wa "nxt" j) ∧
       t'.w "h" ≤ t.w "h" + 1 ∧
       t'.w "ins" ≤ t.w "ins" + 1 ∧
-      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25) := by
+      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25 ∧
+      (∀ v : Fin G.n, t'.wa "done" v = t.wa "done" v)) := by
   have hcap0 : 0 < t.cap := by have := hF.hcap; omega
   have hcap1 : 1 < t.cap := by have := hF.hcap; omega
   have hxE : evalW t (var "x") = some (x : ℕ) := by
@@ -3098,8 +3104,8 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       hxv hcandv hcand hvalB hbound hinsb
       hdx0 hxnot hxs hsrcv hdstv (by rw [hchB]; exact htake) hSB
       (by rw [hchB]; exact hsw) hleB).mono ?_
-    rintro t' ⟨hS', hF', hAF', hch', hv', hq', hnxt', hst', hins', hc'⟩
-    refine ⟨hS', hF', hAF', hch'.trans hchB, hv'.trans rfl, ?_, ?_, ?_, ?_, ?_⟩
+    rintro t' ⟨hS', hF', hAF', hch', hv', hq', hnxt', hst', hins', hc', hdn'⟩
+    refine ⟨hS', hF', hAF', hch'.trans hchB, hv'.trans rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · rw [hq']; rfl
     · intro j
       rw [hnxt']; rfl
@@ -3109,6 +3115,8 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       omega
     · rw [hcostB, hhB] at hc'
       omega
+    · intro v
+      exact (hdn' v).trans rfl
   · -- arms B/C: `reach x ≠ 0` — the improvement test decides
     refine runs_ite_false (by rw [hcondE, if_neg hr]) ?_
     have hdistE : evalV realOps (t.charge 1) (.load "dist" (var "x"))
@@ -3157,7 +3165,8 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       have hcostF : tF.cost = t.cost + 6 := by
         simp only [htF, htE, htD, htC, cost_charge, cost_setW]
       refine ⟨hSF, ?_, AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl,
-        hchfix (fun _ => rfl) (fun _ => rfl), rfl, rfl, (fun _ => rfl), by omega, by omega, ?_⟩
+        hchfix (fun _ => rfl) (fun _ => rfl), rfl, rfl, (fun _ => rfl), by omega, by omega, ?_,
+        fun _ => rfl⟩
       · exact F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
           (fun _ _ => rfl) rfl rfl rfl
       · rw [hcostF]
@@ -3202,8 +3211,8 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
         hxv hcandv hcand hvalG hbound hinsb
         hdx0 hxnot hxs hsrcv hdstv (by rw [hchG]; exact htake) hSG
         (by rw [hchG]; exact hsw) hleG).mono ?_
-      rintro t' ⟨hS', hF', hAF', hch', hv', hq', hnxt', hst', hins', hc'⟩
-      refine ⟨hS', hF', hAF', hch'.trans hchG, hv'.trans rfl, ?_, ?_, ?_, ?_, ?_⟩
+      rintro t' ⟨hS', hF', hAF', hch', hv', hq', hnxt', hst', hins', hc', hdn'⟩
+      refine ⟨hS', hF', hAF', hch'.trans hchG, hv'.trans rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · rw [hq']; rfl
       · intro j
         rw [hnxt']; rfl
@@ -3213,6 +3222,8 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
         omega
       · rw [hcostG, hhG] at hc'
         omega
+      · intro v
+        exact (hdn' v).trans rfl
 
 /-- `relaxBody` when the edge cannot improve anything: `x` is already reached and its label is
 no worse than `cand`.  Then BOTH write arms are unreachable (`reach x = 0` contradicts the
@@ -3239,7 +3250,8 @@ theorem relaxBody_runs_static {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} 
       (∀ j, t'.wa "nxt" j = t.wa "nxt" j) ∧
       t'.w "h" ≤ t.w "h" + 1 ∧
       t'.w "ins" ≤ t.w "ins" + 1 ∧
-      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25) := by
+      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25 ∧
+      (∀ v : Fin G.n, t'.wa "done" v = t.wa "done" v)) := by
   have hcap0 : 0 < t.cap := by have := hF.hcap; omega
   have hcap1 : 1 < t.cap := by have := hF.hcap; omega
   have hxE : evalW t (var "x") = some (x : ℕ) := by
@@ -3309,7 +3321,8 @@ theorem relaxBody_runs_static {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} 
       have hcostF : tF.cost = t.cost + 6 := by
         simp only [htF, htE, htD, htC, cost_charge, cost_setW]
       refine ⟨hSF, ?_, AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl,
-        hchfix (fun _ => rfl) (fun _ => rfl), rfl, rfl, (fun _ => rfl), by omega, by omega, ?_⟩
+        hchfix (fun _ => rfl) (fun _ => rfl), rfl, rfl, (fun _ => rfl), by omega, by omega, ?_,
+        fun _ => rfl⟩
       · exact F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
           (fun _ _ => rfl) rfl rfl rfl
       · rw [hcostF]
