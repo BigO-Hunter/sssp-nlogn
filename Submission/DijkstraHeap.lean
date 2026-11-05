@@ -3288,17 +3288,17 @@ theorem take_succ_of_split {l : List ℕ} {k : ℕ} {e : ℕ} {tl : List ℕ}
 /-- Rebuild the scan invariant one step later.  The three-way `relaxBody` dispatch shares this
 tail so that the reconstruction is written once instead of triplicated. -/
 theorem ScanInv.of_step {G : Graph} {s u : Fin G.n} {D : List ℕ} {c0 k : ℕ}
-    {st t' : State ℝ≥0}
+    {st t4 t' : State ℝ≥0}
     (S' : SweepInv G s u t' (k + 1)) (hF' : F0 G s t') (hAF' : AF G t')
-    (hch' : chainOf t' u (G.m + 1) = chainOf st u (G.m + 1))
-    (hv' : t'.w "v" = st.w "v") (hq' : t'.w "q" = st.w "q")
-    (hnt' : ∀ j, t'.wa "nxt" j = st.wa "nxt" j)
-    (hh' : t'.w "h" ≤ st.w "h" + 1) (hi' : t'.w "ins" ≤ st.w "ins" + 1)
+    (hch' : chainOf t' u (G.m + 1) = chainOf t4 u (G.m + 1))
+    (hv' : t'.w "v" = t4.w "v") (hq' : t'.w "q" = t4.w "q")
+    (hnt' : ∀ j, t'.wa "nxt" j = t4.wa "nxt" j)
+    (hh' : t'.w "h" ≤ t4.w "h" + 1) (hi' : t'.w "ins" ≤ t4.w "ins" + 1)
     (hc' : t'.cost ≤ st.cost + 12 * rk (G.m + 1) + 29)
-    (hv0 : st.w "v" = (u : ℕ)) (hch0 : chainOf st u (G.m + 1) = D)
-    (hdec : D = D.take (k + 1) ++ chainWalk st (st.w "q") (G.m - k))
-    (hroom : st.w "h" + (D.length - k) ≤ G.m + 1)
-    (hinsroom : st.w "ins" + (D.length - k) ≤ G.m + 1)
+    (hv0 : t4.w "v" = (u : ℕ)) (hch0 : chainOf t4 u (G.m + 1) = D)
+    (hdec : D = D.take (k + 1) ++ chainWalk t4 (t4.w "q") (G.m - k))
+    (hroom : t4.w "h" + (D.length - k) ≤ G.m + 1)
+    (hinsroom : t4.w "ins" + (D.length - k) ≤ G.m + 1)
     (hkL : k < D.length) (hcost0 : st.cost ≤ c0 + (12 * rk (G.m + 1) + 30) * k) :
     ScanInv G s u D c0 t' (k + 1) where
   sweep := S'
@@ -3309,7 +3309,7 @@ theorem ScanInv.of_step {G : Graph} {s u : Fin G.n} {D : List ℕ} {c0 k : ℕ}
   decomp := by
     rw [Nat.succ_sub_succ, hq']
     refine hdec.trans ?_
-    rw [chainWalk_congr (st := st) (st' := t') (fun j _ => hnt' j)]
+    rw [chainWalk_congr (st := t4) (st' := t') (fun j _ => hnt' j)]
   room := by omega
   insroom := by omega
   costb := by
@@ -3317,6 +3317,226 @@ theorem ScanInv.of_step {G : Graph} {s u : Fin G.n} {D : List ℕ} {c0 k : ℕ}
         = (12 * rk (G.m + 1) + 30) * k + (12 * rk (G.m + 1) + 30) := by ring
     rw [hA]
     omega
+
+attribute [local simp] State.charge State.setW State.setV
+
+/-- One iteration of the sweep scan: consume the next chain link, relax it, and advance the
+sweep cursor. -/
+theorem scanBody_step_runs {st : State ℝ≥0} {u : Fin G.n} {D : List ℕ} {c0 k : ℕ}
+    (I : ScanInv G s u D c0 st k)
+    (hqne : st.w "q" ≠ 0) (hkL : k < D.length) :
+    Runs realOps
+      (seq (wset "e" (sub (var "q") (lit 1)))
+        (seq (wset "q" (load "nxt" (var "e")))
+          (seq (wset "x" (load "dst" (var "e")))
+            (seq (vset "cand" (.add (.load "dist" (var "v")) (.load "w" (var "e"))))
+              relaxBody))))
+      st (fun st' => ScanInv G s u D c0 st' (k + 1)) := by
+  have hcap1 : 1 < st.cap := by have := I.f0.hcap; omega
+  have hDm : D.length ≤ G.m := by
+    rw [← I.chain]; exact chainWF_dlen I.sweep.chainWF u.isLt
+  have hkD : k ≤ D.length := by rw [← I.chain]; exact I.sweep.k_le
+  set q0 : ℕ := st.w "q" with hq0
+  have hq0ne : q0 ≠ 0 := by rw [hq0]; exact hqne
+  set e0 : ℕ := q0 - 1 with he0
+  have hkm : k ≤ G.m := by omega
+  -- the cursor spells the tail of `D`, whose first link is `e0`
+  have htail : chainWalk st q0 (G.m + 1 - k)
+      = e0 :: chainWalk st (st.wa "nxt" e0) (G.m - k) := by
+    have hf : G.m + 1 - k = (G.m - k) + 1 := by omega
+    rw [hf, chainWalk_succ, if_neg hq0ne, ← he0]
+  have hdec0 : D = D.take k ++ chainWalk st q0 (G.m + 1 - k) := by
+    rw [hq0]; exact I.decomp
+  have hsplit : D = D.take k ++ (e0 :: chainWalk st (st.wa "nxt" e0) (G.m - k)) := by
+    calc D = D.take k ++ chainWalk st q0 (G.m + 1 - k) := hdec0
+      _ = D.take k ++ (e0 :: chainWalk st (st.wa "nxt" e0) (G.m - k)) := by rw [htail]
+  have he0D : e0 ∈ D := by
+    rw [hsplit]
+    exact List.mem_append_right _ List.mem_cons_self
+  have he0lt : e0 < G.m := by
+    have h := he0D
+    rw [← I.chain, I.sweep.chainWF (u : ℕ) u.isLt] at h
+    exact outChainK_lt G.m (u : ℕ) e0 h
+  have hTk : D.take (k + 1) = D.take k ++ [e0] := take_succ_of_split hsplit hkL
+  -- the edge, its endpoints, and the candidate value
+  set eF : Fin G.m := ⟨e0, he0lt⟩ with heF
+  have heFv : (eF : ℕ) = e0 := rfl
+  set dstv : ℕ := st.wa "dst" e0 with hdstv
+  have hdstLt : dstv < G.n := by
+    have h := I.f0.hdst e0 he0lt
+    rw [← hdstv] at h
+    rw [h]
+    exact (G.dst eF).isLt
+  set xv : Fin G.n := ⟨dstv, hdstLt⟩ with hxv
+  have hxv2 : (xv : ℕ) = dstv := rfl
+  have hsrcv : G.src eF = u := by
+    refine chainSrc I.sweep.chainWF ?_
+    rw [I.chain]
+    exact he0D
+  have hdstvE : G.dst eF = xv := by
+    refine Fin.ext ?_
+    show (G.dst eF : ℕ) = dstv
+    rw [heF, ← I.f0.hdst e0 he0lt]
+  -- step 1: `e := q - 1`
+  have heE : evalW st (sub (var "q") (lit 1)) = some e0 := by
+    have h := evalW_sub_of (st := st) (evalW_var st "q")
+      (evalW_lit_of (a := 1) (by show 1 < st.cap; exact hcap1))
+    rw [show st.w "q" - 1 = e0 from by rw [← hq0, ← he0]] at h
+    exact h
+  refine runs_seq (runs_wset (x := "e") heE ?_)
+  set t1 : State ℝ≥0 := ((st.setW "e" e0).charge 1) with ht1
+  have he1 : evalW t1 (var "e") = some e0 := by
+    simp [ht1]
+  -- step 2: `q := nxt[e]`
+  have hnxtL : e0 < t1.wlen "nxt" := by
+    rw [show t1.wlen "nxt" = st.wlen "nxt" from rfl, I.af.nxtL]; exact he0lt
+  have hloadN : evalW t1 (load "nxt" (var "e")) = some (st.wa "nxt" e0) := by
+    have h := evalW_load_of (s := t1) (arr := "nxt") (i := var "e") (j := e0) he1 hnxtL
+    rw [show t1.wa "nxt" e0 = st.wa "nxt" e0 from rfl] at h
+    exact h
+  refine runs_seq (runs_wset (x := "q") hloadN ?_)
+  set t2 : State ℝ≥0 := ((t1.setW "q" (st.wa "nxt" e0)).charge 1) with ht2
+  have he2 : evalW t2 (var "e") = some e0 := by
+    simp [ht1, ht2]
+  -- step 3: `x := dst[e]`
+  have hdstL : e0 < t2.wlen "dst" := by
+    rw [show t2.wlen "dst" = st.wlen "dst" from rfl, I.f0.hdstL]; exact he0lt
+  have hloadD : evalW t2 (load "dst" (var "e")) = some dstv := by
+    have h := evalW_load_of (s := t2) (arr := "dst") (i := var "e") (j := e0) he2 hdstL
+    rw [show t2.wa "dst" e0 = st.wa "dst" e0 from rfl, ← hdstv] at h
+    exact h
+  refine runs_seq (runs_wset (x := "x") hloadD ?_)
+  set t3 : State ℝ≥0 := ((t2.setW "x" dstv).charge 1) with ht3
+  -- step 4: `cand := dist[v] + w[e]`
+  have ht3v : t3.w "v" = st.w "v" := by simp [ht1, ht2, ht3]
+  have hv3 : t3.w "v" = (u : ℕ) := by rw [ht3v, I.vreg]
+  have hdistE3 : evalV realOps t3 (.load "dist" (var "v")) = some (t3.va "dist" (u : ℕ)) := by
+    refine evalV_load_of ?_ ?_
+    · rw [evalW_var, hv3]
+    · rw [show t3.vlen "dist" = st.vlen "dist" from rfl, I.af.distL]; exact u.isLt
+  have he3 : evalW t3 (var "e") = some e0 := by simp [ht1, ht2, ht3]
+  have hwE3 : evalV realOps t3 (.load "w" (var "e")) = some (t3.va "w" e0) := by
+    refine evalV_load_of ?_ ?_
+    · exact he3
+    · rw [show t3.vlen "w" = st.vlen "w" from rfl, I.f0.hwL]; exact he0lt
+  have hcandE : evalV realOps t3
+      (.add (.load "dist" (var "v")) (.load "w" (var "e")))
+      = some (t3.va "dist" (u : ℕ) + t3.va "w" e0) :=
+    evalV_add_of hdistE3 hwE3
+  refine runs_seq (runs_vset (x := "cand") hcandE ?_)
+  set t4 : State ℝ≥0 := ((t3.setV "cand" (t3.va "dist" (u : ℕ) + t3.va "w" e0)).charge 1)
+    with ht4
+  -- relaxBody's inputs at `t4`
+  have hcandv4 : t4.v "cand" = t3.va "dist" (u : ℕ) + t3.va "w" e0 := by
+    simp [ht4]
+  have hwE : G.w eF = st.va "w" e0 := by
+    rw [heF]
+    exact (I.f0.hw e0 he0lt).symm
+  have hcand4 : t4.va "dist" u + G.w eF = t3.va "dist" (u : ℕ) + t3.va "w" e0 := by
+    rw [hwE]
+    rfl
+  have hxv4 : t4.w "x" = (xv : ℕ) := by
+    rw [hxv2]
+    simp [ht1, ht2, ht3, ht4]
+  have hval4 : HeapV (G := G) t4 (t4.w "h") := by
+    intro i hi
+    have hi' : i < st.w "h" := hi
+    rw [show t4.wa "hv" i = st.wa "hv" i from rfl]
+    exact I.sweep.val i hi'
+  have hbnd : t4.w "h" ≤ G.m := by
+    have hr := I.room
+    have hh : t4.w "h" = st.w "h" := rfl
+    rw [hh]; omega
+  have hinsb : t4.w "ins" ≤ G.m := by
+    have hr := I.insroom
+    have hi : t4.w "ins" = st.w "ins" := rfl
+    rw [hi]; omega
+  have hch4 : chainOf t4 u (G.m + 1) = D := by
+    rw [← I.chain]
+    simp only [chainOf]
+    rw [show t4.wa "head" (u : ℕ) = st.wa "head" (u : ℕ) from rfl]
+    exact chainWalk_congr (fun j _ => rfl)
+  have ht4k : (chainOf t4 u (G.m + 1)).take (k + 1)
+      = (chainOf t4 u (G.m + 1)).take k ++ [(eF : ℕ)] := by
+    rw [hch4, heFv]
+    exact hTk
+  have hS4 : SweepInv G s u t4 k :=
+    I.sweep.congr (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+      (fun _ => rfl) (fun _ => rfl) rfl rfl
+  have hsw4 : ∀ e' : Fin G.m, (e' : ℕ) ∈ (chainOf t4 u (G.m + 1)).take k → G.src e' = u := by
+    intro e' hmem
+    rw [hch4] at hmem
+    refine chainSrc I.sweep.chainWF ?_
+    rw [I.chain]
+    exact List.mem_of_mem_take hmem
+  have hF4 : F0 G s t4 :=
+    F0.preserve I.f0 rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl)
+      rfl rfl rfl
+  have hAF4 : AF G t4 := AF.preserve I.af rfl rfl rfl rfl rfl rfl rfl
+  have ht4v : t4.w "v" = (u : ℕ) := by
+    rw [show t4.w "v" = t3.w "v" from rfl, ht3v]
+    exact I.vreg
+  have ht4q : t4.w "q" = st.wa "nxt" e0 := by simp [ht1, ht2, ht3, ht4]
+  have hdecomp4 : D = D.take (k + 1) ++ chainWalk t4 (t4.w "q") (G.m - k) := by
+    have hcw : chainWalk t4 (st.wa "nxt" e0) (G.m - k)
+        = chainWalk st (st.wa "nxt" e0) (G.m - k) :=
+      chainWalk_congr (st := st) (st' := t4) (fun j _ => rfl)
+    rw [ht4q]
+    calc D = D.take k ++ (e0 :: chainWalk st (st.wa "nxt" e0) (G.m - k)) := hsplit
+      _ = (D.take k ++ [e0]) ++ chainWalk st (st.wa "nxt" e0) (G.m - k) := by
+            rw [List.append_assoc]; rfl
+      _ = (D.take k ++ [e0]) ++ chainWalk t4 (st.wa "nxt" e0) (G.m - k) := by rw [hcw]
+      _ = D.take (k + 1) ++ chainWalk t4 (st.wa "nxt" e0) (G.m - k) := by rw [hTk]
+  have hcost4 : t4.cost = st.cost + 4 := rfl
+  have hcfit : 12 * rk (t4.w "h") + 25 ≤ 12 * rk (G.m + 1) + 29 := by
+    have h1 : rk (t4.w "h") ≤ rk (G.m + 1) := rk_mono (by omega)
+    omega
+  -- three-way dispatch on the head of the edge
+  by_cases hxu : xv = u
+  · -- a self-loop at `u`: both write arms are unreachable
+    have hreachne : t4.wa "reach" (xv : ℕ) ≠ 0 := by
+      have h := I.sweep.done_reach u I.sweep.done_u
+      rw [show (u : ℕ) = (xv : ℕ) by rw [hxu]] at h
+      exact h
+    have hdistle : t4.va "dist" (xv : ℕ) ≤ t3.va "dist" (u : ℕ) + t3.va "w" e0 := by
+      have hle' : t4.va "dist" (xv : ℕ) ≤ t4.va "dist" u + G.w eF :=
+        cand_ge_dist_done (s := s) eF hsrcv hdstvE I.sweep.settled_exact
+          I.sweep.done_u (by rw [hxu]; exact I.sweep.done_u)
+      rwa [hcand4] at hle'
+    refine (relaxBody_runs_static (t := t4) (u := u) (x := xv) (e := eF) (k := k)
+      (cand := t3.va "dist" (u : ℕ) + t3.va "w" e0) hF4 hAF4 hxv4 hcandv4 hcand4
+      hreachne hdistle hsrcv hdstvE ht4k hS4).mono ?_
+    rintro t' ⟨hS', hF', hAF', hch', hv', hq', hnt', hh', hi', hc'⟩
+    refine ScanInv.of_step hS' hF' hAF' hch' hv' hq' hnt' hh' hi' ?_
+      ht4v hch4 hdecomp4 I.room I.insroom hkL I.costb
+    omega
+  · by_cases hxs : xv = s
+    · -- an edge into the source: `dist s = 0` blocks any improvement
+      have hreachne : t4.wa "reach" (xv : ℕ) ≠ 0 := by
+        have h := I.sweep.source0.2
+        rw [show (s : ℕ) = (xv : ℕ) by rw [hxs]] at h
+        exact h
+      have hdistle : t4.va "dist" (xv : ℕ) ≤ t3.va "dist" (u : ℕ) + t3.va "w" e0 := by
+        have h1 : t4.va "dist" (xv : ℕ) = 0 := by
+          rw [show (xv : ℕ) = (s : ℕ) by rw [hxs]]
+          exact I.sweep.source0.1
+        rw [h1]
+        exact zero_le
+      refine (relaxBody_runs_static (t := t4) (u := u) (x := xv) (e := eF) (k := k)
+        (cand := t3.va "dist" (u : ℕ) + t3.va "w" e0) hF4 hAF4 hxv4 hcandv4 hcand4
+        hreachne hdistle hsrcv hdstvE ht4k hS4).mono ?_
+      rintro t' ⟨hS', hF', hAF', hch', hv', hq', hnt', hh', hi', hc'⟩
+      refine ScanInv.of_step hS' hF' hAF' hch' hv' hq' hnt' hh' hi' ?_
+        ht4v hch4 hdecomp4 I.room I.insroom hkL I.costb
+      omega
+    · -- a genuine relax
+      refine (relaxBody_runs (t := t4) (u := u) (x := xv) (e := eF) (k := k)
+        (cand := t3.va "dist" (u : ℕ) + t3.va "w" e0) hF4 hAF4 hxv4 hcandv4 hcand4
+        hval4 hbnd hinsb hxu hxs hsrcv hdstvE ht4k hS4 hsw4).mono ?_
+      rintro t' ⟨hS', hF', hAF', hch', hv', hq', hnt', hh', hi', hc'⟩
+      refine ScanInv.of_step hS' hF' hAF' hch' hv' hq' hnt' hh' hi' ?_
+        ht4v hch4 hdecomp4 I.room I.insroom hkL I.costb
+      omega
 
 
 end Submission.DijkstraHeap
