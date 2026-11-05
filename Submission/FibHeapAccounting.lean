@@ -184,4 +184,13 @@ theorem sparseTotal_real (G : Frontier.Graph) (hn : 16 ≤ G.n) :
   exact sparse_real_arith (by exact_mod_cast hn) (Submission.DijkstraRow.log_ge (G := G) hn)
     (by positivity) (Submission.DijkstraRow.L_le_one_five (G := G) hn)
 
+/-- The full scalar envelope is below `1000·n·ln n` on the sparse side. -/
+theorem total_sparse_real (G : Frontier.Graph) {r : ℕ} (hr : r ≤ G.n)
+    (hm : G.m ≤ G.n * Nat.log 2 G.n) (hn : 16 ≤ G.n) :
+    ((total r G.n G.m (Nat.log 2 G.n) : ℕ) : ℝ) ≤ 1000 * (G.n : ℝ) * Real.log G.n := by
+  have hN := total_sparse (r := r) (n := G.n) (m := G.m) (L := Nat.log 2 G.n) hr hm
+  have hR : ((total r G.n G.m (Nat.log 2 G.n) : ℕ) : ℝ)
+      ≤ ((sparseTotal G.n (Nat.log 2 G.n) : ℕ) : ℝ) := by exact_mod_cast hN
+  exact hR.trans (sparseTotal_real G hn)
+
 end Submission.FibHeapAccounting
