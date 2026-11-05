@@ -110,4 +110,9 @@ theorem degree_lt_size (t : Tree) : t.degree < t.size := by
     simp only [Tree.degree]
     omega
 
+/-- Slot safety follows from live size alone, including every tiny `n`. -/
+theorem degree_slot_of_live {t : Tree} {n : ℕ} (hs : t.size ≤ n) : t.degree < n + 1 := by
+  have h := degree_lt_size t
+  omega
+
 end Submission.FibHeapForest
