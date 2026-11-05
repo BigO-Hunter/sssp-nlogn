@@ -76,4 +76,14 @@ theorem insert_amortized (K I0 t μ : ℕ) :
   simp only [scaledPotential, potential]
   nlinarith
 
+/-- A link is amortized-free when its actual budget is at most one scaled potential unit. -/
+theorem link_amortized {K L0 t μ t' μ' : ℕ} (hK : L0 ≤ K) (ht : t' + 1 ≤ t)
+    (hμ : μ' ≤ μ) : L0 + scaledPotential K t' μ' ≤ scaledPotential K t μ := by
+  have hp : potential t' μ' + 1 ≤ potential t μ := by
+    simp only [potential]
+    omega
+  have hm := Nat.mul_le_mul_left K hp
+  simp only [scaledPotential] at *
+  nlinarith
+
 end Submission.FibHeapAccounting
