@@ -155,4 +155,8 @@ theorem total_fallback {r n m L : ℕ} (hr : r ≤ m + 1) (hL : L ≤ n) :
   simp only [total]
   nlinarith
 
+/-- Positive control for the smallest sourced graph: exact cost 447 and fallback margin. -/
+theorem tiny_one_zero : total 1 1 0 0 = 447 ∧ total 1 1 0 0 ≤ 1010 * (1 + 1) * (0 + 1) := by
+  norm_num [total]
+
 end Submission.FibHeapAccounting
