@@ -324,10 +324,14 @@ theorem chainOf_charge (st : State ℝ≥0) (k : ℕ) (u : ℕ) :
 
 /-! ## `allocAll`: the six arrays -/
 
-/-- `allocAll` runs and establishes the array-frame `AF` with a zeroed `head`. -/
+/-- `allocAll` runs and establishes the array-frame `AF` with every fresh array zero-filled
+(the five flag arrays `reach done hv` / `hd` by `allocW`/`allocV`, and `dist` by `allocV`). -/
 theorem allocAll_runs (st : State ℝ≥0) (hF : F0 G s st) :
     Runs realOps allocAll st (fun st' =>
       F0 G s st' ∧ AF G st' ∧ (∀ j, st'.wa "head" j = 0) ∧
+      (∀ j, st'.va "dist" j = 0) ∧ (∀ j, st'.wa "reach" j = 0) ∧
+      (∀ j, st'.wa "done" j = 0) ∧ (∀ j, st'.wa "hv" j = 0) ∧
+      (∀ j, st'.va "hd" j = 0) ∧
       st'.cost ≤ st.cost + 4 * G.n + 3 * G.m + 9) := by
   have hcap : G.n + G.m + 2 ≤ st.cap := hF.hcap
   have hnE : evalW st (var "n") = some G.n := by rw [evalW_var, hF.hn]
@@ -367,7 +371,7 @@ theorem allocAll_runs (st : State ℝ≥0) (hF : F0 G s st) :
     evalW_add_of hvar6 (evalW_lit_of (by have := hcap6; omega)) (by have := hcap6; omega)
   refine runs_valloc (k := G.m + 1) hm1E6 ?_
   set st7 := (st6.allocV "hd" (G.m + 1) realOps.zero).charge (G.m + 2) with hst7
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- F0: input registers and arrays untouched
     refine F0.preserve hF ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_
     · rw [hst7, w_charge, w_allocV, hst6, w_charge, w_allocW, hst5, w_charge, w_allocW,
@@ -433,6 +437,32 @@ theorem allocAll_runs (st : State ℝ≥0) (hF : F0 G s st) :
     rw [hst7, wa_charge, wa_allocV, hst6, wa_charge, wa_allocW,
       if_neg (by decide : ("head" : String) ≠ "hv"), hst5, wa_charge, wa_allocW,
       if_neg (by decide), hst4, wa_charge, wa_allocW, if_pos rfl]
+  · -- `dist` is zero-filled by the `allocV`
+    intro j
+    rw [hst7, va_charge, va_allocV, if_neg (by decide : ("dist" : String) ≠ "hd"),
+      hst6, va_charge, va_allocW, hst5, va_charge, va_allocW, hst4, va_charge, va_allocW,
+      hst3, va_charge, va_allocW, hst2, va_charge, va_allocW, hst1, va_charge, va_allocV,
+      if_pos rfl]
+    rfl
+  · -- `reach` is zero-filled by its `allocW`
+    intro j
+    rw [hst7, wa_charge, wa_allocV, hst6, wa_charge, wa_allocW,
+      if_neg (by decide : ("reach" : String) ≠ "hv"), hst5, wa_charge, wa_allocW,
+      if_neg (by decide), hst4, wa_charge, wa_allocW, if_neg (by decide), hst3, wa_charge,
+      wa_allocW, if_neg (by decide), hst2, wa_charge, wa_allocW, if_pos rfl]
+  · -- `done` is zero-filled by its `allocW`
+    intro j
+    rw [hst7, wa_charge, wa_allocV, hst6, wa_charge, wa_allocW,
+      if_neg (by decide : ("done" : String) ≠ "hv"), hst5, wa_charge, wa_allocW,
+      if_neg (by decide), hst4, wa_charge, wa_allocW, if_neg (by decide), hst3, wa_charge,
+      wa_allocW, if_pos rfl]
+  · -- `hv` is zero-filled by its `allocW`
+    intro j
+    rw [hst7, wa_charge, wa_allocV, hst6, wa_charge, wa_allocW, if_pos rfl]
+  · -- `hd` is zero-filled by the `allocV`
+    intro j
+    rw [hst7, va_charge, va_allocV, if_pos rfl]
+    rfl
   · simp only [hst7, hst6, hst5, hst4, hst3, hst2, hst1, cost_charge, cost_allocW, cost_allocV]
     omega
 
