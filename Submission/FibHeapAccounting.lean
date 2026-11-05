@@ -51,4 +51,8 @@ theorem degree_log_bound {k n : ℕ} (hsize : Nat.fib (k + 2) ≤ n) :
     omega
   omega
 
+/-- The independent tiny-`n` slot bound: a tree of `N` nodes has degree below `N`. -/
+theorem degree_slot_bound {d N n : ℕ} (hd : d < N) (hN : N ≤ n) : d < n + 1 := by
+  omega
+
 end Submission.FibHeapAccounting
