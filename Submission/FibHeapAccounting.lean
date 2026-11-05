@@ -176,4 +176,12 @@ theorem sparse_real_arith {n L ell : ℝ} (hn : 16 ≤ n) (hl : 2.7 ≤ ell) (_h
   have h50 : 50 ≤ 2 * (n * ell) := by nlinarith
   nlinarith
 
+/-- B1's proved logarithm caps specialize the real-arithmetic core to a graph. -/
+theorem sparseTotal_real (G : Frontier.Graph) (hn : 16 ≤ G.n) :
+    ((sparseTotal G.n (Nat.log 2 G.n) : ℕ) : ℝ) ≤ 1000 * (G.n : ℝ) * Real.log G.n := by
+  simp only [sparseTotal]
+  push_cast
+  exact sparse_real_arith (by exact_mod_cast hn) (Submission.DijkstraRow.log_ge (G := G) hn)
+    (by positivity) (Submission.DijkstraRow.L_le_one_five (G := G) hn)
+
 end Submission.FibHeapAccounting
