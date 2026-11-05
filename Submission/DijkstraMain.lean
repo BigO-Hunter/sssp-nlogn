@@ -82,7 +82,7 @@ theorem mainLoop_runs {st : State ℝ≥0} {c0 μ0 K : ℕ}
     Runs realOps mainLoop st (fun st' =>
       Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
-      st'.w "h" = 0 ∧ st'.cost ≤ c0 + K * μ0 + 1) := by
+      st'.w "h" = 0 ∧ st'.cost ≤ c0 + K * μ0 + 1 ∧ AF G st' ∧ F0 G s st') := by
   have hRm_le : RoomSt G st ≤ G.m := RoomSt_le (G := G) st
   have hcap0 : 0 < st.cap := by have := I.f0.hcap; omega
   have hcap1 : 1 < st.cap := by have := I.f0.hcap; omega
@@ -91,7 +91,7 @@ theorem mainLoop_runs {st : State ℝ≥0} {c0 μ0 K : ℕ}
     (I := fun n st' => LoopInv G s c0 μ0 K st' ∧ mu G st' = n)
     (Q := fun st' => Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
       (fun v => st'.wa "done" v) (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
-      st'.w "h" = 0 ∧ st'.cost ≤ c0 + K * μ0 + 1)
+      st'.w "h" = 0 ∧ st'.cost ≤ c0 + K * μ0 + 1 ∧ AF G st' ∧ F0 G s st')
     ?_ (mu G st) st ⟨I, rfl⟩
   intro n s' ⟨IS, hmu⟩
   have hcap0' : 0 < s'.cap := by have := IS.f0.hcap; omega
@@ -100,7 +100,7 @@ theorem mainLoop_runs {st : State ℝ≥0} {c0 μ0 K : ℕ}
     evalW_lt_of (evalW_lit_of hcap0') (evalW_var s' "h") hcap1'
   by_cases hh : s'.w "h" = 0
   · -- exit: the heap is empty, the certificate clause sees `h = 0`
-    refine ⟨0, ?_, fun hx => absurd hx (by decide), fun _ => ⟨?_, hh, ?_⟩⟩
+    refine ⟨0, ?_, fun hx => absurd hx (by decide), fun _ => ⟨?_, hh, ?_, IS.af.charge 1, IS.f0.charge 1⟩⟩
     · rw [hcond', if_neg (by omega)]
     · have h := IS.inv
       have hfun : hvD s s' = hvD s (s'.charge 1) :=
@@ -312,5 +312,180 @@ theorem mainLoop_runs {st : State ℝ≥0} {c0 μ0 K : ℕ}
             rw [hdist]
             have := IS.costb
             omega
+
+/-! ### The Dijkstra branch: `dijkstraBody_runs` -/
+
+/-- `dijkstraBody` runs end to end: allocate the six arrays, build the adjacency chains, write
+the four pre-push registers (`h := 0`, `ins := 0`, `reach[s] := 1`, `pv := s`), push the source,
+and run the main loop to heap exhaustion.
+
+Cost: `4n + 3m + 9` (allocation) `+ 6m + 2` (adjacency) `+ 4` (the four writes)
+`+ 12·rk 0 + 13` (the source push) `+ Kc·(2m+3) + 1` (the main loop; its potential at entry is
+`μ0 = 2(m + 1 - 0) + 1 = 2m + 3`). -/
+theorem dijkstraBody_runs (st : State ℝ≥0) (hF : F0 G s st) :
+    Runs realOps dijkstraBody st (fun st' =>
+      F0 G s st' ∧ AF G st' ∧
+      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+        (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
+      st'.w "h" = 0 ∧
+      st'.cost ≤ st.cost + (4 * G.n + 3 * G.m + 9) + (6 * G.m + 2) + 4
+        + (12 * rk 0 + 13) + (Kc G * (2 * G.m + 3) + 1)) := by
+  simp only [dijkstraBody]
+  refine runs_seq ((allocAll_runs (G := G) (s := s) st hF).mono ?_)
+  rintro sa ⟨hFa, hAFa, hHead, hDist, hReach, hDone, hHv, hHd, hCa⟩
+  refine runs_seq ((buildAdj_runs (G := G) (s := s) sa hFa hAFa hHead ⟨hDist, hReach, hDone⟩).mono ?_)
+  rintro sb ⟨hFb, hAFb, hChainb, hCostb, hZ3b⟩
+  have hcapb0 : 0 < sb.cap := by have := hFb.hcap; omega
+  have hcapb1 : 1 < sb.cap := by have := hFb.hcap; omega
+  -- write 1: `h := 0`
+  refine runs_seq (runs_wset (x := "h") (a := 0) (evalW_lit_of hcapb0) ?_)
+  set t1 := (sb.setW "h" 0).charge 1 with ht1
+  -- write 2: `ins := 0`
+  refine runs_seq (runs_wset (x := "ins") (a := 0)
+    (evalW_lit_of (by rw [ht1]; exact hcapb0)) ?_)
+  set t2 := (t1.setW "ins" 0).charge 1 with ht2
+  -- write 3: `reach[s] := 1`
+  have hsE2 : evalW t2 (var "s") = some (s : ℕ) := by
+    rw [evalW_var, ht2, w_charge, w_setW, if_neg (by decide : ("s" : String) ≠ "ins"),
+      ht1, w_charge, w_setW, if_neg (by decide : ("s" : String) ≠ "h"), hFb.hs]
+  have hjreach : (s : ℕ) < t2.wlen "reach" := by
+    have h : t2.wlen "reach" = G.n := by
+      rw [ht2, ht1]
+      simp [State.setW, State.charge, hAFb.reachL]
+    rw [h]; exact s.isLt
+  refine runs_seq (runs_wstore (arr := "reach") (i := var "s") (e := lit 1) hsE2
+    (evalW_lit_of (by rw [ht2, ht1]; exact hcapb1)) hjreach ?_)
+  set t3 := (t2.storeW "reach" (s : ℕ) 1).charge 1 with ht3
+  -- write 4: `pv := s`
+  refine runs_seq (runs_wset (x := "pv") (e := var "s") (a := (s : ℕ)) (by
+    rw [evalW_var, ht3, w_charge, w_storeW, ht2, w_charge, w_setW,
+      if_neg (by decide : ("s" : String) ≠ "ins"), ht1, w_charge, w_setW,
+      if_neg (by decide : ("s" : String) ≠ "h"), hFb.hs]) ?_)
+  set t4 := (t3.setW "pv" (s : ℕ)).charge 1 with ht4
+  -- the pre-push state
+  have hF4 : F0 G s t4 := by
+    rw [ht4, ht3, ht2, ht1]
+    exact ⟨hFb.hn, hFb.hm, hFb.hs, hFb.hcap, hFb.hsrc, hFb.hdst, hFb.hw, hFb.hsrcL, hFb.hdstL,
+      hFb.hwL⟩
+  have hAF4 : AF G t4 := by
+    rw [ht4, ht3, ht2, ht1]
+    exact ⟨hAFb.distL, hAFb.reachL, hAFb.doneL, hAFb.headL, hAFb.nxtL, hAFb.hvL, hAFb.hdL⟩
+  have hH4 : t4.w "h" = 0 := by rw [ht4, ht3, ht2, ht1]; rfl
+  have hI4 : t4.w "ins" = 0 := by rw [ht4, ht3, ht2, ht1]; rfl
+  have hP4 : t4.w "pv" = (s : ℕ) := by rw [ht4, ht3, ht2, ht1]; rfl
+  have hDist4 : ∀ j, t4.va "dist" j = 0 := by
+    intro j; rw [ht4, ht3, ht2, ht1]; exact hZ3b.dist j
+  have hDone4 : ∀ j, t4.wa "done" j = 0 := by
+    intro j; rw [ht4, ht3, ht2, ht1]; exact hZ3b.done j
+  have hReach4 : ∀ j, t4.wa "reach" j = if j = (s : ℕ) then 1 else 0 := by
+    intro j
+    rw [ht4, ht3, ht2, ht1]
+    simp [State.setW, State.storeW, State.charge, hZ3b.reach j]
+  have hcost4 : t4.cost = sb.cost + 4 := by
+    rw [ht4, ht3, ht2, ht1]
+    simp [State.setW, State.storeW, State.charge]
+  -- the push preconditions at `t4`
+  have hpv4 : t4.w "pv" < G.n := by rw [hP4]; exact s.isLt
+  have hsoft4 : EntrySoftH ⟨t4.w "pv", hpv4⟩ s (fun v => t4.va "dist" v)
+      (fun v => t4.wa "reach" v) (fun v => t4.wa "done" v) (hvD s t4)
+      (fun i => t4.va "hd" i) (t4.w "h") (t4.w "ins") := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro v hvne hr _
+      have hne : (v : ℕ) ≠ (s : ℕ) := fun hh => hvne (Fin.ext (hh.trans hP4.symm))
+      have h0 : t4.wa "reach" (v : ℕ) = 0 := by rw [hReach4 (v : ℕ)]; simp [hne]
+      exact absurd hr (by rw [h0]; simp)
+    · intro i hi
+      exact absurd hi (by rw [hH4]; omega)
+    · intro i hi
+      exact absurd hi (by rw [hH4]; omega)
+  have hheap4 : HeapOK (hvD s t4) (fun i => t4.va "hd" i) (t4.w "h") := by
+    intro i hi
+    exact absurd hi (by rw [hH4]; omega)
+  have hval4 : HeapV (G := G) t4 (t4.w "h") := by
+    intro i hi
+    exact absurd hi (by rw [hH4]; omega)
+  have hreachv4 : t4.wa "reach" (t4.w "pv") ≠ 0 := by
+    rw [hP4, hReach4 (s : ℕ)]
+    simp
+  -- the source push
+  refine runs_seq ((pushBody_runs (st := t4) hF4 hAF4 hpv4 hsoft4 hheap4 hval4 hreachv4
+    (by rw [hH4]; omega) (by rw [hI4]; omega)).mono ?_)
+  rintro t5 ⟨hF5, hAF5, hSoft5, hHeap5, hH5, hI5, hVal5, hFrame5, hCost5⟩
+  -- facts at the post-push state
+  have hDist5 : ∀ j, t5.va "dist" j = 0 := fun j => (hFrame5.dist j).trans (hDist4 j)
+  have hDone5 : ∀ j, t5.wa "done" j = 0 := fun j => (hFrame5.done j).trans (hDone4 j)
+  have hReach5 : ∀ j, t5.wa "reach" j = if j = (s : ℕ) then 1 else 0 :=
+    fun j => (hFrame5.reach j).trans (hReach4 j)
+  have hcw5 : ChainWF G t5 := by
+    intro u _
+    have hhead : t5.wa "head" u = sb.wa "head" u := by
+      rw [hFrame5.head u, ht4, ht3, ht2, ht1]; rfl
+    have hnxt : ∀ j, t5.wa "nxt" j = sb.wa "nxt" j := by
+      intro j; rw [hFrame5.nxt j, ht4, ht3, ht2, ht1]; rfl
+    rw [show chainOf t5 u (G.m + 1) = chainOf sb u (G.m + 1) from by
+      simp only [chainOf]
+      rw [hhead]
+      exact chainWalk_congr (fun j _ => hnxt j)]
+    exact hChainb u
+  have hse5 : SettledExact G s t5 := by
+    intro v hd0
+    exact absurd hd0 (by rw [hDone5 (v : ℕ)]; simp)
+  have hRoom5 : RoomSt G t5 = 0 := by
+    rw [RoomSt]
+    refine Finset.sum_eq_zero (fun v _ => ?_)
+    rw [if_neg (by rw [hDone5 (v : ℕ)]; simp)]
+  have hmu5 : mu G t5 = 2 * G.m + 3 := by
+    simp only [mu, hRoom5, hH5, hH4]
+    omega
+  -- the model invariant at the post-push state
+  have hInv5 : Inv G s (fun v => t5.va "dist" v) (fun v => t5.wa "reach" v)
+      (fun v => t5.wa "done" v) (hvD s t5) (fun i => t5.va "hd" i) (t5.w "h") (t5.w "ins") := by
+    refine ⟨?_, ?_, hHeap5, hSoft5.entry_cur, hSoft5.entry_mono, hSoft5.entry_reach, ?_, ?_⟩
+    · intro v hr
+      have hvs : (v : ℕ) = (s : ℕ) := by
+        by_contra hne
+        have h0 : t5.wa "reach" (v : ℕ) = 0 := by rw [hReach5 (v : ℕ)]; simp [hne]
+        exact hr h0
+      have hv : v = s := Fin.ext hvs
+      rw [hv]
+      exact ⟨[], Graph.IsWalk.nil s, by simp [Graph.len, hDist5 (s : ℕ)]⟩
+    · intro e hd0
+      exact absurd hd0 (by rw [hDone5 (G.src e)]; simp)
+    · exact ⟨hDist5 (s : ℕ), by rw [hReach5 (s : ℕ)]; simp⟩
+    · intro u hu
+      exact absurd hu (by rw [hDone5 (u : ℕ)]; simp)
+  have hRoom5' : t5.w "h" + (G.m - RoomSt G t5) ≤ G.m + 1 := by
+    rw [hH5, hRoom5, hH4]; omega
+  have hIns5' : t5.w "ins" + (G.m - RoomSt G t5) ≤ G.m + 1 := by
+    rw [hI5, hRoom5]; omega
+  have hLI5 : LoopInv G s t5.cost (2 * G.m + 3) (Kc G) t5 :=
+    { inv := hInv5
+      se := hse5
+      val := hVal5
+      cw := hcw5
+      f0 := hF5
+      af := hAF5
+      room := hRoom5'
+      insroom := hIns5'
+      mub := by rw [hmu5]
+      costb := by rw [hmu5]; omega }
+  -- the per-iteration constants
+  have hKpop : ∀ h : ℕ, h ≤ G.m + 1 → 18 * rkD h 0 + 30 ≤ Kc G := by
+    intro h hh
+    have hmono : rkD h 0 ≤ rkD (G.m + 1) 0 := by
+      rw [rkD_zero, rkD_zero]
+      exact Nat.log_mono_right hh
+    simp only [Kc]
+    omega
+  have hKs : 12 * rk (G.m + 1) + 30 ≤ Kc G := by
+    simp only [Kc]
+    omega
+  -- the main loop
+  refine (mainLoop_runs (st := t5) (c0 := t5.cost) (μ0 := 2 * G.m + 3) (K := Kc G)
+    hKpop hKs hLI5).mono ?_
+  rintro t6 ⟨hInv6, hH6, hCost6, hAF6, hF6⟩
+  refine ⟨hF6, hAF6, hInv6, hH6, ?_⟩
+  rw [hH4] at hCost5
+  omega
 
 end Submission.DijkstraMain
