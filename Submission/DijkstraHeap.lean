@@ -3756,4 +3756,66 @@ theorem Inv.toSweep {st : State ℝ≥0} {u : Fin G.n}
   k_le := Nat.zero_le _
 
 
+/-! ### Transport helpers for the settle step -/
+
+/-- `InvH` across a state that agrees on the heap, the two flag arrays and `dist`. -/
+theorem InvH.congr {st t : State ℝ≥0} {holev : Fin G.n} {h ins : ℕ}
+    (I : InvH holev s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+      (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) h ins)
+    (hreach : ∀ j, t.wa "reach" j = st.wa "reach" j)
+    (hdone : ∀ j, t.wa "done" j = st.wa "done" j)
+    (hdist : ∀ j, t.va "dist" j = st.va "dist" j)
+    (hhv : ∀ i, t.wa "hv" i = st.wa "hv" i)
+    (hhd : ∀ i, t.va "hd" i = st.va "hd" i)
+    (hh : t.w "h" = h) (hins : t.w "ins" = ins) :
+    InvH holev s (fun v => t.va "dist" v) (fun v => t.wa "reach" v) (fun v => t.wa "done" v)
+      (hvD s t) (fun i => t.va "hd" i) (t.w "h") (t.w "ins") := by
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
+  · intro v hv
+    obtain ⟨p, hp, hlen⟩ := I.soft.ghost v (by rw [← hreach ↑v]; exact hv)
+    exact ⟨p, hp, by rw [hlen, hdist ↑v]⟩
+  · intro e hd
+    obtain ⟨h1, h2⟩ := I.soft.relax_hold e (by rw [← hdone ↑(G.src e)]; exact hd)
+    refine ⟨by rw [hreach ↑(G.dst e)]; exact h1, ?_⟩
+    show ((t.va "dist" ↑(G.dst e) : ℝ≥0) : ℝ≥0∞)
+      ≤ ((t.va "dist" ↑(G.src e) : ℝ≥0) : ℝ≥0∞) + G.w e
+    rw [hdist ↑(G.dst e), hdist ↑(G.src e)]
+    exact h2
+  · intro v hvne hr hd0
+    obtain ⟨i, hi, hiv, hid⟩ := I.soft.entry_hole v hvne (by rw [← hreach ↑v]; exact hr)
+      (by rw [← hdone ↑v]; exact hd0)
+    exact ⟨i, by rw [hh]; exact hi, (hvD_congr hhv i).trans hiv,
+      by rw [hhd i, hdist ↑v]; exact hid⟩
+  · intro i hi
+    rw [hvD_congr hhv i, hdist ↑(hvD s st i), hhd i]
+    exact I.soft.entry_mono i (by rw [← hh]; exact hi)
+  · intro i hi
+    rw [hvD_congr hhv i, hreach ↑(hvD s st i)]
+    exact I.soft.entry_reach i (by rw [← hh]; exact hi)
+  · refine ⟨?_, ?_⟩
+    · rw [hdist ↑s]; exact I.soft.source0.1
+    · rw [hreach ↑s]; exact I.soft.source0.2
+  · intro v hd
+    rw [hreach ↑v]
+    exact I.soft.done_reach v (by rw [← hdone ↑v]; exact hd)
+  · exact HeapOK.congr I.heapOK hh hhd
+
+/-- `SettledExact` across a state with the same `dist` and `done` arrays. -/
+theorem SettledExact.congr {st t : State ℝ≥0} (H : SettledExact G s st)
+    (hreach : ∀ j, t.wa "reach" j = st.wa "reach" j)
+    (hdone : ∀ j, t.wa "done" j = st.wa "done" j)
+    (hdist : ∀ j, t.va "dist" j = st.va "dist" j) : SettledExact G s t := by
+  intro v hd
+  rw [hdist ↑v]
+  exact H v (by rw [← hdone ↑v]; exact hd)
+
+/-- `ChainWF` across a state with the same `head`/`nxt` arrays. -/
+theorem ChainWF.congr {st t : State ℝ≥0} (H : ChainWF G st)
+    (hhead : ∀ w, t.wa "head" w = st.wa "head" w)
+    (hnxt : ∀ j, t.wa "nxt" j = st.wa "nxt" j) : ChainWF G t := by
+  intro u hu
+  simp only [chainOf, hhead]
+  rw [← chainWalk_congr (st := t) (st' := st) (fun j _ => (hnxt j).symm)]
+  exact H u hu
+
 end Submission.DijkstraHeap
