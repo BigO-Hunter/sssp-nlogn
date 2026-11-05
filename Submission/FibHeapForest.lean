@@ -122,4 +122,18 @@ def LiveDistinct (t : Tree) : Prop := (ids t).Nodup
 theorem live_card {t : Tree} (h : LiveDistinct t) : (ids t).toFinset.card = t.size := by
   exact List.toFinset_card_of_nodup h
 
+/-- The full abstract link-order and one-loss invariant, as an inductive predicate over the
+tree.  For every linked child of a node: its current degree plus its lost count equals its
+recorded link degree (link-time degree equality), at most one child was lost since linking
+(the CLRS one-loss rule), the zero-based link position is at most the link degree (children
+are stored in link order), and the child subtree itself satisfies `InvOK`.  This is exactly
+the static interface supplied by equal-degree linking and cascading cuts; no mutable
+semantics is asserted here. -/
+inductive InvOK : Tree → Prop
+  | mk : (id : ℕ) → (children : List Child) →
+      (∀ c ∈ children, c.tree.degree + c.lost = c.linkDegree ∧ c.lost ≤ 1) →
+      (∀ j, j < children.length → j ≤ (children.getD j (Child.mk (.node 0 []) 0 0)).linkDegree) →
+      (∀ c ∈ children, InvOK c.tree) →
+      InvOK (.node id children)
+
 end Submission.FibHeapForest
