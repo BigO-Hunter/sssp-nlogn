@@ -117,11 +117,30 @@ theorem decrease_amortized_clrs {K D0 D1 c t μ t' μ' : ℕ} (hc : 1 ≤ c) (hK
     D0 + D1 * c + scaledPotential K t' μ' ≤ scaledPotential K t μ + (D0 + 3 * K + D1) :=
   decrease_amortized hc hK (cascade_potential_delta hc ht hmarks)
 
-/-- Fixed per-pop work charged explicitly into `E0`: find-min 2, guard 1, settle 4. -/
-def extractFixedCost : ℕ := 17 + 2 + 1 + 4
+/-- Promote-and-consolidate core steps per pop: `10` core plus the `7`-unit
+consolidation-walk loop-overhead residue (save-next-before-mutate, slot probe / stamp check,
+epoch bump).  The independent arithmetic review required this ~7-unit per-pop residue to be
+carried explicitly inside `E0` rather than borrowed from dropped inequality slack. -/
+def popCore : ℕ := 10 + 7
+
+/-- Find-min rescan after consolidation. -/
+def findMinCharge : ℕ := 2
+
+/-- One main-loop guard test per pop. -/
+def guardCharge : ℕ := 1
+
+/-- Settle writes per pop. -/
+def settleCharge : ℕ := 4
+
+/-- Fixed per-pop work charged explicitly into `E0`: core `17`, find-min 2, guard 1, settle 4. -/
+def extractFixedCost : ℕ := popCore + findMinCharge + guardCharge + settleCharge
 
 /-- The explicit fixed per-pop charge is exactly the `E0=24` engineering target. -/
 theorem extractFixedCost_eq : extractFixedCost = 24 := rfl
+
+/-- The decomposition is visible: `24 = 10 + 7 + 2 + 1 + 4`, with the ~7-unit per-pop loop
+overhead named rather than slack-borrowed. -/
+theorem extractFixedCost_decomp : extractFixedCost = 10 + 7 + 2 + 1 + 4 := rfl
 
 /-- Extraction's root-processing and linking costs are cancelled by scaled tree potential.
 `E0` is where `extractFixedCost` is charged; it is not borrowed from dropped inequality slack. -/
