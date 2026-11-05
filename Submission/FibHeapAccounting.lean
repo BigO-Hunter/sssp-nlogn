@@ -115,4 +115,8 @@ theorem extract_amortized {K E0 Er El Ed Em t0 ell t d t1 μ μ' Q : ℕ}
   simp only [scaledPotential] at *
   nlinarith
 
+/-- The root cap is `2L+2`, including the positive `L=0` case. -/
+theorem rootCap_eq (n : ℕ) : rootCap n = 2 * Nat.log 2 n + 2 := by
+  simp [rootCap, rankCap, Nat.add_assoc]
+
 end Submission.FibHeapAccounting
