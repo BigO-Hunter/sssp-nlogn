@@ -20,4 +20,20 @@ theorem fib_add_four_double (k : ℕ) : 2 * Nat.fib (k + 2) ≤ Nat.fib (k + 4) 
     _ = Nat.fib (k + 4) := by
       simpa [Nat.add_assoc] using (Nat.fib_add_two (n := k + 2)).symm
 
+/-- The elementary exponential lower bound used for the logarithmic rank cap. -/
+theorem fib_pow_half (k : ℕ) : 2 ^ (k / 2) ≤ Nat.fib (k + 2) := by
+  induction k using Nat.strong_induction_on with
+  | h k ih =>
+    match k with
+    | 0 => norm_num
+    | 1 => norm_num [Nat.fib_add_two]
+    | k + 2 =>
+      have prev := ih k (by omega)
+      have double := fib_add_four_double k
+      have hpow : 2 ^ ((k + 2) / 2) = 2 * 2 ^ (k / 2) := by
+        rw [show (k + 2) / 2 = k / 2 + 1 by omega, pow_succ]
+        ring
+      rw [hpow]
+      exact (Nat.mul_le_mul_left 2 prev).trans double
+
 end Submission.FibHeapAccounting
