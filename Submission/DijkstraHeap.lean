@@ -2908,4 +2908,183 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
     rw [hc3, hhT] at hcost4
     omega
 
+/-- `relaxBody`: the taken write arms (label unset, or `cand` strictly improves it) delegate
+to `relax_take_runs`; the arm where the improvement test fails takes no write and advances the
+sweep cursor statically, the edge obligation being discharged by the test itself. -/
+theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : ℕ} {cand : ℝ≥0}
+    (hF : F0 G s t) (hAF : AF G t)
+    (hxv : t.w "x" = (x : ℕ))
+    (hcandv : t.v "cand" = cand)
+    (hcand : t.va "dist" u + G.w e = cand)
+    (hval : HeapV (G := G) t (t.w "h"))
+    (hbound : t.w "h" ≤ G.m) (hinsb : t.w "ins" ≤ G.m)
+    (hxnot : x ≠ u) (hxs : x ≠ s)
+    (hsrcv : G.src e = u) (hdstv : G.dst e = x)
+    (htake : (chainOf t u (G.m + 1)).take (k + 1)
+      = (chainOf t u (G.m + 1)).take k ++ [(e : ℕ)])
+    (S : SweepInv G s u t k)
+    (hsw : ∀ e' : Fin G.m, (e' : ℕ) ∈ (chainOf t u (G.m + 1)).take k → G.src e' = u) :
+    Runs realOps relaxBody t (fun t' =>
+      SweepInv G s u t' (k + 1) ∧ F0 G s t' ∧ AF G t' ∧
+      chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) ∧
+      t'.w "v" = t.w "v" ∧
+      t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25) := by
+  have hcap0 : 0 < t.cap := by have := hF.hcap; omega
+  have hcap1 : 1 < t.cap := by have := hF.hcap; omega
+  have hxE : evalW t (var "x") = some (x : ℕ) := by
+    rw [evalW_var]; exact congrArg some hxv
+  have hloadR : evalW t (load "reach" (var "x")) = some (t.wa "reach" (x : ℕ)) :=
+    evalW_load_of hxE (by rw [hAF.reachL]; exact x.isLt)
+  have hcondE : evalW t (eq (load "reach" (var "x")) (lit 0))
+      = some (if t.wa "reach" (x : ℕ) = 0 then 1 else 0) :=
+    evalW_eq_of hloadR (evalW_lit_of (by show 0 < t.cap; exact hcap0))
+      (by show 1 < t.cap; exact hcap1)
+  have hchfix : ∀ {t' : State ℝ≥0}, (∀ w, t'.wa "head" w = t.wa "head" w) →
+      (∀ j, t'.wa "nxt" j = t.wa "nxt" j) →
+      chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) := by
+    intro t' h1 h2
+    simp only [chainOf]
+    rw [h1 u]
+    exact chainWalk_congr (fun j _ => h2 j)
+  simp only [relaxBody]
+  refine runs_seq ?_
+  by_cases hr : t.wa "reach" (x : ℕ) = 0
+  · -- arm A: `reach x = 0` — take, no `dist` test
+    refine runs_ite_true (x := 1) (by rw [hcondE, if_pos hr]) (by decide) ?_
+    refine runs_wset (x := "fl") (a := 1)
+      (evalW_lit_of (by show 1 < (t.charge 1).cap; rw [cap_charge]; exact hcap1)) ?_
+    set tA := ((t.charge 1).setW "fl" 1).charge 1 with htA
+    have hflA : tA.w "fl" = 1 := by rw [htA, w_charge, w_setW, if_pos rfl]
+    refine runs_ite_true (x := 1) (by rw [evalW_var, hflA]) (by decide) ?_
+    set tB := tA.charge 1 with htB
+    have hhB : tB.w "h" = t.w "h" := rfl
+    have hiB : tB.w "ins" = t.w "ins" := rfl
+    have hSB : SweepInv G s u tB k :=
+      S.congr (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+        (fun _ => rfl) (fun _ => rfl) hhB hiB
+    have hvalB : HeapV (G := G) tB (tB.w "h") := by
+      intro i hi
+      rw [hhB] at hi
+      exact hval i hi
+    have hdx0 : t.wa "done" (x : ℕ) = 0 := by
+      by_contra hne
+      exact S.done_reach x hne hr
+    have hleB : tB.wa "reach" (x : ℕ) ≠ 0 → cand ≤ tB.va "dist" (x : ℕ) := by
+      intro hne
+      rw [show tB.wa "reach" (x : ℕ) = t.wa "reach" (x : ℕ) from rfl] at hne
+      exact absurd hr hne
+    have hchB : chainOf tB u (G.m + 1) = chainOf t u (G.m + 1) :=
+      hchfix (fun _ => rfl) (fun _ => rfl)
+    have hcostB : tB.cost = t.cost + 3 := by
+      simp only [htB, htA, cost_charge, cost_setW]
+    refine (relax_take_runs (t := tB) (s := s) (u := u) (x := x) (e := e) (k := k)
+      (cand := cand)
+      (F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl)
+        rfl rfl rfl)
+      (AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl)
+      hxv hcandv hcand hvalB hbound hinsb
+      hdx0 hxnot hxs hsrcv hdstv (by rw [hchB]; exact htake) hSB
+      (by rw [hchB]; exact hsw) hleB).mono ?_
+    rintro t' ⟨hS', hF', hAF', hch', hv', hc'⟩
+    refine ⟨hS', hF', hAF', hch'.trans hchB, hv'.trans rfl, ?_⟩
+    rw [hcostB, hhB] at hc'
+    omega
+  · -- arms B/C: `reach x ≠ 0` — the improvement test decides
+    refine runs_ite_false (by rw [hcondE, if_neg hr]) ?_
+    have hdistE : evalV realOps (t.charge 1) (.load "dist" (var "x"))
+        = some (t.va "dist" (x : ℕ)) :=
+      evalV_load_of (by rw [evalW_charge]; exact hxE)
+        (by rw [show (t.charge 1).vlen "dist" = t.vlen "dist" from rfl, hAF.distL];
+            exact x.isLt)
+    have hcandE : evalV realOps (t.charge 1) (.var "cand") = some cand := by
+      show some ((t.charge 1).v "cand") = some cand
+      rw [show (t.charge 1).v "cand" = t.v "cand" from rfl]
+      exact congrArg some hcandv
+    set bv : ℕ := (if realOps.le (t.va "dist" (x : ℕ)) cand then 1 else 0) with hbv
+    refine runs_seq (runs_vle (x := "b") hdistE hcandE
+      (by show 1 < (t.charge 1).cap; rw [cap_charge]; exact hcap1) ?_)
+    set tC := ((t.charge 1).setW "b" bv).charge 1 with htC
+    have hbitC : tC.w "b" = if t.va "dist" (x : ℕ) ≤ cand then 1 else 0 := by
+      rw [htC, w_charge, w_setW, if_pos rfl, hbv, bit_le]
+    by_cases hdr : t.va "dist" (x : ℕ) ≤ cand
+    · -- arm B: the test reads `dist x ≤ cand` — no write, the test discharges the edge
+      have hb1 : tC.w "b" = 1 := by rw [hbitC, if_pos hdr]
+      refine runs_ite_true (x := 1) (by rw [evalW_var, hb1]) (by decide) ?_
+      refine runs_wset (x := "fl") (a := 0)
+        (evalW_lit_of (by show 0 < (tC.charge 1).cap; rw [cap_charge]; exact hcap0)) ?_
+      set tD := ((tC.charge 1).setW "fl" 0).charge 1 with htD
+      have hflD : tD.w "fl" = 0 := by rw [htD, w_charge, w_setW, if_pos rfl]
+      refine runs_ite_false (by rw [evalW_var, hflD]) ?_
+      set tE := tD.charge 1 with htE
+      refine runs_skip ?_
+      set tF := tE.charge 1 with htF
+      have hhF : tF.w "h" = t.w "h" := rfl
+      have hiF : tF.w "ins" = t.w "ins" := rfl
+      have hEk : EdgeRelaxed G t e := by
+        have hc : t.va "dist" (x : ℕ) ≤ cand := hcand ▸ hdr
+        have h1 : ((t.va "dist" (x : ℕ) : ℝ≥0) : ℝ≥0∞) ≤ ((cand : ℝ≥0) : ℝ≥0∞) := by
+          exact_mod_cast hc
+        have h2 : ((cand : ℝ≥0) : ℝ≥0∞)
+            = ((t.va "dist" (u : ℕ) : ℝ≥0) : ℝ≥0∞) + G.w e := by
+          rw [← hcand, ENNReal.coe_add]
+        refine ⟨?_, ?_⟩
+        · rw [hdstv]; exact hr
+        · rw [hdstv, hsrcv]
+          exact h2 ▸ h1
+      have hSF : SweepInv G s u tF (k + 1) :=
+        (S.advance_static hEk htake).congr (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+          (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) hhF hiF
+      have hcostF : tF.cost = t.cost + 6 := by
+        simp only [htF, htE, htD, htC, cost_charge, cost_setW]
+      refine ⟨hSF, ?_, AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl,
+        hchfix (fun _ => rfl) (fun _ => rfl), rfl, ?_⟩
+      · exact F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
+          (fun _ _ => rfl) rfl rfl rfl
+      · rw [hcostF]
+        omega
+    · -- arm C: `cand < dist x` — lower the label and push
+      have hb0 : tC.w "b" = 0 := by rw [hbitC, if_neg hdr]
+      refine runs_ite_false (by rw [evalW_var, hb0]) ?_
+      refine runs_wset (x := "fl") (a := 1)
+        (evalW_lit_of (by show 1 < (tC.charge 1).cap; rw [cap_charge]; exact hcap1)) ?_
+      set tF := ((tC.charge 1).setW "fl" 1).charge 1 with htF
+      have hflF : tF.w "fl" = 1 := by rw [htF, w_charge, w_setW, if_pos rfl]
+      refine runs_ite_true (x := 1) (by rw [evalW_var, hflF]) (by decide) ?_
+      set tG := tF.charge 1 with htG
+      have hhG : tG.w "h" = t.w "h" := rfl
+      have hiG : tG.w "ins" = t.w "ins" := rfl
+      have hSG : SweepInv G s u tG k :=
+        S.congr (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl) (fun _ => rfl)
+          (fun _ => rfl) (fun _ => rfl) hhG hiG
+      have hvalG : HeapV (G := G) tG (tG.w "h") := by
+        intro i hi
+        rw [hhG] at hi
+        exact hval i hi
+      have hlt : cand < t.va "dist" (x : ℕ) := not_le.mp hdr
+      have hdx0 : t.wa "done" (x : ℕ) = 0 := by
+        by_contra hne
+        have hge := cand_ge_dist_done (s := s) e hsrcv hdstv S.settled_exact S.done_u hne
+        have hle' : t.va "dist" (x : ℕ) ≤ cand := by rw [← hcand]; exact hge
+        exact absurd hle' hdr
+      have hleG : tG.wa "reach" (x : ℕ) ≠ 0 → cand ≤ tG.va "dist" (x : ℕ) := by
+        intro _
+        rw [show tG.va "dist" (x : ℕ) = t.va "dist" (x : ℕ) from rfl]
+        exact le_of_lt hlt
+      have hchG : chainOf tG u (G.m + 1) = chainOf t u (G.m + 1) :=
+        hchfix (fun _ => rfl) (fun _ => rfl)
+      have hcostG : tG.cost = t.cost + 5 := by
+        simp only [htG, htF, htC, cost_charge, cost_setW]
+      refine (relax_take_runs (t := tG) (s := s) (u := u) (x := x) (e := e) (k := k)
+        (cand := cand)
+        (F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl)
+          rfl rfl rfl)
+        (AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl)
+        hxv hcandv hcand hvalG hbound hinsb
+        hdx0 hxnot hxs hsrcv hdstv (by rw [hchG]; exact htake) hSG
+        (by rw [hchG]; exact hsw) hleG).mono ?_
+      rintro t' ⟨hS', hF', hAF', hch', hv', hc'⟩
+      refine ⟨hS', hF', hAF', hch'.trans hchG, hv'.trans rfl, ?_⟩
+      rw [hcostG, hhG] at hc'
+      omega
+
 end Submission.DijkstraHeap
