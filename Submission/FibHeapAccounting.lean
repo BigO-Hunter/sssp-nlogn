@@ -70,4 +70,10 @@ def rootCap (n : ℕ) : ℕ := rankCap n + 1
 /-- The empty heap has zero base potential. -/
 theorem potential_empty : potential 0 0 = 0 := rfl
 
+/-- Insert costs at most `I0+K` after paying for one new root of potential. -/
+theorem insert_amortized (K I0 t μ : ℕ) :
+    I0 + scaledPotential K (t + 1) μ ≤ scaledPotential K t μ + (I0 + K) := by
+  simp only [scaledPotential, potential]
+  nlinarith
+
 end Submission.FibHeapAccounting
