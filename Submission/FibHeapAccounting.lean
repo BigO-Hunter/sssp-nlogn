@@ -86,4 +86,15 @@ theorem link_amortized {K L0 t μ t' μ' : ℕ} (hK : L0 ≤ K) (ht : t' + 1 ≤
   simp only [scaledPotential] at *
   nlinarith
 
+/-- A decrease-key with `c≥1` cuts has amortized budget `D0+3K+D1`. -/
+theorem decrease_amortized {K D0 D1 c t μ t' μ' : ℕ} (hc : 1 ≤ c) (hK : D1 ≤ K)
+    (hpot : potential t' μ' + c ≤ potential t μ + 4) :
+    D0 + D1 * c + scaledPotential K t' μ' ≤ scaledPotential K t μ + (D0 + 3 * K + D1) := by
+  have hm := Nat.mul_le_mul_left K hpot
+  have hmul := Nat.mul_le_mul_right (c - 1) hK
+  have hD : D1 * c + K ≤ K * c + D1 := by
+    nlinarith
+  simp only [scaledPotential] at *
+  nlinarith
+
 end Submission.FibHeapAccounting
