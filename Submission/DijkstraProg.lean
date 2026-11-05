@@ -153,14 +153,17 @@ def mainLoop : Stmt :=
     (seq popBody
       (ite (eq (load "done" (var "v")) (lit 0)) settleBody skip))
 
-/-- The Dijkstra branch. -/
+/-- The Dijkstra branch.  The source is marked reached (`reach[s] := 1`) before its push:
+`pushBody_runs` demands the pushed vertex already carry `reach ≠ 0`, and the run starts with every
+flag array zeroed. -/
 def dijkstraBody : Stmt :=
   seq allocAll
     (seq buildAdj
       (seq (wset "h" (lit 0))
         (seq (wset "ins" (lit 0))
-          (seq (wset "pv" (var "s"))
-            (seq pushBody mainLoop)))))
+          (seq (wstore "reach" (var "s") (lit 1))
+            (seq (wset "pv" (var "s"))
+              (seq pushBody mainLoop))))))
 
 /-- The dispatch wrapper: `if m / n ≤ pa then dijkstra else Bellman–Ford`
 (`¬ (pa < m / n)` as the test; `WExpr` has no `le`). -/
