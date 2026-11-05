@@ -36,4 +36,19 @@ theorem fib_pow_half (k : ℕ) : 2 ^ (k / 2) ≤ Nat.fib (k + 2) := by
       rw [hpow]
       exact (Nat.mul_le_mul_left 2 prev).trans double
 
+/-- A Fibonacci-size lower bound yields the deliberately elementary `2L+1` degree cap. -/
+theorem degree_log_bound {k n : ℕ} (hsize : Nat.fib (k + 2) ≤ n) :
+    k ≤ 2 * Nat.log 2 n + 1 := by
+  have hnlt : n < 2 ^ (Nat.log 2 n + 1) := by
+    have h := Nat.lt_pow_succ_log_self (b := 2) (by norm_num) n
+    simpa [Nat.succ_eq_add_one] using h
+  have hhalf : k / 2 ≤ Nat.log 2 n := by
+    by_contra h
+    have hgt : Nat.log 2 n + 1 ≤ k / 2 := by omega
+    have hpow : 2 ^ (Nat.log 2 n + 1) ≤ 2 ^ (k / 2) :=
+      Nat.pow_le_pow_right (by norm_num) hgt
+    have hchain : 2 ^ (Nat.log 2 n + 1) ≤ n := hpow.trans ((fib_pow_half k).trans hsize)
+    omega
+  omega
+
 end Submission.FibHeapAccounting
