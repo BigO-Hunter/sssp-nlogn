@@ -91,4 +91,14 @@ theorem size_node (id : ℕ) (children : List Child) :
   simp [Tree.size, ids, sizeSum, ids_list_length]
   omega
 
+/-- Child count is at most the sum of positive child sizes. -/
+theorem degree_le_sizeSum (children : List Child) : children.length ≤ sizeSum children := by
+  induction children with
+  | nil => simp [sizeSum]
+  | cons c tail ih =>
+    have hp : 0 < c.size := by simpa [Child.size] using size_pos c.tree
+    simp only [sizeSum] at ih
+    simp only [sizeSum, List.map_cons, List.sum_cons, List.length_cons]
+    omega
+
 end Submission.FibHeapForest
