@@ -135,4 +135,24 @@ theorem total_sparse {r n m L : ℕ} (hr : r ≤ n) (hm : m ≤ n * L) :
   simp only [total, sparseTotal]
   nlinarith
 
+/-- The Dijkstra-side polynomial fallback, including all tiny inputs. -/
+theorem total_fallback {r n m L : ℕ} (hr : r ≤ m + 1) (hL : L ≤ n) :
+    total r n m L ≤ 1010 * (n + 1) * (m + 1) := by
+  have hrl : r * L ≤ n * (m + 1) := by
+    have h := Nat.mul_le_mul hr hL
+    simpa [Nat.mul_comm] using h
+  have hBn : n ≤ (n + 1) * (m + 1) := by nlinarith
+  have hBm : m ≤ (n + 1) * (m + 1) := by nlinarith
+  have hB1 : 1 ≤ (n + 1) * (m + 1) := by nlinarith
+  have hBnMul : n * (m + 1) ≤ (n + 1) * (m + 1) := by nlinarith
+  have hBm1 : m + 1 ≤ (n + 1) * (m + 1) := by nlinarith
+  have hrlB := (Nat.mul_le_mul_left 280 hrl).trans (Nat.mul_le_mul_left 280 hBnMul)
+  have hrB := (Nat.mul_le_mul_left 384 hr).trans (Nat.mul_le_mul_left 384 hBm1)
+  have hLB := (Nat.mul_le_mul_left 4 hL).trans (Nat.mul_le_mul_left 4 hBn)
+  have hnB := Nat.mul_le_mul_left 13 hBn
+  have hmB := Nat.mul_le_mul_left 279 hBm
+  have h50 := Nat.mul_le_mul_left 50 hB1
+  simp only [total]
+  nlinarith
+
 end Submission.FibHeapAccounting
