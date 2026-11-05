@@ -189,12 +189,13 @@ theorem sizeSum_ge_fib_aux
       Nat.fib (k + 2) + sizeSum children ≥ Nat.fib (children.length + k + 2) := by
   intro children
   induction children with
-  | nil => intro k _ _ _ _; simpa [sizeSum] using Nat.le_refl _
+  | nil => intro k _ _ _ _; simp [sizeSum]
   | cons c tail ih =>
     intro k hM hord hco hrec
     have h0 : k ≤ c.linkDegree := by
       have h := hord 0 (by simp)
-      simpa using h
+      simp only [Nat.zero_add, List.getD_cons_zero] at h
+      exact h
     obtain ⟨hdeq, hloss⟩ := hco c (by simp)
     have hk : k + 1 ≤ c.tree.degree + 2 := by omega
     have hk1 : Nat.fib (k + 1) ≤ Nat.fib (c.tree.degree + 2) := fib_le_of_le hk
