@@ -1,4 +1,5 @@
 import Submission.DijkstraMain
+import Mathlib.Analysis.Complex.ExponentialBounds
 
 /-!
 # Submission.DijkstraRow — the `n·log n ; n·log²n` row
@@ -90,5 +91,86 @@ theorem prog_runs_bf (hdiv : Nat.log 2 G.n < G.m / G.n) :
   rintro r ⟨hsv, hc⟩
   have hinit : (initState p1 G s).cost = 0 := rfl
   exact ⟨hsv, by omega⟩
+
+/-! ## The two logarithm caps -/
+
+variable {L : ℕ}
+
+/-- `L + 1 ≤ 2^(L+1)`. -/
+theorem le_two_pow (L : ℕ) : L + 1 ≤ 2 ^ (L + 1) := by
+  induction L with
+  | zero => norm_num
+  | succ k ih =>
+    have h2 : 2 ^ (k + 2) = 2 * 2 ^ (k + 1) := by
+      rw [show k + 2 = (k + 1) + 1 by omega, pow_succ]
+      ring
+    omega
+
+/-- `3 * n * (L+1) < 2^(2L+4)` for `n < 2^(L+1)`. -/
+theorem three_mul_lt_pow (hn : G.n < 2 ^ (L + 1)) : 3 * G.n * (L + 1) < 2 ^ (2 * L + 4) := by
+  have hx : G.n * (L + 1) ≤ 2 ^ (L + 1) * 2 ^ (L + 1) :=
+    Nat.mul_le_mul (Nat.le_of_lt hn) (le_two_pow L)
+  have h3 : 3 * (G.n * (L + 1)) ≤ 3 * (2 ^ (L + 1) * 2 ^ (L + 1)) :=
+    Nat.mul_le_mul_left 3 hx
+  have hpos : 0 < 2 ^ (L + 1) * 2 ^ (L + 1) := by positivity
+  have h4 : 3 * (2 ^ (L + 1) * 2 ^ (L + 1)) < 4 * (2 ^ (L + 1) * 2 ^ (L + 1)) := by
+    nlinarith
+  have h5 : 4 * (2 ^ (L + 1) * 2 ^ (L + 1)) = 2 ^ (2 * L + 4) := by
+    have hp : 2 ^ (L + 1) * 2 ^ (L + 1) = 2 ^ (2 * L + 2) := by
+      rw [← pow_add]
+      congr 1
+      omega
+    rw [hp, show (4 : ℕ) = 2 ^ 2 by norm_num, ← pow_add]
+    congr 1
+    omega
+  calc 3 * G.n * (L + 1) = 3 * (G.n * (L + 1)) := by ring
+    _ ≤ 3 * (2 ^ (L + 1) * 2 ^ (L + 1)) := h3
+    _ < 4 * (2 ^ (L + 1) * 2 ^ (L + 1)) := h4
+    _ = 2 ^ (2 * L + 4) := h5
+
+/-- The Nat log cap: `log₂(m+2) ≤ 2·log₂n + 3` when `m + 2 ≤ 3n(⌊log₂n⌋+1)`. -/
+theorem log_m_add_two (h : G.m + 2 ≤ 3 * G.n * (Nat.log 2 G.n + 1)) :
+    Nat.log 2 (G.m + 2) ≤ 2 * Nat.log 2 G.n + 3 := by
+  have hnlt : G.n < 2 ^ (Nat.log 2 G.n + 1) := by
+    have := Nat.lt_pow_succ_log_self (b := 2) (by norm_num) G.n
+    simpa [Nat.succ_eq_add_one] using this
+  have hlt := lt_of_le_of_lt h (three_mul_lt_pow (G := G) (L := Nat.log 2 G.n) hnlt)
+  have hpos : G.m + 2 ≠ 0 := by omega
+  have := Nat.log_lt_of_lt_pow (b := 2) (x := 2 * Nat.log 2 G.n + 4) hpos hlt
+  omega
+
+/-- `Kc G ≤ 60·⌊log₂ n⌋ + 123` on the dispatch's Dijkstra side. -/
+theorem Kc_le (h : G.m + 2 ≤ 3 * G.n * (Nat.log 2 G.n + 1)) :
+    Kc G ≤ 60 * Nat.log 2 G.n + 123 := by
+  have h3 : Nat.log 2 (G.m + 2) ≤ 2 * Nat.log 2 G.n + 3 := log_m_add_two (G := G) h
+  have h2 : Nat.log 2 (G.m + 1) ≤ 2 * Nat.log 2 G.n + 3 :=
+    le_trans (Nat.log_mono_right (by omega)) h3
+  have h4 : rkD (G.m + 1) 0 = Nat.log 2 (G.m + 1) := rkD_zero _
+  have h5 : rk (G.m + 1) = Nat.log 2 (G.m + 2) := rfl
+  simp only [Kc, h4, h5]
+  omega
+
+/-- The real log cap: `⌊log₂ n⌋ ≤ log n / log 2`. -/
+theorem L_le_log_div (hn : 0 < G.n) :
+    ((Nat.log 2 G.n : ℕ) : ℝ) ≤ Real.log (G.n : ℝ) / Real.log 2 := by
+  have h1 : (2 : ℝ) ^ (Nat.log 2 G.n : ℕ) ≤ (G.n : ℝ) := by
+    exact_mod_cast Nat.pow_log_le_self 2 (by omega)
+  have h2 : Real.log ((2 : ℝ) ^ (Nat.log 2 G.n)) ≤ Real.log (G.n : ℝ) :=
+    Real.log_le_log (by positivity) h1
+  rw [Real.log_pow] at h2
+  have hlog2 : 0 < Real.log 2 := Real.log_pos (by norm_num)
+  rw [le_div_iff₀ hlog2]
+  linarith
+
+/-- `⌊log₂ n⌋ ≤ 1.5·log n`. -/
+theorem L_le_one_five (hn : 16 ≤ G.n) :
+    ((Nat.log 2 G.n : ℕ) : ℝ) ≤ 1.5 * Real.log (G.n : ℝ) := by
+  have h := L_le_log_div (G := G) (by omega)
+  have hlog2 : (0.693 : ℝ) < Real.log 2 :=
+    lt_trans (by norm_num) Real.log_two_gt_d9
+  have hlog : (0 : ℝ) < Real.log (G.n : ℝ) :=
+    Real.log_pos (by exact_mod_cast (show 1 < G.n by omega))
+  rw [le_div_iff₀ (by linarith : (0:ℝ) < Real.log 2)] at h
+  nlinarith [h, hlog2, hlog]
 
 end Submission.DijkstraRow
