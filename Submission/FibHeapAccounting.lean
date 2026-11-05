@@ -86,6 +86,14 @@ theorem link_amortized {K L0 t μ t' μ' : ℕ} (hK : L0 ≤ K) (ht : t' + 1 ≤
   simp only [scaledPotential] at *
   nlinarith
 
+/-- Exact CLRS cascade accounting: `c` new roots, `c−1` cleared marked ancestors, and at most
+one terminal new mark imply `ΔΦ≤4−c` (written without Nat subtraction). -/
+theorem cascade_potential_delta {t μ c t' μ' : ℕ} (hc : 1 ≤ c) (ht : t' = t + c)
+    (hmarks : μ' + c ≤ μ + 2) : potential t' μ' + c ≤ potential t μ + 4 := by
+  have hc1 : c - 1 + 1 = c := by omega
+  simp only [potential, ht]
+  omega
+
 /-- A decrease-key with `c≥1` cuts has amortized budget `D0+3K+D1`. -/
 theorem decrease_amortized {K D0 D1 c t μ t' μ' : ℕ} (hc : 1 ≤ c) (hK : D1 ≤ K)
     (hpot : potential t' μ' + c ≤ potential t μ + 4) :
