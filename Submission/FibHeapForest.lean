@@ -287,4 +287,25 @@ theorem t1_le_Q {roots : List Tree} {n : ℕ}
   rw [List.length_map] at h
   exact h.trans (by rfl)
 
+/-- The exact CLRS cascading-cut marking discipline as an inductive relation.  `l` lists the
+mark bits of the strict ancestors of the cut node, from the parent upward, below the root.
+`μ` is the marked-live-node count before the cascade, `μ'` after it, and `k` the number of
+ancestors cut during the cascade (the original cut in `decreaseKey` is not counted here).
+- `stop`: the root is reached without cutting it; roots are unmarked, so nothing changes.
+- `mark`: an unmarked parent takes the one terminal new mark and the cascade stops.
+- `clear`: a marked parent loses its mark (μ counts one down) and is cut; the cascade continues. -/
+inductive CascadeMarks : List Bool → ℕ → ℕ → ℕ → Prop
+  | stop : CascadeMarks [] μ μ 0
+  | mark : CascadeMarks (false :: l) μ (μ + 1) 0
+  | clear : 1 ≤ μ → CascadeMarks l (μ - 1) μ' k → CascadeMarks (true :: l) μ μ' (k + 1)
+
+/-- The exact CLRS marking effect: a cascade that cuts `k` ancestors leaves
+`μ' + (k+1) ≤ μ + 2` — at most `k` marks cleared and at most one terminal new mark. -/
+theorem cascade_marks_bound {l : List Bool} {μ μ' k : ℕ} (h : CascadeMarks l μ μ' k) :
+    μ' + (k + 1) ≤ μ + 2 := by
+  induction h with
+  | stop => omega
+  | mark => omega
+  | clear hμ _ ih => omega
+
 end Submission.FibHeapForest
