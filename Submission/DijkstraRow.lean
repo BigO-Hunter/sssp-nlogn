@@ -1,3 +1,4 @@
+import Submission.SsspStatement
 import Submission.DijkstraMain
 import Mathlib.Analysis.Complex.ExponentialBounds
 
@@ -19,6 +20,7 @@ The row is `Bound 1 1 1 2 0`: density `D(n) = n·⌊log₂ n⌋`, time `T(n) = n
 namespace Submission.DijkstraRow
 
 open Frontier Frontier.RAM WExpr Stmt NNReal ENNReal
+open BigOSpeedrun.DirectedSSSP
 open Submission.DijkstraProg Submission.DijkstraModel Submission.DijkstraDecode
 open Submission.DijkstraSim Submission.DijkstraHeap Submission.DijkstraMain
 
@@ -172,5 +174,166 @@ theorem L_le_one_five (hn : 16 ≤ G.n) :
     Real.log_pos (by exact_mod_cast (show 1 < G.n by omega))
   rw [le_div_iff₀ (by linarith : (0:ℝ) < Real.log 2)] at h
   nlinarith [h, hlog2, hlog]
+
+/-! ## The real-arithmetic cores (pure `ℝ`) -/
+
+/-- The sparse-clause cost bound: with `⌊log₂n⌋ ≤ 1.5·ℓ`, `m ≤ n·⌊log₂n⌋` and `ℓ ≥ 2.7`, the
+Dijkstra branch's total `4L + 9m + 4n + 36 + Kc·(2m+3)` is at most `2000·n·ℓ²`. -/
+theorem arith_clause1 {n m L ℓ : ℝ} (hn : 16 ≤ n) (hl : 2.7 ≤ ℓ) (hL0 : 0 ≤ L)
+    (hLb : L ≤ 1.5 * ℓ) (hm0 : 0 ≤ m) (hm : m ≤ n * L) :
+    4 * L + 9 * m + 4 * n + 36 + (60 * L + 123) * (2 * m + 3) ≤ 2000 * (n * ℓ ^ 2) := by
+  have hn0 : 0 ≤ n := by linarith
+  have hl0 : 0 ≤ ℓ := by linarith
+  have hl1 : 1 ≤ ℓ := by linarith
+  have hn1 : 1 ≤ n := by linarith
+  have hℓle : ℓ ≤ ℓ * ℓ := by nlinarith
+  have hℓ2 : (1 : ℝ) ≤ ℓ * ℓ := by nlinarith
+  have hnl1 : 1 ≤ n * ℓ := by
+    have h := mul_le_mul hn1 hl1 (by norm_num : (0:ℝ) ≤ 1) hn0
+    simpa using h
+  have h1 : (1 : ℝ) ≤ n * (ℓ * ℓ) := by
+    have h := mul_le_mul hn1 hℓ2 (by norm_num : (0:ℝ) ≤ 1) hn0
+    simpa [mul_assoc] using h
+  have hnl : n * ℓ ≤ n * (ℓ * ℓ) := mul_le_mul_of_nonneg_left hℓle hn0
+  have hl2 : ℓ ≤ n * (ℓ * ℓ) := by
+    have h := mul_le_mul_of_nonneg_right hnl1 hl0
+    simpa [mul_assoc, mul_comm, mul_left_comm] using h
+  have hnn : n ≤ n * (ℓ * ℓ) := by
+    have h := mul_le_mul_of_nonneg_left hℓ2 hn0
+    simpa using h
+  have hLs : L * L ≤ 2.25 * (ℓ * ℓ) := by
+    have h := mul_self_le_mul_self hL0 hLb
+    nlinarith [h]
+  have hLm : L * m ≤ 2.25 * (n * (ℓ * ℓ)) := by
+    have h := mul_le_mul hLb hm hm0 (by linarith : (0:ℝ) ≤ 1.5 * ℓ)
+    nlinarith [h, hLs]
+  nlinarith [hLs, hLm, hnl, hl2, h1, hnn, hn0, hl1]
+
+/-- The polynomial fallback on the Dijkstra side: `Kc ≤ 60n+123` gives `≤ 968·(n+1)(m+1)`. -/
+theorem arith_clause2_dij {n m L : ℝ} (hn : 0 ≤ n) (hm0 : 0 ≤ m) (hL0 : 0 ≤ L) (hL : L ≤ n) :
+    4 * L + 9 * m + 4 * n + 36 + (60 * n + 123) * (2 * m + 3)
+      ≤ 2000 * (n + 1) * (m + 1) := by
+  have h1 : (1 : ℝ) ≤ (n + 1) * (m + 1) := by nlinarith
+  have hn1 : n ≤ (n + 1) * (m + 1) := by nlinarith
+  have hm1 : m ≤ (n + 1) * (m + 1) := by nlinarith
+  have hnm : n * m ≤ (n + 1) * (m + 1) := by nlinarith
+  nlinarith [h1, hn1, hm1, hnm]
+
+/-- The polynomial fallback on the Bellman–Ford side. -/
+theorem arith_clause2_bf {n m L : ℝ} (hn : 0 ≤ n) (hm0 : 0 ≤ m) (hL0 : 0 ≤ L) (hL : L ≤ n) :
+    4 * L + 9 * m * n + 6 * n + 12 ≤ 2000 * (n + 1) * (m + 1) := by
+  have h1 : (1 : ℝ) ≤ (n + 1) * (m + 1) := by nlinarith
+  have hn1 : n ≤ (n + 1) * (m + 1) := by nlinarith
+  have hnm : n * m ≤ (n + 1) * (m + 1) := by nlinarith
+  nlinarith [h1, hn1, hnm]
+
+/-! ## The row's cap and time at the row exponents -/
+
+theorem cap_one_one (n : ℕ) :
+    Cap ((1 : ℚ) / 1) ((1 : ℚ) / 1) n = (n : ℝ) * (Nat.log 2 n : ℝ) := by
+  simp [Cap, div_one, Real.rpow_one]
+
+theorem time_one_two_zero (n : ℕ) :
+    Time ((1 : ℚ) / 1) ((2 : ℚ) / 1) ((0 : ℚ) / 1) n
+      = (n : ℝ) * (Real.log (n : ℝ)) ^ 2 := by
+  simp [Time, div_one, Real.rpow_one, Real.rpow_two, Real.rpow_zero]
+
+theorem sparse_one_one {n m : ℕ} :
+    Sparse ((1 : ℚ) / 1) ((1 : ℚ) / 1) n m ↔ (m : ℝ) ≤ (n : ℝ) * (Nat.log 2 n : ℝ) := by
+  rw [Sparse, cap_one_one]
+
+/-! ## The two `Bound` clauses -/
+
+/-- `log 16 = 4·log 2 > 2.7`, so `log n ≥ 2.7` for `n ≥ 16`. -/
+theorem log_ge (hn : 16 ≤ G.n) : (2.7 : ℝ) ≤ Real.log (G.n : ℝ) := by
+  have hnR : (16 : ℝ) ≤ (G.n : ℝ) := by exact_mod_cast hn
+  have h16 : Real.log (16 : ℝ) ≤ Real.log (G.n : ℝ) := Real.log_le_log (by norm_num) hnR
+  have hlog2 : (0.693 : ℝ) < Real.log 2 := lt_trans (by norm_num) Real.log_two_gt_d9
+  have heq : Real.log (16 : ℝ) = 4 * Real.log 2 := by
+    rw [show (16 : ℝ) = 2 ^ (4 : ℕ) by norm_num, Real.log_pow]
+    norm_num
+  linarith
+
+/-- Clause 1: the row bound `2000·n·(log n)²` at `m ≤ n·⌊log₂ n⌋`, `n ≥ 16`. -/
+theorem clause1 : ∀ (G : Graph) (s : Fin G.n), 16 ≤ G.n →
+    Sparse ((1 : ℚ) / 1) ((1 : ℚ) / 1) G.n G.m →
+    CorrectWithin p1 G s (2000 * Time ((1 : ℚ) / 1) ((2 : ℚ) / 1) ((0 : ℚ) / 1) G.n) := by
+  intro G s hn hsp
+  have htime : Time ((1 : ℚ) / 1) ((2 : ℚ) / 1) ((0 : ℚ) / 1) G.n
+      = (G.n : ℝ) * (Real.log (G.n : ℝ)) ^ 2 := time_one_two_zero G.n
+  have hsp' : (G.m : ℝ) ≤ (G.n : ℝ) * (Nat.log 2 G.n : ℝ) := sparse_one_one.mp hsp
+  have hmN : G.m ≤ G.n * Nat.log 2 G.n := by exact_mod_cast hsp'
+  have hnR : (16 : ℝ) ≤ (G.n : ℝ) := by exact_mod_cast hn
+  have hm3 : G.m + 2 ≤ 3 * G.n * (Nat.log 2 G.n + 1) := by
+    have hn1 : 1 ≤ G.n := by omega
+    have hL1 : 1 ≤ Nat.log 2 G.n + 1 := by omega
+    nlinarith
+  have hKc : Kc G ≤ 60 * Nat.log 2 G.n + 123 := Kc_le (G := G) hm3
+  have hdiv : G.m / G.n ≤ Nat.log 2 G.n := Nat.div_le_of_le_mul hmN
+  obtain ⟨fuel, r, hr, hsv, hc⟩ := prog_runs_dij (G := G) (s := s) hdiv
+  refine ⟨fuel, r, hr, hsv, ?_⟩
+  rw [htime]
+  have hrk0 : rk 0 = 0 := rfl
+  have hmul := Nat.mul_le_mul_right (2 * G.m + 3) hKc
+  have hcostN : r.cost ≤ 4 * Nat.log 2 G.n + 9 * G.m + 4 * G.n + 36
+      + (60 * Nat.log 2 G.n + 123) * (2 * G.m + 3) := by omega
+  have hcostR : (r.cost : ℝ) ≤ ((4 * Nat.log 2 G.n + 9 * G.m + 4 * G.n + 36
+      + (60 * Nat.log 2 G.n + 123) * (2 * G.m + 3) : ℕ) : ℝ) := by exact_mod_cast hcostN
+  push_cast at hcostR
+  exact le_trans hcostR (arith_clause1 hnR (log_ge (G := G) hn) (by positivity)
+    (L_le_one_five hn) (by positivity) hsp')
+
+/-- Clause 2: the polynomial fallback `2000·(n+1)(m+1)` on every graph. -/
+theorem clause2 : ∀ (G : Graph) (s : Fin G.n),
+    CorrectWithin p1 G s (2000 * ((G.n : ℝ) + 1) * ((G.m : ℝ) + 1)) := by
+  intro G s
+  have hnR : (0 : ℝ) ≤ (G.n : ℝ) := Nat.cast_nonneg _
+  have hmR : (0 : ℝ) ≤ (G.m : ℝ) := Nat.cast_nonneg _
+  have hL0 : (0 : ℝ) ≤ (Nat.log 2 G.n : ℝ) := by positivity
+  have hLle : (Nat.log 2 G.n : ℝ) ≤ (G.n : ℝ) := Nat.cast_le.mpr (Nat.log_le_self 2 G.n)
+  have hnpos : 0 < G.n := by have := s.isLt; omega
+  by_cases hdiv : Nat.log 2 G.n < G.m / G.n
+  · -- Bellman–Ford
+    obtain ⟨fuel, r, hr, hsv, hc⟩ := prog_runs_bf (G := G) (s := s) hdiv
+    refine ⟨fuel, r, hr, hsv, ?_⟩
+    have hrk0 : rk 0 = 0 := rfl
+    have hexp : (9 * G.m + 4) * G.n = 9 * G.m * G.n + 4 * G.n := by ring
+    have hcostN : r.cost ≤ 4 * Nat.log 2 G.n + 9 * G.m * G.n + 6 * G.n + 12 := by omega
+    have hcostR : (r.cost : ℝ) ≤ ((4 * Nat.log 2 G.n + 9 * G.m * G.n + 6 * G.n + 12 : ℕ) : ℝ) := by
+      exact_mod_cast hcostN
+    push_cast at hcostR
+    exact le_trans hcostR (arith_clause2_bf hnR hmR hL0 hLle)
+  · -- Dijkstra
+    push_neg at hdiv
+    have hmN : G.m < (Nat.log 2 G.n + 1) * G.n := by
+      have h := Nat.div_lt_iff_lt_mul hnpos |>.mp (Nat.lt_succ_of_le hdiv)
+      simpa [Nat.add_comm] using h
+    have hm3 : G.m + 2 ≤ 3 * G.n * (Nat.log 2 G.n + 1) := by
+      have hA : 1 ≤ (Nat.log 2 G.n + 1) * G.n := by nlinarith [hnpos]
+      have hc : 3 * G.n * (Nat.log 2 G.n + 1) = 3 * ((Nat.log 2 G.n + 1) * G.n) := by ring
+      omega
+    have hKc : Kc G ≤ 60 * Nat.log 2 G.n + 123 := Kc_le (G := G) hm3
+    have hKcn : Kc G ≤ 60 * G.n + 123 := by
+      have hLn : Nat.log 2 G.n ≤ G.n := Nat.log_le_self 2 G.n
+      have := Nat.mul_le_mul_left 60 hLn
+      omega
+    obtain ⟨fuel, r, hr, hsv, hc⟩ := prog_runs_dij (G := G) (s := s) hdiv
+    refine ⟨fuel, r, hr, hsv, ?_⟩
+    have hrk0 : rk 0 = 0 := rfl
+    have hmul := Nat.mul_le_mul_right (2 * G.m + 3) hKcn
+    have hcostN : r.cost ≤ 4 * Nat.log 2 G.n + 9 * G.m + 4 * G.n + 36
+        + (60 * G.n + 123) * (2 * G.m + 3) := by omega
+    have hcostR : (r.cost : ℝ) ≤ ((4 * Nat.log 2 G.n + 9 * G.m + 4 * G.n + 36
+        + (60 * G.n + 123) * (2 * G.m + 3) : ℕ) : ℝ) := by exact_mod_cast hcostN
+    push_cast at hcostR
+    exact le_trans hcostR (arith_clause2_dij hnR hmR hL0 hLle)
+
+/-- **The row**: `Bound 1 1 1 2 0`. -/
+theorem dijkstra_bound :
+    Bound ((1 : ℚ) / 1) ((1 : ℚ) / 1) ((1 : ℚ) / 1) ((2 : ℚ) / 1) ((0 : ℚ) / 1) := by
+  refine ⟨p1, ?_, 2000, by norm_num, 16, by norm_num, clause1, clause2⟩
+  intro G s
+  obtain ⟨f, r, hr, hs, _⟩ := clause2 G s
+  exact ⟨f, r, hr, hs⟩
 
 end Submission.DijkstraRow
