@@ -3818,4 +3818,171 @@ theorem ChainWF.congr {st t : State ℝ≥0} (H : ChainWF G st)
   rw [← chainWalk_congr (st := t) (st' := st) (fun j _ => (hnxt j).symm)]
   exact H u hu
 
+/-! ### The settle step
+
+`settleBody` stores `done[v] = 1` and then sweeps.  The store is what discharges the pop-window
+hole: after it, `entry_cur` is only demanded for vertices other than `u`, and the edge-relaxation
+obligation for `u`'s own out-edges becomes the sweep's job (`relaxed_swept`).  The popped
+vertex's exactness (`huex`) comes from `pop_settle_exact` applied at the *pre-pop* state, where
+the full `Inv` is available — the pop leaves `dist`/`done` alone (`ArrayFrame`). -/
+
+/-- The done-store of `settleBody` produces the sweep invariant at cursor `0`. -/
+theorem InvH.toSweep_settle {st : State ℝ≥0} {u : Fin G.n}
+    (I : InvH u s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+      (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
+    (hdu : st.wa "done" u = 0) (hru : st.wa "reach" u ≠ 0)
+    {t : State ℝ≥0}
+    (hreach : ∀ j, t.wa "reach" j = st.wa "reach" j)
+    (hdist : ∀ j, t.va "dist" j = st.va "dist" j)
+    (hhv : ∀ i, t.wa "hv" i = st.wa "hv" i)
+    (hhd : ∀ i, t.va "hd" i = st.va "hd" i)
+    (hhead : ∀ w, t.wa "head" w = st.wa "head" w)
+    (hnxt : ∀ j, t.wa "nxt" j = st.wa "nxt" j)
+    (hdone : ∀ v : Fin G.n, t.wa "done" v = if v = u then 1 else st.wa "done" v)
+    (hse : SettledExact G s st)
+    (huex : ((st.va "dist" u : ℝ≥0) : ℝ≥0∞) = G.dist s u)
+    (hval : HeapV (G := G) st (st.w "h"))
+    (hcw : ChainWF G st)
+    (hh : t.w "h" = st.w "h") (hins : t.w "ins" = st.w "ins") :
+    SweepInv G s u t 0 where
+  ghost v hv := by
+    obtain ⟨p, hp, hlen⟩ := I.soft.ghost v (by rw [← hreach ↑v]; exact hv)
+    exact ⟨p, hp, by rw [hlen, hdist ↑v]⟩
+  settled_exact v hd := by
+    rw [hdone v] at hd
+    rw [hdist ↑v]
+    by_cases hvu : v = u
+    · rw [hvu]; exact huex
+    · rw [if_neg hvu] at hd; exact hse v hd
+  relaxed_other e hsrc hd := by
+    rw [hdone ↑(G.src e), if_neg hsrc] at hd
+    obtain ⟨h1, h2⟩ := I.soft.relax_hold e hd
+    refine ⟨by rw [hreach ↑(G.dst e)]; exact h1, ?_⟩
+    show ((t.va "dist" ↑(G.dst e) : ℝ≥0) : ℝ≥0∞)
+      ≤ ((t.va "dist" ↑(G.src e) : ℝ≥0) : ℝ≥0∞) + G.w e
+    rw [hdist ↑(G.dst e), hdist ↑(G.src e)]
+    exact h2
+  relaxed_swept e hmem := by
+    rw [show chainOf t u 0 = [] from rfl] at hmem
+    exact absurd hmem (List.not_mem_nil)
+  entry_cur v hr hd0 := by
+    rw [hdone v] at hd0
+    by_cases hvu : v = u
+    · rw [if_pos hvu] at hd0; exact absurd hd0 (by decide)
+    · rw [if_neg hvu] at hd0
+      obtain ⟨i, hi, hiv, hid⟩ := I.soft.entry_hole v hvu (by rw [← hreach ↑v]; exact hr) hd0
+      exact ⟨i, by rw [hh]; exact hi, (hvD_congr hhv i).trans hiv,
+        by rw [hhd i, hdist ↑v]; exact hid⟩
+  entry_mono i hi := by
+    rw [hvD_congr hhv i, hdist ↑(hvD s st i), hhd i]
+    exact I.soft.entry_mono i (by rw [← hh]; exact hi)
+  entry_reach i hi := by
+    rw [hvD_congr hhv i, hreach ↑(hvD s st i)]
+    exact I.soft.entry_reach i (by rw [← hh]; exact hi)
+  heapOK := HeapOK.congr I.heapOK hh hhd
+  val i hi := by rw [hh] at hi; rw [hhv i]; exact hval i hi
+  source0 := ⟨by rw [hdist ↑s]; exact I.soft.source0.1,
+    by rw [hreach ↑s]; exact I.soft.source0.2⟩
+  done_reach v hd := by
+    rw [hdone v] at hd
+    rw [hreach ↑v]
+    by_cases hvu : v = u
+    · rw [hvu]; exact hru
+    · rw [if_neg hvu] at hd; exact I.soft.done_reach v hd
+  chainWF := ChainWF.congr hcw hhead hnxt
+  done_u := by rw [hdone u, if_pos rfl]; decide
+  k_le := Nat.zero_le _
+
+/-- `settleBody` run: mark `u` done and sweep its out-edge chain.  Post: the model invariant,
+exactness of the settled labels, heap validity, chain well-formedness and the cost
+`2 + (12·rk(m+1)+30)·|chain| + 1`. -/
+theorem settleBody_runs {st : State ℝ≥0} {u : Fin G.n}
+    (hF : F0 G s st) (hAF : AF G st)
+    (hI : InvH u s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+      (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
+    (hval : HeapV (G := G) st (st.w "h"))
+    (hse : SettledExact G s st)
+    (huex : ((st.va "dist" u : ℝ≥0) : ℝ≥0∞) = G.dist s u)
+    (hcw : ChainWF G st)
+    (hvreg : st.w "v" = (u : ℕ))
+    (hdu : st.wa "done" u = 0) (hru : st.wa "reach" u ≠ 0)
+    (hroom : st.w "h" + (chainOf st u (G.m + 1)).length ≤ G.m + 1)
+    (hinsroom : st.w "ins" + (chainOf st u (G.m + 1)).length ≤ G.m + 1) :
+    Runs realOps settleBody st (fun st' =>
+      Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
+        (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
+      SettledExact G s st' ∧ HeapV (G := G) st' (st'.w "h") ∧ ChainWF G st' ∧
+      F0 G s st' ∧ AF G st' ∧
+      st'.cost ≤ st.cost + 3
+        + (12 * rk (G.m + 1) + 30) * (chainOf st u (G.m + 1)).length) := by
+  have hcap0 : 0 < st.cap := by have := hF.hcap; omega
+  have hcap1 : 1 < st.cap := by have := hF.hcap; omega
+  -- 1. `done[v] := 1`
+  have hvE : evalW st (var "v") = some (u : ℕ) := by rw [evalW_var, hvreg]
+  have h1E : evalW st (lit 1) = some 1 := evalW_lit_of hcap1
+  have hdl : (u : ℕ) < st.wlen "done" := by rw [hAF.doneL]; exact u.isLt
+  set t1 := (st.storeW "done" (u : ℕ) 1).charge 1 with ht1
+  -- 2. `q := head[v]`
+  have hv1 : evalW t1 (var "v") = some (u : ℕ) := by
+    have : t1.w "v" = st.w "v" := rfl
+    rw [evalW_var, this, hvreg]
+  have hheadE : evalW t1 (load "head" (var "v")) = some (t1.wa "head" (u : ℕ)) :=
+    evalW_load_of hv1 (by
+      rw [show t1.wlen "head" = st.wlen "head" from rfl, hAF.headL]; exact u.isLt)
+  set t2 := (t1.setW "q" (t1.wa "head" (u : ℕ))).charge 1 with ht2
+  -- array readings at `t2`
+  have hdist2 : ∀ j, t2.va "dist" j = st.va "dist" j := by
+    intro j
+    simp [State.charge, State.setW, State.storeW, ht1, ht2, va_charge, va_setW, va_storeW]
+  have hreach2 : ∀ j, t2.wa "reach" j = st.wa "reach" j := by
+    intro j
+    simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW, wa_storeW]
+  have hhead2 : ∀ w, t2.wa "head" w = st.wa "head" w := by
+    intro w
+    simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW, wa_storeW]
+  have hnxt2 : ∀ j, t2.wa "nxt" j = st.wa "nxt" j := by
+    intro j
+    simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW, wa_storeW]
+  have hhv2 : ∀ i, t2.wa "hv" i = st.wa "hv" i := by
+    intro i
+    simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW, wa_storeW]
+  have hhd2 : ∀ i, t2.va "hd" i = st.va "hd" i := by
+    intro i
+    simp [State.charge, State.setW, State.storeW, ht1, ht2, va_charge, va_setW, va_storeW]
+  have hdone2 : ∀ v : Fin G.n, t2.wa "done" v = if v = u then 1 else st.wa "done" v := by
+    intro v
+    rw [ht2, wa_charge, wa_setW, ht1, wa_charge, wa_storeW]
+    simp [Fin.ext_iff]
+  have hh2 : t2.w "h" = st.w "h" := rfl
+  have hins2 : t2.w "ins" = st.w "ins" := rfl
+  have hv2 : t2.w "v" = (u : ℕ) := hvreg
+  have hq2 : t2.w "q" = t2.wa "head" (u : ℕ) := rfl
+  have hcost2 : t2.cost = st.cost + 2 := rfl
+  have hF2 : F0 G s t2 :=
+    F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl) (fun _ _ => rfl) rfl rfl rfl
+  have hAF2 : AF G t2 := AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl
+  -- the sweep invariant at the done-store
+  have hsw : SweepInv G s u t2 0 :=
+    InvH.toSweep_settle hI hdu hru hreach2 hdist2 hhv2 hhd2 hhead2 hnxt2 hdone2 hse huex hval hcw
+      hh2 hins2
+  set D : List ℕ := chainOf st u (G.m + 1) with hD
+  have hchain2 : chainOf t2 u (G.m + 1) = D := by
+    rw [hD]
+    exact (ChainWF.congr hcw hhead2 hnxt2 u u.isLt).trans (hcw u u.isLt).symm
+  have hdecomp : D = D.take 0 ++ chainWalk t2 (t2.w "q") (G.m + 1 - 0) := by
+    rw [hq2, show G.m + 1 - 0 = G.m + 1 from rfl]
+    show D = D.take 0 ++ chainOf t2 (u : ℕ) (G.m + 1)
+    rw [← hchain2]
+    simp
+  have hroom2 : t2.w "h" + (D.length - 0) ≤ G.m + 1 := by rw [hh2]; simpa using hroom
+  have hinsroom2 : t2.w "ins" + (D.length - 0) ≤ G.m + 1 := by rw [hins2]; simpa using hinsroom
+  have hcostb2 : t2.cost ≤ (st.cost + 2) + (12 * rk (G.m + 1) + 30) * 0 := by omega
+  refine runs_seq (runs_wstore hvE h1E hdl ?_)
+  refine runs_seq (runs_wset hheadE ?_)
+  refine (scanBody_runs (I := ⟨hsw, hF2, hAF2, hv2, hchain2, hdecomp, hroom2, hinsroom2,
+    hcostb2⟩)).mono ?_
+  rintro st' ⟨S, hF', hAF', hv', hch', hdec', hroom', hinsroom', hc'⟩
+  refine ⟨?_, S.settled_exact, S.val, S.chainWF, hF', hAF', hc'⟩
+  exact S.toInv (by rw [hch'])
+
 end Submission.DijkstraHeap
