@@ -119,4 +119,20 @@ theorem extract_amortized {K E0 Er El Ed Em t0 ell t d t1 μ μ' Q : ℕ}
 theorem rootCap_eq (n : ℕ) : rootCap n = 2 * Nat.log 2 n + 2 := by
   simp [rootCap, rankCap, Nat.add_assoc]
 
+/-- The concrete B2 scalar envelope from the feasibility probe. -/
+def total (r n m L : ℕ) : ℕ := 280 * r * L + 384 * r + 13 * n + 279 * m + 4 * L + 50
+
+/-- Its sparse simplification after `r≤n` and `m≤nL`. -/
+def sparseTotal (n L : ℕ) : ℕ := 559 * n * L + 397 * n + 4 * L + 50
+
+/-- Sparse Nat arithmetic, with no approximation or weakened constants. -/
+theorem total_sparse {r n m L : ℕ} (hr : r ≤ n) (hm : m ≤ n * L) :
+    total r n m L ≤ sparseTotal n L := by
+  have hr280 := Nat.mul_le_mul_left 280 hr
+  have hRL := Nat.mul_le_mul_right L hr280
+  have hr384 := Nat.mul_le_mul_left 384 hr
+  have hm279 := Nat.mul_le_mul_left 279 hm
+  simp only [total, sparseTotal]
+  nlinarith
+
 end Submission.FibHeapAccounting
