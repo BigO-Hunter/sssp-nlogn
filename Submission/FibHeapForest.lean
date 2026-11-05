@@ -136,4 +136,16 @@ inductive InvOK : Tree → Prop
       (∀ c ∈ children, InvOK c.tree) →
       InvOK (.node id children)
 
+/-- The represented size of a member child is at most the summed child sizes. -/
+theorem size_le_sizeSum {c : Child} {children : List Child} (h : c ∈ children) :
+    c.size ≤ sizeSum children := by
+  induction children with
+  | nil => cases h
+  | cons a tail ih =>
+    rcases List.mem_cons.mp h with rfl | h'
+    · simp [sizeSum]
+    · have hih := ih h'
+      simp only [sizeSum, List.map_cons, List.sum_cons] at hih ⊢
+      omega
+
 end Submission.FibHeapForest
