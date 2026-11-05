@@ -5,9 +5,23 @@ import Mathlib.Data.List.Enum
 # Abstract link-order and one-child-loss accounting for Fibonacci trees
 
 A `Child` records its degree at link time and the number of children subsequently lost.  The
-abstract invariant says `currentDegree + lost = linkDegree`, `lost ≤ 1`, and the zero-based link
-position is at most `linkDegree`.  This is the precise interface supplied by equal-degree linking
-and CLRS cascading cuts; no mutable forest or RAM semantics is asserted here.
+abstract invariant `InvOK` says `currentDegree + lost = linkDegree`, `lost ≤ 1`, and the
+zero-based link position is at most `linkDegree`.  This is the precise interface supplied by
+equal-degree linking and CLRS cascading cuts; no mutable forest or RAM semantics is asserted
+here.
+
+Proved, all sorry-free: the CLRS minimum-size theorem `size ≥ Fib(degree+2)` for every
+`InvOK` tree (`fib_size_of_invOK` / `size_ge_fib_of_invOK`); the rank cap
+`degree ≤ rankCap n` by reuse of `FibHeapAccounting.degree_rankCap_of_fib_size`; the exact
+post-consolidation root-count chain `t1 ≤ Q` (`t1_le_Q`, with `Q = rootCap n = 2·log₂ n+2`);
+and the exact CLRS cascade-marking effect `μ'+(k+1) ≤ μ+2` (`CascadeMarks`,
+`cascade_marks_bound`) wired into the proved decrease-key ledger
+(`decrease_amortized_of_marks`).
+
+Honesty boundary: `InvOK` is the static form of link-time degree ordering plus the
+at-most-one-child-loss rule.  That the mutable operations maintain `InvOK` at every step is
+the precise remaining interface for later dynamic (RAM-level) work; nothing below depends
+on it.
 -/
 
 namespace Submission.FibHeapForest

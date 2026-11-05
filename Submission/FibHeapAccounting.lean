@@ -8,11 +8,13 @@ This module proves only the arithmetic used by the B2 feasibility envelope.  It 
 a RAM heap or a race target.  Potentials and operation costs are natural-number ledger quantities;
 the shortest-path real-log estimates reuse B1's proved caps.
 
-Proof boundaries: the numeric per-operation budgets remain statement-recount obligations.  The
-forest theorem `size ≥ Fib(degree+2)` is deliberately a hypothesis, not a claim proved here; later
-work must establish link-time degree ordering and the at-most-one-child-loss invariant before the
-rank/root/extract chain is used.  The CLRS cascade potential change is proved below from explicit
-root and mark counts.
+Proof boundaries: the numeric per-operation budgets remain statement-recount obligations (see
+the per-operation recount inventory).  The forest theorem `size ≥ Fib(degree+2)` is proved
+abstractly in `Submission.FibHeapForest` from the link-order + one-loss invariant `InvOK`;
+what remains a dynamic obligation there is the maintenance of `InvOK` under the mutable
+operations (link, cut, cascadingCut, consolidation).  The CLRS cascade potential change is
+proved below from explicit root and mark counts, and `FibHeapForest.decrease_amortized_of_marks`
+derives its `μ'+c≤μ+2` premise from the proved `CascadeMarks` marking discipline.
 -/
 
 namespace Submission.FibHeapAccounting
@@ -165,8 +167,10 @@ theorem extract_amortized {K E0 Er El Ed Em t0 ell t d t1 μ μ' Q : ℕ}
 theorem rootCap_eq (n : ℕ) : rootCap n = 2 * Nat.log 2 n + 2 := by
   simp [rootCap, rankCap, Nat.add_assoc]
 
-/-- The exact feed from the outstanding forest size invariant to the elementary rank cap.
-The `hsize` premise is the highest-risk later obligation: it requires link-order and one-loss. -/
+/-- The exact feed from the forest size invariant to the elementary rank cap.  The `hsize`
+premise is supplied by `FibHeapForest.size_ge_fib_of_invOK` from the link-order + one-loss
+invariant `InvOK`; its maintenance under the mutable operations is the remaining dynamic
+obligation. -/
 theorem degree_rankCap_of_fib_size {k n : ℕ} (hsize : Nat.fib (k + 2) ≤ n) : k ≤ rankCap n := by
   have h := degree_log_bound hsize
   simpa [rankCap] using h
