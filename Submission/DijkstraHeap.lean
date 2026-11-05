@@ -3249,5 +3249,74 @@ theorem chainSrc {st : State ℝ≥0} {u : Fin G.n} (W : ChainWF G st)
   rw [dite_eq_left (by simp [hlt])] at hsrc
   exact Fin.eq_of_val_eq hsrc
 
+/-! ### The scan sweep
+
+`scanBody` walks `u`'s out-edge chain from the `head` pointer, relaxing one edge per
+iteration.  The cursor `k` counts the consumed links; the `q` register holds the pointer to
+the remaining tail, so the invariant states that the chain `D` splits at `k` into its consumed
+prefix and the walk spelled by `q`.  `room`/`insroom` are the two push-room counts (a push
+needs `h ≤ m` and `ins ≤ m`, and both only grow). -/
+
+/-- Scan invariant of the settle sweep of `u`. -/
+structure ScanInv (G : Graph) (s u : Fin G.n) (D : List ℕ) (c0 : ℕ) (st : State ℝ≥0) (k : ℕ) :
+    Prop where
+  sweep : SweepInv G s u st k
+  f0 : F0 G s st
+  af : AF G st
+  vreg : st.w "v" = (u : ℕ)
+  chain : chainOf st u (G.m + 1) = D
+  decomp : D = D.take k ++ chainWalk st (st.w "q") (G.m + 1 - k)
+  room : st.w "h" + (D.length - k) ≤ G.m + 1
+  insroom : st.w "ins" + (D.length - k) ≤ G.m + 1
+  costb : st.cost ≤ c0 + (12 * rk (G.m + 1) + 30) * k
+
+/-- One more element of a list already split as `take k ++ (e :: tl)`. -/
+theorem take_succ_of_split {l : List ℕ} {k : ℕ} {e : ℕ} {tl : List ℕ}
+    (h : l = l.take k ++ (e :: tl)) (hk : k < l.length) :
+    l.take (k + 1) = l.take k ++ [e] := by
+  have hlen : (l.take k).length = k := by
+    rw [List.length_take, Nat.min_eq_left (by omega)]
+  have h1 : (l.take k).length ≤ k + 1 := by rw [hlen]; omega
+  have h2 : k + 1 - k = 1 := by omega
+  calc l.take (k + 1) = (l.take k ++ (e :: tl)).take (k + 1) := by conv_lhs => rw [h]
+    _ = (l.take k).take (k + 1) ++ (e :: tl).take ((k + 1) - (l.take k).length) :=
+        List.take_append
+    _ = l.take k ++ [e] := by
+        rw [hlen, List.take_of_length_le h1, h2]
+        rfl
+
+/-- Rebuild the scan invariant one step later.  The three-way `relaxBody` dispatch shares this
+tail so that the reconstruction is written once instead of triplicated. -/
+theorem ScanInv.of_step {G : Graph} {s u : Fin G.n} {D : List ℕ} {c0 k : ℕ}
+    {st t' : State ℝ≥0}
+    (S' : SweepInv G s u t' (k + 1)) (hF' : F0 G s t') (hAF' : AF G t')
+    (hch' : chainOf t' u (G.m + 1) = chainOf st u (G.m + 1))
+    (hv' : t'.w "v" = st.w "v") (hq' : t'.w "q" = st.w "q")
+    (hnt' : ∀ j, t'.wa "nxt" j = st.wa "nxt" j)
+    (hh' : t'.w "h" ≤ st.w "h" + 1) (hi' : t'.w "ins" ≤ st.w "ins" + 1)
+    (hc' : t'.cost ≤ st.cost + 12 * rk (G.m + 1) + 29)
+    (hv0 : st.w "v" = (u : ℕ)) (hch0 : chainOf st u (G.m + 1) = D)
+    (hdec : D = D.take (k + 1) ++ chainWalk st (st.w "q") (G.m - k))
+    (hroom : st.w "h" + (D.length - k) ≤ G.m + 1)
+    (hinsroom : st.w "ins" + (D.length - k) ≤ G.m + 1)
+    (hkL : k < D.length) (hcost0 : st.cost ≤ c0 + (12 * rk (G.m + 1) + 30) * k) :
+    ScanInv G s u D c0 t' (k + 1) where
+  sweep := S'
+  f0 := hF'
+  af := hAF'
+  vreg := hv'.trans hv0
+  chain := hch'.trans hch0
+  decomp := by
+    rw [Nat.succ_sub_succ, hq']
+    refine hdec.trans ?_
+    rw [chainWalk_congr (st := st) (st' := t') (fun j _ => hnt' j)]
+  room := by omega
+  insroom := by omega
+  costb := by
+    have hA : (12 * rk (G.m + 1) + 30) * (k + 1)
+        = (12 * rk (G.m + 1) + 30) * k + (12 * rk (G.m + 1) + 30) := by ring
+    rw [hA]
+    omega
+
 
 end Submission.DijkstraHeap
