@@ -3204,4 +3204,28 @@ theorem relaxBody_runs_static {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} 
     · -- arm C is unreachable: `cand < dist x` contradicts the label bound
       exact absurd hdistle hdr
 
+/-! ### Scan helpers -/
+
+/-- `rk` is monotone: a smaller heap index needs no more sift steps. -/
+theorem rk_mono {a b : ℕ} (h : a ≤ b) : rk a ≤ rk b :=
+  Nat.log_mono_right (by omega)
+
+/-- A well-formed chain is exactly the out-edge list, whose length is at most `m`. -/
+theorem chainWF_dlen {st : State ℝ≥0} {u : ℕ} (W : ChainWF G st) (hu : u < G.n) :
+    (chainOf st u (G.m + 1)).length ≤ G.m := by
+  rw [W u hu]
+  exact outChainK_length_le G.m u
+
+/-- Every chain link is an out-edge of the chain's source. -/
+theorem chainSrc {st : State ℝ≥0} {u : Fin G.n} (W : ChainWF G st)
+    {e : Fin G.m} (hmem : (e : ℕ) ∈ chainOf st u (G.m + 1)) : G.src e = u := by
+  have hmem' := hmem
+  rw [W (u : ℕ) u.isLt] at hmem'
+  have hlt : (e : ℕ) < G.m := outChainK_lt G.m (u : ℕ) (e : ℕ) hmem'
+  have hsrc : srcN G (e : ℕ) = (u : ℕ) := outChainK_src G.m (u : ℕ) (e : ℕ) hmem'
+  simp only [srcN] at hsrc
+  rw [dite_eq_left (by simp [hlt])] at hsrc
+  exact Fin.eq_of_val_eq hsrc
+
+
 end Submission.DijkstraHeap
