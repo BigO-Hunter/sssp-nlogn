@@ -303,9 +303,10 @@ structure HeapFrame (st st' : State ℝ≥0) : Prop where
   head : ∀ w, st'.wa "head" w = st.wa "head" w
   nxt : ∀ j, st'.wa "nxt" j = st.wa "nxt" j
   regv : st'.w "v" = st.w "v"
+  regq : st'.w "q" = st.w "q"
 
 theorem HeapFrame.trivial (st : State ℝ≥0) : HeapFrame st st :=
-  ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, rfl⟩
+  ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, rfl, rfl⟩
 
 theorem HeapFrame.trans {a b c : State ℝ≥0} (h1 : HeapFrame a b) (h2 : HeapFrame b c) :
     HeapFrame a c where
@@ -315,6 +316,7 @@ theorem HeapFrame.trans {a b c : State ℝ≥0} (h1 : HeapFrame a b) (h2 : HeapF
   head w := (h2.head w).trans (h1.head w)
   nxt j := (h2.nxt j).trans (h1.nxt j)
   regv := h2.regv.trans h1.regv
+  regq := h2.regq.trans h1.regq
 
 theorem HeapFrame.charge {st st' : State ℝ≥0} (h : HeapFrame st st') (k : ℕ) :
     HeapFrame st (st'.charge k) where
@@ -324,6 +326,7 @@ theorem HeapFrame.charge {st st' : State ℝ≥0} (h : HeapFrame st st') (k : �
   head w := h.head w
   nxt j := h.nxt j
   regv := h.regv
+  regq := h.regq
 
 /-- `Inv` with one waived `entry_cur` hole: the pop-window invariant between
 `popBody` and `settleBody`'s done-store (or the stale-skip). -/
@@ -878,7 +881,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
                 omega
             refine ⟨rk (par ii'), hn', par ii', hK10, hF10, hAF10, hh', hins', ?_, ?_, hV10,
               (hfr.trans ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl,
-                fun _ => rfl, rfl⟩), ?_⟩
+                fun _ => rfl, rfl, rfl⟩), ?_⟩
             · -- index bound
               omega
             · -- mode
@@ -919,7 +922,7 @@ theorem siftUp_runs {st : State ℝ≥0} {origHv : ℕ → Fin G.n} {origHd : �
               exact le_of_lt hlt
             refine ⟨0, by rw [h1.2.2]; exact rk_pos hpos, ii', hK2, hF2, hAF2, hh', hins',
               ?_, ?_, hVS, (hfr.trans ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl,
-                fun _ => rfl, fun _ => rfl, rfl⟩), ?_⟩
+                fun _ => rfl, fun _ => rfl, rfl, rfl⟩), ?_⟩
             · omega
             · refine Or.inr ⟨show tS.w "ii" = 0 from rfl, rfl, Or.inr ?_⟩
               show tS.va "hd" (par ii') ≤ tS.va "hd" ii'
@@ -1020,7 +1023,7 @@ theorem pushBody_runs {st : State ℝ≥0}
   have hh5 : t5.w "h" = st.w "h" + 1 := rfl
   have hins5 : t5.w "ins" = st.w "ins" + 1 := rfl
   have hfr5 : HeapFrame st t5 :=
-    ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, rfl⟩
+    ⟨fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, fun _ => rfl, rfl, rfl⟩
   have hV5 : HeapV (G := G) t5 (t5.w "h") := by
     intro i hi
     rw [hwa5]
@@ -2737,6 +2740,7 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       SweepInv G s u t' (k + 1) ∧ F0 G s t' ∧ AF G t' ∧
       chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) ∧
       t'.w "v" = t.w "v" ∧
+      t'.w "q" = t.w "q" ∧
       t'.w "h" = t.w "h" + 1 ∧
       t'.w "ins" = t.w "ins" + 1 ∧
       t'.cost ≤ t.cost + 12 * rk (t.w "h") + 20) := by
@@ -2880,7 +2884,7 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
         (hfr4.dist u).trans (hdistT (u : ℕ) (hNatNe u hxnot.symm))
       rw [hdstv, hsrcv, hxl, hul, ← hcand, ENNReal.coe_add]
   refine ⟨SweepInv.push_relax (st := t) (t := t4) S hdx0 hxnot hxs hsrcv hdstv hcand htake hEk
-    hES4 hHOK4 hval4 ?_ ?_ ?_ ?_ ?_ ?_ ?_ hle hsw, hF4, hAF4, ?_, ?_, ?_, ?_, ?_⟩
+    hES4 hHOK4 hval4 ?_ ?_ ?_ ?_ ?_ ?_ ?_ hle hsw, hF4, hAF4, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro w
     rw [hfr4.head w, hheadT w]
   · intro j
@@ -2903,6 +2907,10 @@ theorem relax_take_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
     exact hch u (G.m + 1)
   · -- the popped-vertex register is untouched
     rw [hfr4.regv, ht3, w_charge, w_setW, ht2, w_charge, w_charge, w_storeW, ht1,
+      w_charge, w_storeV]
+    rw [if_neg (by decide)]
+  · -- nor is the scan cursor
+    rw [hfr4.regq, ht3, w_charge, w_setW, ht2, w_charge, w_charge, w_storeW, ht1,
       w_charge, w_storeV]
     rw [if_neg (by decide)]
   · -- the heap grows by exactly one (the push)
@@ -2934,6 +2942,7 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       SweepInv G s u t' (k + 1) ∧ F0 G s t' ∧ AF G t' ∧
       chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) ∧
       t'.w "v" = t.w "v" ∧
+      t'.w "q" = t.w "q" ∧
       t'.w "h" ≤ t.w "h" + 1 ∧
       t'.w "ins" ≤ t.w "ins" + 1 ∧
       t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25) := by
@@ -2993,8 +3002,9 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       hxv hcandv hcand hvalB hbound hinsb
       hdx0 hxnot hxs hsrcv hdstv (by rw [hchB]; exact htake) hSB
       (by rw [hchB]; exact hsw) hleB).mono ?_
-    rintro t' ⟨hS', hF', hAF', hch', hv', hst', hins', hc'⟩
-    refine ⟨hS', hF', hAF', hch'.trans hchB, hv'.trans rfl, ?_, ?_, ?_⟩
+    rintro t' ⟨hS', hF', hAF', hch', hv', hq', hst', hins', hc'⟩
+    refine ⟨hS', hF', hAF', hch'.trans hchB, hv'.trans rfl, ?_, ?_, ?_, ?_⟩
+    · rw [hq']; rfl
     · rw [hst'] at *
       omega
     · rw [hins'] at *
@@ -3049,7 +3059,7 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
       have hcostF : tF.cost = t.cost + 6 := by
         simp only [htF, htE, htD, htC, cost_charge, cost_setW]
       refine ⟨hSF, ?_, AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl,
-        hchfix (fun _ => rfl) (fun _ => rfl), rfl, by omega, by omega, ?_⟩
+        hchfix (fun _ => rfl) (fun _ => rfl), rfl, rfl, by omega, by omega, ?_⟩
       · exact F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
           (fun _ _ => rfl) rfl rfl rfl
       · rw [hcostF]
@@ -3094,8 +3104,9 @@ theorem relaxBody_runs {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} {k : �
         hxv hcandv hcand hvalG hbound hinsb
         hdx0 hxnot hxs hsrcv hdstv (by rw [hchG]; exact htake) hSG
         (by rw [hchG]; exact hsw) hleG).mono ?_
-      rintro t' ⟨hS', hF', hAF', hch', hv', hst', hins', hc'⟩
-      refine ⟨hS', hF', hAF', hch'.trans hchG, hv'.trans rfl, ?_, ?_, ?_⟩
+      rintro t' ⟨hS', hF', hAF', hch', hv', hq', hst', hins', hc'⟩
+      refine ⟨hS', hF', hAF', hch'.trans hchG, hv'.trans rfl, ?_, ?_, ?_, ?_⟩
+      · rw [hq']; rfl
       · rw [hst'] at *
         omega
       · rw [hins'] at *
@@ -3124,6 +3135,7 @@ theorem relaxBody_runs_static {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} 
       SweepInv G s u t' (k + 1) ∧ F0 G s t' ∧ AF G t' ∧
       chainOf t' u (G.m + 1) = chainOf t u (G.m + 1) ∧
       t'.w "v" = t.w "v" ∧
+      t'.w "q" = t.w "q" ∧
       t'.w "h" ≤ t.w "h" + 1 ∧
       t'.w "ins" ≤ t.w "ins" + 1 ∧
       t'.cost ≤ t.cost + 12 * rk (t.w "h") + 25) := by
@@ -3196,7 +3208,7 @@ theorem relaxBody_runs_static {t : State ℝ≥0} {u x : Fin G.n} {e : Fin G.m} 
       have hcostF : tF.cost = t.cost + 6 := by
         simp only [htF, htE, htD, htC, cost_charge, cost_setW]
       refine ⟨hSF, ?_, AF.preserve hAF rfl rfl rfl rfl rfl rfl rfl,
-        hchfix (fun _ => rfl) (fun _ => rfl), rfl, by omega, by omega, ?_⟩
+        hchfix (fun _ => rfl) (fun _ => rfl), rfl, rfl, by omega, by omega, ?_⟩
       · exact F0.preserve hF rfl rfl rfl rfl (fun _ _ => rfl) (fun _ _ => rfl)
           (fun _ _ => rfl) rfl rfl rfl
       · rw [hcostF]
