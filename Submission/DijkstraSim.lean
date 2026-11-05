@@ -123,6 +123,40 @@ theorem AF.storeV {st : State ℝ≥0} (h : AF G st) (arr : String) (j : ℕ) (a
     AF G (st.storeV arr j a) :=
   AF.preserve h rfl rfl rfl rfl rfl rfl rfl
 
+/-- The three flag arrays are still zero-filled.  Carried across `buildAdj` (which writes only
+`nxt`/`head` and the scalar registers) so the branch's pre-push facts survive it. -/
+structure Z3 (st : State ℝ≥0) : Prop where
+  dist : ∀ j, st.va "dist" j = 0
+  reach : ∀ j, st.wa "reach" j = 0
+  done : ∀ j, st.wa "done" j = 0
+
+theorem Z3.setW {st : State ℝ≥0} (h : Z3 st) (x : String) (a : ℕ) : Z3 (st.setW x a) := by
+  refine ⟨fun j => ?_, fun j => ?_, fun j => ?_⟩
+  · rw [show (st.setW x a).va "dist" j = st.va "dist" j from rfl]; exact h.dist j
+  · rw [show (st.setW x a).wa "reach" j = st.wa "reach" j from rfl]; exact h.reach j
+  · rw [show (st.setW x a).wa "done" j = st.wa "done" j from rfl]; exact h.done j
+
+theorem Z3.charge {st : State ℝ≥0} (h : Z3 st) (k : ℕ) : Z3 (st.charge k) := by
+  refine ⟨fun j => ?_, fun j => ?_, fun j => ?_⟩
+  · rw [show (st.charge k).va "dist" j = st.va "dist" j from rfl]; exact h.dist j
+  · rw [show (st.charge k).wa "reach" j = st.wa "reach" j from rfl]; exact h.reach j
+  · rw [show (st.charge k).wa "done" j = st.wa "done" j from rfl]; exact h.done j
+
+theorem Z3.storeW {st : State ℝ≥0} (h : Z3 st) {arr : String} (j a : ℕ)
+    (har : arr ≠ "reach" ∧ arr ≠ "done") : Z3 (st.storeW arr j a) := by
+  refine ⟨fun k => ?_, fun k => ?_, fun k => ?_⟩
+  · rw [show (st.storeW arr j a).va "dist" k = st.va "dist" k from rfl]; exact h.dist k
+  · rw [State.storeW]
+    simp [show ("reach" : String) ≠ arr from fun hh => har.1 hh.symm, h.reach k]
+  · rw [State.storeW]
+    simp [show ("done" : String) ≠ arr from fun hh => har.2 hh.symm, h.done k]
+
+theorem Z3.storeW_nxt {st : State ℝ≥0} (h : Z3 st) (j a : ℕ) : Z3 (st.storeW "nxt" j a) :=
+  h.storeW j a (by decide)
+
+theorem Z3.storeW_head {st : State ℝ≥0} (h : Z3 st) (j a : ℕ) : Z3 (st.storeW "head" j a) :=
+  h.storeW j a (by decide)
+
 /-! ## Eval helpers (RAMLogic combinators plus `sub`/`div`/`mul`) -/
 
 theorem evalW_sub_of {st : State ℝ≥0} {a b : WExpr} {x y : ℕ} (ha : evalW st a = some x)
@@ -471,22 +505,22 @@ theorem allocAll_runs (st : State ℝ≥0) (hF : F0 G s st) :
 /-- `buildAdj` runs and builds the `head`/`nxt` chains: after the loop, the chain of `u`
 is exactly the out-edges of `u` in decreasing order. -/
 theorem buildAdj_runs (st : State ℝ≥0) (hF : F0 G s st) (hAF : AF G st)
-    (hzero : ∀ u, st.wa "head" u = 0) :
+    (hzero : ∀ u, st.wa "head" u = 0) (hz : Z3 st) :
     Runs realOps buildAdj st (fun st' =>
       F0 G s st' ∧ AF G st' ∧
       (∀ u, chainOf st' u (G.m + 1) = outChainK G G.m u) ∧
-      st'.cost ≤ st.cost + 6 * G.m + 2) := by
+      st'.cost ≤ st.cost + 6 * G.m + 2 ∧ Z3 st') := by
   have hcap : G.n + G.m + 2 ≤ st.cap := hF.hcap
   refine runs_seq (runs_wset (a := 0) (evalW_lit_of (by have := hcap; omega)) ?_)
   set st0 := (st.setW "e" 0).charge 1 with hst0
   refine runs_while (I := fun k st' => F0 G s st' ∧ AF G st' ∧ st'.w "e" = k ∧ k ≤ G.m ∧
       (∀ u, chainOf st' u (G.m + 1) = outChainK G k u) ∧
-      st'.cost ≤ st.cost + 1 + 6 * k) G.m
+      st'.cost ≤ st.cost + 1 + 6 * k ∧ Z3 st') G.m
     (fun st' => F0 G s st' ∧ AF G st' ∧
       (∀ u, chainOf st' u (G.m + 1) = outChainK G G.m u) ∧
-      st'.cost ≤ st.cost + 6 * G.m + 2) ?_ ?_ st0 ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+      st'.cost ≤ st.cost + 6 * G.m + 2 ∧ Z3 st') ?_ ?_ st0 ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- step
-    intro k hk s' ⟨hF', hAF', he, hle, hchain, hc⟩
+    intro k hk s' ⟨hF', hAF', he, hle, hchain, hc, hz'⟩
     have hcap' : G.n + G.m + 2 ≤ s'.cap := hF'.hcap
     have hcond : evalW s' (lt (var "e") (var "m")) = some 1 := by
       rw [evalW_lt_of (x := k) (y := G.m) (by rw [evalW_var, he]) (by rw [evalW_var, hF'.hm])
@@ -559,7 +593,7 @@ theorem buildAdj_runs (st : State ℝ≥0) (hF : F0 G s st) (hAF : AF G st)
       rw [ht5, wa_charge, wa_setW, ht4, wa_charge, wa_storeW, ht3, wa_charge, wa_storeW,
         ht2, wa_charge, wa_setW, ht1, wa_charge, wa_setW, ht0, wa_charge]
     -- post: I (k + 1) t5
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · refine F0.charge ?_ 1
       refine F0.setW ?_ (by simp) _
       refine F0.charge ?_ 1
@@ -635,15 +669,19 @@ theorem buildAdj_runs (st : State ℝ≥0) (hF : F0 G s st) (hAF : AF G st)
           cost_storeW, ht2, cost_charge, cost_setW, ht1, cost_charge, cost_setW, ht0,
           cost_charge]
       rw [hcc]; omega
+    · -- the flag arrays are untouched by `nxt`/`head` stores and the scalar writes
+      exact (((((((hz'.charge 1).setW "u" uu).charge 1).setW "q" q0).charge 1).storeW_nxt k
+        q0).charge 1).storeW_head uu (k + 1) |>.charge 1 |>.setW "e" (k + 1) |>.charge 1
   · -- exit
-    intro s' ⟨hF', hAF', he, hle, hchain, hc⟩
+    intro s' ⟨hF', hAF', he, hle, hchain, hc, hz'⟩
     have hcond : evalW s' (lt (var "e") (var "m")) = some 0 := by
       rw [evalW_lt_of (x := G.m) (y := G.m) (by rw [evalW_var, he]) (by rw [evalW_var, hF'.hm])
         (by have := hF'.hcap; omega)]
       simp
-    refine ⟨hcond, hF'.charge 1, hAF'.charge 1, fun u => ?_, ?_⟩
+    refine ⟨hcond, hF'.charge 1, hAF'.charge 1, fun u => ?_, ?_, ?_⟩
     · rw [chainOf_charge]; exact hchain u
     · rw [cost_charge]; omega
+    · exact hz'.charge 1
   · exact (hF.setW (x := "e") (a := 0) (by simp)).charge 1
   · exact (hAF.setW (x := "e") (a := 0)).charge 1
   · rw [hst0, w_charge, w_setW, if_pos rfl]
@@ -651,5 +689,6 @@ theorem buildAdj_runs (st : State ℝ≥0) (hF : F0 G s st) (hAF : AF G st)
   · intro u
     simp [chainOf, chainWalk, hst0, wa_charge, wa_setW, hzero, outChainK]
   · simp [hst0, cost_charge, cost_setW]
+  · exact (hz.setW "e" 0).charge 1
 
 end Submission.DijkstraSim

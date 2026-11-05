@@ -82,7 +82,7 @@ theorem mainLoop_runs {st : State ℝ≥0} {c0 μ0 K : ℕ}
     Runs realOps mainLoop st (fun st' =>
       Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v) (fun v => st'.wa "done" v)
         (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
-      st'.w "h" = 0) := by
+      st'.w "h" = 0 ∧ st'.cost ≤ c0 + K * μ0 + 1) := by
   have hRm_le : RoomSt G st ≤ G.m := RoomSt_le (G := G) st
   have hcap0 : 0 < st.cap := by have := I.f0.hcap; omega
   have hcap1 : 1 < st.cap := by have := I.f0.hcap; omega
@@ -91,7 +91,7 @@ theorem mainLoop_runs {st : State ℝ≥0} {c0 μ0 K : ℕ}
     (I := fun n st' => LoopInv G s c0 μ0 K st' ∧ mu G st' = n)
     (Q := fun st' => Inv G s (fun v => st'.va "dist" v) (fun v => st'.wa "reach" v)
       (fun v => st'.wa "done" v) (hvD s st') (fun i => st'.va "hd" i) (st'.w "h") (st'.w "ins") ∧
-      st'.w "h" = 0)
+      st'.w "h" = 0 ∧ st'.cost ≤ c0 + K * μ0 + 1)
     ?_ (mu G st) st ⟨I, rfl⟩
   intro n s' ⟨IS, hmu⟩
   have hcap0' : 0 < s'.cap := by have := IS.f0.hcap; omega
@@ -100,13 +100,19 @@ theorem mainLoop_runs {st : State ℝ≥0} {c0 μ0 K : ℕ}
     evalW_lt_of (evalW_lit_of hcap0') (evalW_var s' "h") hcap1'
   by_cases hh : s'.w "h" = 0
   · -- exit: the heap is empty, the certificate clause sees `h = 0`
-    refine ⟨0, ?_, fun hx => absurd hx (by decide), fun _ => ⟨?_, hh⟩⟩
+    refine ⟨0, ?_, fun hx => absurd hx (by decide), fun _ => ⟨?_, hh, ?_⟩⟩
     · rw [hcond', if_neg (by omega)]
     · have h := IS.inv
       have hfun : hvD s s' = hvD s (s'.charge 1) :=
         funext (fun i => (hvD_congr (st := s') (st' := s'.charge 1) (fun _ => rfl) i).symm)
       rw [hfun] at h
       exact h
+    · -- cost: the potential is nonnegative, and the final (failed) guard charge is the `+1`
+      have hsub : μ0 - mu G s' ≤ μ0 := Nat.sub_le _ _
+      have hmul := Nat.mul_le_mul_left K hsub
+      have hcost : (s'.charge 1).cost = s'.cost + 1 := rfl
+      have := IS.costb
+      omega
   · have hpos : 0 < s'.w "h" := by omega
     have hbound : s'.w "h" ≤ G.m + 1 := by have := IS.room; omega
     refine ⟨1, ?_, ?_, fun hx => absurd hx (by decide)⟩
