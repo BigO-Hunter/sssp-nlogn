@@ -63,4 +63,26 @@ theorem size_pos (t : Tree) : 0 < t.size := by
   cases t with
   | node id children => simp [Tree.size, ids]
 
+/-- Length of the recursively collected child identifiers is the sum of child sizes. -/
+theorem ids_list_length (children : List Child) :
+    (Tree.rec_1 (fun id _ childIds => id :: childIds) (fun _ _ _ treeIds => treeIds) []
+      (fun _ _ headIds tailIds => headIds ++ tailIds) children : List ℕ).length = sizeSum children := by
+  refine Tree.rec_1
+    (motive_1 := fun (t : Tree) => (ids t).length = t.size)
+    (motive_2 := fun (c : Child) => (ids c.tree).length = c.tree.size)
+    (motive_3 := fun (cs : List Child) => (Tree.rec_1 (fun id _ childIds => id :: childIds)
+      (fun _ _ _ treeIds => treeIds) [] (fun _ _ headIds tailIds => headIds ++ tailIds) cs : List ℕ).length
+      = sizeSum cs)
+    ?_ ?_ ?_ ?_ children
+  · intro id cs ih
+    rfl
+  · intro tree link lost ih
+    rfl
+  · simp [sizeSum]
+  · intro head tail ihh iht
+    simp [sizeSum, List.length_append, iht]
+    cases head with
+    | mk tree link lost =>
+      simpa [Child.size, Child.tree, ids] using ihh
+
 end Submission.FibHeapForest
