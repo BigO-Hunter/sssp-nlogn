@@ -3634,5 +3634,35 @@ theorem scanBody_runs {st : State ℝ≥0} {u : Fin G.n} {D : List ℕ} {c0 : �
         have hsub : D.length - (n - 1) = D.length - n + 1 := by omega
         exact ⟨n - 1, by omega, by omega, by rw [hsub]; exact hI'⟩)
 
+/-- Every settled vertex carries its exact distance.  This is `SweepInv.settled_exact`
+factored out so the main loop can carry it as one conjunct across iterations. -/
+def SettledExact (G : Graph) (s : Fin G.n) (st : State ℝ≥0) : Prop :=
+  ∀ v : Fin G.n, st.wa "done" v ≠ 0 → ((st.va "dist" v : ℝ≥0) : ℝ≥0∞) = G.dist s v
+
+/-- The model invariant plus exactness of the settled labels gives the sweep invariant at
+cursor `0` (nothing swept yet) — the entry state of `settleBody`'s scan. -/
+theorem Inv.toSweep {st : State ℝ≥0} {u : Fin G.n}
+    (I : Inv G s (fun v => st.va "dist" v) (fun v => st.wa "reach" v)
+      (fun v => st.wa "done" v) (hvD s st) (fun i => st.va "hd" i) (st.w "h") (st.w "ins"))
+    (hse : SettledExact G s st) (hval : HeapV (G := G) st (st.w "h"))
+    (hcw : ChainWF G st) (hu : st.wa "done" u ≠ 0) :
+    SweepInv G s u st 0 where
+  ghost := I.ghost
+  settled_exact := hse
+  relaxed_other e hsrc hd := I.relax_hold e hd
+  relaxed_swept e hmem := by
+    rw [show chainOf st u 0 = [] from rfl] at hmem
+    exact absurd hmem (List.not_mem_nil)
+  entry_cur := I.entry_cur
+  entry_mono := I.entry_mono
+  entry_reach := I.entry_reach
+  heapOK := I.heapOK
+  val := hval
+  source0 := I.source0
+  done_reach := I.done_reach
+  chainWF := hcw
+  done_u := hu
+  k_le := Nat.zero_le _
+
 
 end Submission.DijkstraHeap
