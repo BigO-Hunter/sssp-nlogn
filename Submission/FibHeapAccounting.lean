@@ -7,6 +7,12 @@ import Mathlib.Data.Nat.Fib.Basic
 This module proves only the arithmetic used by the B2 feasibility envelope.  It does not define
 a RAM heap or a race target.  Potentials and operation costs are natural-number ledger quantities;
 the shortest-path real-log estimates reuse B1's proved caps.
+
+Proof boundaries: the numeric per-operation budgets remain statement-recount obligations.  The
+forest theorem `size ≥ Fib(degree+2)` is deliberately a hypothesis, not a claim proved here; later
+work must establish link-time degree ordering and the at-most-one-child-loss invariant before the
+rank/root/extract chain is used.  The CLRS cascade potential change is proved below from explicit
+root and mark counts.
 -/
 
 namespace Submission.FibHeapAccounting
@@ -139,6 +145,12 @@ theorem extract_amortized {K E0 Er El Ed Em t0 ell t d t1 μ μ' Q : ℕ}
 /-- The root cap is `2L+2`, including the positive `L=0` case. -/
 theorem rootCap_eq (n : ℕ) : rootCap n = 2 * Nat.log 2 n + 2 := by
   simp [rootCap, rankCap, Nat.add_assoc]
+
+/-- The exact feed from the outstanding forest size invariant to the elementary rank cap.
+The `hsize` premise is the highest-risk later obligation: it requires link-order and one-loss. -/
+theorem degree_rankCap_of_fib_size {k n : ℕ} (hsize : Nat.fib (k + 2) ≤ n) : k ≤ rankCap n := by
+  have h := degree_log_bound hsize
+  simpa [rankCap] using h
 
 /-- The concrete B2 scalar envelope from the feasibility probe. -/
 def total (r n m L : ℕ) : ℕ := 280 * r * L + 384 * r + 13 * n + 279 * m + 4 * L + 50
