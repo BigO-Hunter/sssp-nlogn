@@ -488,4 +488,16 @@ theorem dijkstraBody_runs (st : State ℝ≥0) (hF : F0 G s st) :
   rw [hH4] at hCost5
   omega
 
+/-- The Dijkstra branch is **exact**: it terminates with the exact distances and costs at most
+`4n + 3m + 9 + 6m + 2 + 4 + 12·rk 0 + 13 + (Kc·(2m+3) + 1)` units on top of the entry cost. -/
+theorem dijkstraBody_solves (st : State ℝ≥0) (hF : F0 G s st) :
+    Runs realOps dijkstraBody st (fun st' => st'.Solves G s ∧
+      st'.cost ≤ st.cost + (4 * G.n + 3 * G.m + 9) + (6 * G.m + 2) + 4
+        + (12 * rk 0 + 13) + (Kc G * (2 * G.m + 3) + 1)) := by
+  refine (dijkstraBody_runs (G := G) (s := s) st hF).mono ?_
+  rintro r ⟨hF', hAF', hInv, hh0, hcost⟩
+  refine ⟨⟨hAF'.reachL, hAF'.distL, ?_⟩, hcost⟩
+  rw [hh0] at hInv
+  exact certificate hInv
+
 end Submission.DijkstraMain
