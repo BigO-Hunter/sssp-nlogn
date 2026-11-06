@@ -538,4 +538,298 @@ theorem promoteRoots_sizeSum (t : Tree) :
     rw [promoteRoots_node, size_node, sum_map_tree_size]
     omega
 
+/-- Every option is either empty or populated. -/
+theorem eq_none_or_some {a : Type} (o : Option a) : o = none ∨ ∃ x, o = some x := by
+  cases o with
+  | none => exact Or.inl rfl
+  | some x => exact Or.inr ⟨x, rfl⟩
+
+/-! ## Transition 5: bucket consolidation -/
+
+/-- The first tree in the table whose degree is `d`. -/
+def findDegree (d : ℕ) : List Tree → Option Tree
+  | [] => none
+  | t :: ts => if t.degree = d then some t else findDegree d ts
+
+/-- The first tree of degree `d` removed. -/
+def removeDegree (d : ℕ) : List Tree → List Tree
+  | [] => []
+  | t :: ts => if t.degree = d then ts else t :: removeDegree d ts
+
+/-- A found table entry carries the requested degree. -/
+theorem findDegree_some {d : ℕ} {s : Tree} {l : List Tree}
+    (h : findDegree d l = some s) : s.degree = d ∧ s ∈ l := by
+  induction l with
+  | nil => simp [findDegree] at h
+  | cons t ts ih =>
+    simp only [findDegree] at h
+    split at h
+    · rename_i hd
+      have hts : t = s := Option.some.inj h
+      subst hts
+      exact ⟨hd, by simp⟩
+    · exact ⟨(ih h).1, List.mem_cons_of_mem _ (ih h).2⟩
+
+/-- No table entry has the requested degree. -/
+theorem findDegree_none {d : ℕ} {l : List Tree}
+    (h : findDegree d l = none) : ∀ s ∈ l, s.degree ≠ d := by
+  induction l with
+  | nil => intro s hs; cases hs
+  | cons t ts ih =>
+    simp only [findDegree] at h
+    split at h
+    · cases h
+    · rename_i hd
+      intro s hs
+      rcases List.mem_cons.mp hs with rfl | hs
+      · exact hd
+      · exact ih h s hs
+
+/-- Removing an existing degree shortens the table by exactly one. -/
+theorem removeDegree_length {d : ℕ} {l : List Tree} (h : ∃ x ∈ l, x.degree = d) :
+    (removeDegree d l).length + 1 = l.length := by
+  induction l with
+  | nil => obtain ⟨x, hx, _⟩ := h; cases hx
+  | cons t ts ih =>
+    simp only [removeDegree]
+    split
+    · simp
+    · rename_i hd
+      obtain ⟨x, hx, hxd⟩ := h
+      rcases List.mem_cons.mp hx with rfl | hx
+      · exact absurd hxd hd
+      · have hih := ih ⟨x, hx, hxd⟩
+        simp only [List.length_cons] at hih ⊢
+        omega
+
+/-- Everything in the shortened table is in the original. -/
+theorem mem_removeDegree {d : ℕ} {s : Tree} {l : List Tree} (h : s ∈ removeDegree d l) :
+    s ∈ l := by
+  induction l with
+  | nil => simp [removeDegree] at h
+  | cons t ts ih =>
+    simp only [removeDegree] at h
+    split at h
+    · exact List.mem_cons_of_mem _ h
+    · rcases List.mem_cons.mp h with rfl | h
+      · exact List.Mem.head _
+      · exact List.mem_cons_of_mem _ (ih h)
+
+/-- Shortening preserves degree distinctness. -/
+theorem removeDegree_nodup {d : ℕ} {l : List Tree} (h : (l.map Tree.degree).Nodup) :
+    ((removeDegree d l).map Tree.degree).Nodup := by
+  induction l with
+  | nil => simp [removeDegree]
+  | cons t ts ih =>
+    simp only [removeDegree]
+    split
+    · simp only [List.map_cons, List.nodup_cons] at h
+      exact h.2
+    · simp only [List.map_cons, List.nodup_cons] at h ⊢
+      refine ⟨?_, ih h.2⟩
+      intro hx
+      obtain ⟨u, hu, hux⟩ := List.mem_map.mp hx
+      have hu' : u ∈ ts := mem_removeDegree hu
+      have hum : Tree.degree u ∈ ts.map Tree.degree := List.mem_map_of_mem hu'
+      exact h.1 (hux ▸ hum)
+
+/-- Fuel-bounded bucket consolidation: each work-list root either occupies an empty
+degree slot in the table or links with the occupant and re-enters the work list; the
+fuel counts work steps and the wrapper charges `2 * roots.length`, which the conservation
+lemmas show is always sufficient. -/
+def consolidateCount : ℕ → List Tree → List Tree → ℕ × List Tree
+  | 0, _, table => (0, table)
+  | _ + 1, [], table => (0, table)
+  | fuel + 1, r :: work, table =>
+      match findDegree r.degree table with
+      | none => consolidateCount fuel work (r :: table)
+      | some s =>
+        let res := consolidateCount fuel (linkRoots s r :: work) (removeDegree r.degree table)
+        (res.1 + 1, res.2)
+
+/-- **Link-count conservation**: the number of links performed plus the final root count
+equals the number of roots present at the start (work list plus table).  At the wrapper's
+fuel this certifies that no root was dropped. -/
+theorem consolidateCount_conservation {fuel : ℕ} :
+    ∀ work table : List Tree, 2 * work.length + table.length ≤ fuel →
+      (consolidateCount fuel work table).1 + (consolidateCount fuel work table).2.length
+        = work.length + table.length := by
+  induction fuel with
+  | zero =>
+    intro work table hm
+    have hw : work = [] := by
+      cases work with
+      | nil => rfl
+      | cons a l => simp at hm
+    subst hw
+    simp [consolidateCount]
+  | succ fuel ih =>
+    intro work table hm
+    cases work with
+    | nil => simp [consolidateCount]
+    | cons r rest =>
+      simp only [consolidateCount, List.length_cons]
+      split
+      · rename_i hf
+        have hrec := ih rest (r :: table) (by simp only [List.length_cons] at hm ⊢; omega)
+        simp only [List.length_cons] at hrec
+        omega
+      · rename_i s hf
+        obtain ⟨hsd, hsm⟩ := findDegree_some hf
+        have hrd : (removeDegree r.degree table).length + 1 = table.length :=
+          removeDegree_length ⟨s, hsm, hsd⟩
+        have hrec := ih (linkRoots s r :: rest) (removeDegree r.degree table)
+          (by simp only [List.length_cons] at hm ⊢; omega)
+        simp only [List.length_cons] at hrec
+        show (consolidateCount fuel (linkRoots s r :: rest) (removeDegree r.degree table)).1 + 1
+            + (consolidateCount fuel (linkRoots s r :: rest) (removeDegree r.degree table)).2.length
+          = rest.length + 1 + table.length
+        omega
+
+/-- The empty-slot step. -/
+theorem consolidateCount_none (fuel : ℕ) (r : Tree) (work table : List Tree)
+    (hf : findDegree r.degree table = none) :
+    consolidateCount (fuel + 1) (r :: work) table
+      = consolidateCount fuel work (r :: table) := by
+  simp only [consolidateCount, hf]
+
+/-- The link step. -/
+theorem consolidateCount_some (fuel : ℕ) (r s : Tree) (work table : List Tree)
+    (hf : findDegree r.degree table = some s) :
+    consolidateCount (fuel + 1) (r :: work) table =
+      let res := consolidateCount fuel (linkRoots s r :: work) (removeDegree r.degree table)
+      (res.1 + 1, res.2) := by
+  simp only [consolidateCount, hf]
+
+theorem consolidateCount_some_fst (fuel : ℕ) (r s : Tree) (work table : List Tree)
+    (hf : findDegree r.degree table = some s) :
+    (consolidateCount (fuel + 1) (r :: work) table).1
+      = (consolidateCount fuel (linkRoots s r :: work) (removeDegree r.degree table)).1 + 1 := by
+  rw [consolidateCount_some fuel r s work table hf]
+
+theorem consolidateCount_some_snd (fuel : ℕ) (r s : Tree) (work table : List Tree)
+    (hf : findDegree r.degree table = some s) :
+    (consolidateCount (fuel + 1) (r :: work) table).2
+      = (consolidateCount fuel (linkRoots s r :: work) (removeDegree r.degree table)).2 := by
+  rw [consolidateCount_some fuel r s work table hf]
+
+/-- Shortening removes exactly the found tree, conserving size. -/
+theorem removeDegree_sizes (d : ℕ) (l : List Tree) :
+    ∀ s : Tree, findDegree d l = some s →
+      ((removeDegree d l).map Tree.size).sum + s.size = ((l.map Tree.size).sum) := by
+  induction l with
+  | nil => intro s hf; simp [findDegree] at hf
+  | cons t ts ih =>
+    intro s hf
+    simp only [findDegree] at hf
+    simp only [removeDegree]
+    split at hf
+    · rename_i hd
+      have hts : t = s := Option.some.inj hf
+      subst hts
+      simp only [hd, ite_true, List.map_cons, List.sum_cons]
+      omega
+    · rename_i hd
+      have hd' : (t.degree = d) = False := by simp [hd]
+      simp only [hd', ite_false, List.map_cons, List.sum_cons]
+      have hih := ih s hf
+      omega
+
+/-- **Consolidation maintains `InvOK`**: every link is `linkRoots`, so the invariant is
+inherited through the whole run. -/
+theorem consolidateCount_invOK {fuel : ℕ} :
+    ∀ work table : List Tree,
+      (∀ t ∈ work, InvOK t) → (∀ t ∈ table, InvOK t) →
+        ∀ t ∈ (consolidateCount fuel work table).2, InvOK t := by
+  induction fuel with
+  | zero => intro work table _ htb; exact htb
+  | succ fuel ih =>
+    intro work table hw htb
+    cases work with
+    | nil => exact htb
+    | cons r rest =>
+      by_cases hf : findDegree r.degree table = none
+      · rw [consolidateCount_none _ _ _ _ hf]
+        have hw' : ∀ t ∈ rest, InvOK t := fun t ht => hw t (List.mem_cons_of_mem _ ht)
+        have htb' : ∀ t ∈ r :: table, InvOK t := by
+          intro t ht
+          rcases List.mem_cons.mp ht with rfl | ht
+          · exact hw t (List.Mem.head _)
+          · exact htb t ht
+        exact ih rest (r :: table) hw' htb'
+      · rcases eq_none_or_some (findDegree r.degree table) with hfn | ⟨s, hfs⟩
+        · exact absurd hfn hf
+        rw [consolidateCount_some_snd _ _ _ _ _ hfs]
+        refine ih (linkRoots s r :: rest) (removeDegree r.degree table) ?_ ?_
+        · intro t ht
+          rcases List.mem_cons.mp ht with rfl | ht
+          · exact linkRoots_invOK (htb s (findDegree_some hfs).2) (hw r (List.Mem.head _))
+              (findDegree_some hfs).1
+          · exact hw t (List.mem_cons_of_mem _ ht)
+        · intro t ht
+          exact htb t (mem_removeDegree ht)
+
+/-- **Consolidation maintains degree distinctness**: the table always holds at most one
+tree per degree, so the final root degrees are pairwise distinct. -/
+theorem consolidateCount_nodup {fuel : ℕ} :
+    ∀ work table : List Tree, ((table.map Tree.degree).Nodup) →
+      (((consolidateCount fuel work table).2.map Tree.degree).Nodup) := by
+  induction fuel with
+  | zero => intro _ table hnd; exact hnd
+  | succ fuel ih =>
+    intro work table hnd
+    cases work with
+    | nil => exact hnd
+    | cons r rest =>
+      by_cases hf : findDegree r.degree table = none
+      · rw [consolidateCount_none _ _ _ _ hf]
+        refine ih rest (r :: table) ?_
+        simp only [List.map_cons, List.nodup_cons]
+        refine ⟨fun hx => ?_, hnd⟩
+        obtain ⟨u, hu, hux⟩ := List.mem_map.mp hx
+        exact (findDegree_none hf u hu) hux
+      · rcases eq_none_or_some (findDegree r.degree table) with hfn | ⟨s, hfs⟩
+        · exact absurd hfn hf
+        rw [consolidateCount_some_snd _ _ _ _ _ hfs]
+        exact ih (linkRoots s r :: rest) (removeDegree r.degree table)
+          (removeDegree_nodup hnd)
+
+/-- **Consolidation conserves total live size.** -/
+theorem consolidateCount_sizes {fuel : ℕ} :
+    ∀ work table : List Tree, 2 * work.length + table.length ≤ fuel →
+      (((consolidateCount fuel work table).2.map Tree.size).sum)
+        = (((work ++ table).map Tree.size).sum) := by
+  induction fuel with
+  | zero =>
+    intro work table hm
+    have hw : work = [] := by
+      cases work with
+      | nil => rfl
+      | cons a l => simp at hm
+    subst hw
+    simp [consolidateCount]
+  | succ fuel ih =>
+    intro work table hm
+    cases work with
+    | nil => simp [consolidateCount]
+    | cons r rest =>
+      rw [List.map_append, List.sum_append, List.map_cons, List.sum_cons]
+      by_cases hf : findDegree r.degree table = none
+      · rw [consolidateCount_none _ _ _ _ hf]
+        have hrec := ih rest (r :: table) (by simp only [List.length_cons] at hm ⊢; omega)
+        simp only [List.map_cons, List.sum_cons, List.map_append, List.sum_append] at hrec
+        omega
+      · rcases eq_none_or_some (findDegree r.degree table) with hfn | ⟨s, hfs⟩
+        · exact absurd hfn hf
+        obtain ⟨hsd, hsm⟩ := findDegree_some hfs
+        have hrd : (removeDegree r.degree table).length + 1 = table.length :=
+          removeDegree_length ⟨s, hsm, hsd⟩
+        have hsz2 := removeDegree_sizes r.degree table s hfs
+        rw [consolidateCount_some_snd _ _ _ _ _ hfs]
+        have hrec := ih (linkRoots s r :: rest) (removeDegree r.degree table)
+          (by simp only [List.length_cons] at hm ⊢; omega)
+        simp only [List.map_cons, List.sum_cons, List.map_append, List.sum_append] at hrec
+        have hsz : (linkRoots s r).size = s.size + r.size := linkRoots_size s r
+        omega
+
 end Submission.FibHeapDynamic
