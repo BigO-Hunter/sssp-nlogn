@@ -480,4 +480,62 @@ theorem decrease_amortized_of_cascadeCut {K D0 D1 μ μ' t t' : ℕ}
       ≤ FibHeapAccounting.scaledPotential K t μ + (D0 + 3 * K + D1) :=
   decrease_amortized_of_marks hK ht hmarks
 
+/-! ## Transition 4: extract-min promotion -/
+
+/-- The children of a node (the inductive declares no projection). -/
+def treeKids (t : Tree) : List Child :=
+  match t with
+  | .node _ cs => cs
+
+/-- The children of the removed root become roots; their recorded link data is discarded
+with their parent entry. -/
+def promoteRoots (t : Tree) : List Tree :=
+  (treeKids t).map Child.tree
+
+/-- Promotion unfolding on an explicit node. -/
+theorem promoteRoots_node (pid : ℕ) (cs : List Child) :
+    promoteRoots (Submission.FibHeapForest.Tree.node pid cs) = cs.map Child.tree := by
+  simp only [promoteRoots, treeKids]
+
+/-- **Promotion maintains `InvOK`.**  Each promoted subtree is a member child of an
+`InvOK` tree, promoted unchanged. -/
+theorem promoteRoots_invOK {t : Tree} (h : InvOK t) :
+    ∀ r ∈ promoteRoots t, InvOK r := by
+  cases t with
+  | node pid cs =>
+    rw [promoteRoots_node]
+    cases h with
+    | mk _ _ _ _ hrec =>
+      intro r hr
+      obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hr
+      exact hrec c hc
+
+/-- Promotion keeps the root count: one promoted root per child of the removed tree. -/
+theorem promoteRoots_length (t : Tree) : (promoteRoots t).length = t.degree := by
+  cases t with
+  | node pid cs =>
+    rw [promoteRoots_node]
+    simp [Tree.degree]
+
+/-- The summed promoted-root sizes are exactly the summed child sizes. -/
+theorem sum_map_tree_size (cs : List Child) :
+    ((cs.map Child.tree).map Tree.size).sum = sizeSum cs := by
+  induction cs with
+  | nil => rfl
+  | cons c cs ih =>
+    simp only [List.map_cons, List.sum_cons, sizeSum]
+    show Tree.size (Child.tree c) + ((cs.map Child.tree).map Tree.size).sum
+        = Child.size c + sizeSum cs
+    rw [ih]
+    rfl
+
+/-- Promotion conserves live size up to the removed root itself: the promoted roots
+represent exactly the `size − 1` nodes below the removed root. -/
+theorem promoteRoots_sizeSum (t : Tree) :
+    ((promoteRoots t).map Tree.size).sum = t.size - 1 := by
+  cases t with
+  | node pid cs =>
+    rw [promoteRoots_node, size_node, sum_map_tree_size]
+    omega
+
 end Submission.FibHeapDynamic
