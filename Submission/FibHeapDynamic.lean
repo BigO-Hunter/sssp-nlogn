@@ -169,4 +169,124 @@ theorem linkRoots_invOK {parent child : Tree}
           subst hcx
           simpa [Child.tree] using hc
 
+
+/-- A live indexed lookup reduces to `some`. -/
+theorem getElem?_some_of_lt {pcs : List Child} {j : ℕ} (hj : j < pcs.length) :
+    pcs[j]? = some pcs[j] :=
+  List.getElem?_eq_some_iff.mpr ⟨hj, rfl⟩
+
+/-! ## Transition 2: one cascading-cut step -/
+
+/-- Removing the child at position `j` from a node's children. -/
+def Tree.eraseChild (t : Tree) (j : ℕ) : Tree :=
+  match t with
+  | .node id cs => .node id (cs.eraseIdx j)
+
+/-- Erasing one child lowers the degree by exactly one. -/
+theorem degree_eraseChild {t : Tree} {j : ℕ} (hj : j < t.degree) :
+    (Tree.eraseChild t j).degree + 1 = t.degree := by
+  cases t with
+  | node id cs =>
+    have hd : Tree.degree (.node id cs) = cs.length := rfl
+    simp only [Tree.eraseChild, Tree.degree, List.length_eraseIdx_of_lt hj]
+    omega
+
+/-- `InvOK` survives erasing one child: members keep their conditions, positions shift
+strictly downward (positions only had to be `≤ linkDegree`), recursion is inherited. -/
+theorem invOK_eraseIdx {id : ℕ} {cs : List Child} {j : ℕ} (hj : j < cs.length)
+    (h : InvOK (.node id cs)) : InvOK (.node id (cs.eraseIdx j)) := by
+  cases h with
+  | mk _ _ hco hpos hrec =>
+    refine InvOK.mk id (cs.eraseIdx j) ?_ ?_ ?_
+    · intro c hcm
+      exact hco c (List.mem_of_mem_eraseIdx hcm)
+    · intro i hi
+      have hlen : (cs.eraseIdx j).length = cs.length - 1 := List.length_eraseIdx_of_lt hj
+      by_cases hilt : i < j
+      · rw [getD_eraseIdx_lt hilt]
+        exact hpos i (by omega)
+      · rw [getD_eraseIdx_ge (by omega)]
+        exact Nat.le_of_succ_le (hpos (i + 1) (by omega))
+    · intro c hcm
+      exact hrec c (List.mem_of_mem_eraseIdx hcm)
+
+/-- One cascading-cut step on a parent entry `c`: the subtree at position `j` of `c.tree`
+is cut out and returned as the new root; the updated entry keeps `c.linkDegree` (the
+position of the parent in the grandparent is unchanged) and increments `c.lost`. -/
+def cutAt (c : Child) (j : ℕ) : Option (Tree × Child) :=
+  match c.tree with
+  | .node pid pcs =>
+    match pcs[j]? with
+    | some x => some (x.tree, Child.mk (.node pid (pcs.eraseIdx j)) c.linkDegree (c.lost + 1))
+    | none => none
+
+/-- A cut at a live position always fires. -/
+theorem cutAt_some {c : Child} {j : ℕ} (hj : j < c.tree.degree) :
+    ∃ x c', cutAt c j = some (x, c') := by
+  cases c with
+  | mk tt ld ls =>
+    cases tt with
+    | node pid pcs =>
+      simp only [Child.tree, Tree.degree] at hj
+      refine ⟨pcs[j].tree, Child.mk (.node pid (pcs.eraseIdx j)) ld (ls + 1), ?_⟩
+      simp only [cutAt, Child.tree, getElem?_some_of_lt hj]
+      rfl
+
+/-- **The exact one-loss side condition.**  After a cut, the updated parent entry is
+admissible (degree equality **and** at most one loss) if and only if the parent had lost
+no child before the cut.  The degree-equality half survives unconditionally:
+`(degree − 1) + (lost + 1) = degree + lost = linkDegree`; only the one-loss half is at
+stake. -/
+theorem cutAt_entry_ok_iff {c : Child} {j : ℕ} {x : Tree} {c' : Child}
+    (hdeq : c.tree.degree + c.lost = c.linkDegree) (hj : j < c.tree.degree)
+    (hcut : cutAt c j = some (x, c')) :
+    (c'.tree.degree + c'.lost = c'.linkDegree ∧ c'.lost ≤ 1) ↔ c.lost = 0 := by
+  cases c with
+  | mk tt ld ls =>
+    cases tt with
+    | node pid pcs =>
+      have hpc : Tree.degree (.node pid pcs) = pcs.length := rfl
+      simp only [Child.tree, Tree.degree] at hj
+      simp only [cutAt, Child.tree, getElem?_some_of_lt hj, Option.some.injEq,
+        Prod.mk.injEq] at hcut
+      obtain ⟨rfl, rfl⟩ := hcut
+      have hlen : (pcs.eraseIdx j).length = pcs.length - 1 := List.length_eraseIdx_of_lt hj
+      simp only [Child.tree, Child.linkDegree, Child.lost, Tree.degree] at hdeq ⊢
+      omega
+
+/-- **The exact counterexample.**  If the parent already lost a child (`lost = 1`), the cut
+pushes `lost` to 2 and the updated entry violates the one-loss rule — precisely the
+situation the CLRS cascade exists to repair by cutting the parent itself. -/
+theorem cutAt_entry_violation_of_lost_one {c : Child} {j : ℕ} {x : Tree} {c' : Child}
+    (hj : j < c.tree.degree) (hcut : cutAt c j = some (x, c')) (hlost : c.lost = 1) :
+    ¬ (c'.lost ≤ 1) := by
+  cases c with
+  | mk tt ld ls =>
+    cases tt with
+    | node pid pcs =>
+      simp only [Child.tree, Tree.degree] at hj
+      simp only [cutAt, Child.tree, getElem?_some_of_lt hj, Option.some.injEq,
+        Prod.mk.injEq] at hcut
+      obtain ⟨rfl, rfl⟩ := hcut
+      simp only [Child.lost] at hlost ⊢
+      omega
+
+/-- The cut subtree itself satisfies `InvOK`: it is a member child of an `InvOK` tree and
+is promoted to root-hood unchanged. -/
+theorem cutAt_subtree_invOK {c : Child} {j : ℕ} {x : Tree} {c' : Child}
+    (hinv : InvOK c.tree) (hj : j < c.tree.degree) (hcut : cutAt c j = some (x, c')) :
+    InvOK x := by
+  cases c with
+  | mk tt ld ls =>
+    cases tt with
+    | node pid pcs =>
+      cases hinv with
+      | mk _ _ hco _ hrec =>
+        simp only [Child.tree] at *
+        simp only [Tree.degree] at hj
+        simp only [cutAt, Child.tree, getElem?_some_of_lt hj, Option.some.injEq,
+        Prod.mk.injEq] at hcut
+        obtain ⟨rfl, rfl⟩ := hcut
+        exact hrec _ (List.mem_iff_getElem.mpr ⟨j, hj, rfl⟩)
+
 end Submission.FibHeapDynamic
