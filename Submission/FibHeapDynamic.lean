@@ -832,4 +832,94 @@ theorem consolidateCount_sizes {fuel : ℕ} :
         have hsz : (linkRoots s r).size = s.size + r.size := linkRoots_size s r
         omega
 
+/-! ## The consolidation wrappers and the two capstones -/
+
+/-- The whole-run wrapper: consolidate the root list; the fuel `2 * roots.length` is
+charged for every work step (each root is inserted at most once, and each link both
+consumes a table entry and re-queues one root, so steps never exceed twice the root
+count).  Conservation at this fuel certifies completeness. -/
+def consolidate (roots : List Tree) : List Tree :=
+  (consolidateCount (2 * roots.length) roots []).2
+
+/-- The number of equal-degree links the wrapper's consolidation performed. -/
+def consolidationLinks (roots : List Tree) : ℕ :=
+  (consolidateCount (2 * roots.length) roots []).1
+
+/-- The wrapper preserves `InvOK`. -/
+theorem consolidate_invOK {roots : List Tree} (h : ∀ t ∈ roots, InvOK t) :
+    ∀ t ∈ consolidate roots, InvOK t :=
+  consolidateCount_invOK (fuel := 2 * roots.length) (work := roots) (table := [])
+    h (by intro t ht; cases ht)
+
+/-- The wrapper produces pairwise-distinct root degrees. -/
+theorem consolidate_nodup (roots : List Tree) :
+    ((consolidate roots).map Tree.degree).Nodup :=
+  consolidateCount_nodup (fuel := 2 * roots.length) (work := roots) (table := [])
+    (by simp)
+
+/-- The wrapper conserves total live size. -/
+theorem consolidate_sizes (roots : List Tree) :
+    ((consolidate roots).map Tree.size).sum = ((roots.map Tree.size).sum) := by
+  have h := consolidateCount_sizes (fuel := 2 * roots.length) (work := roots)
+    (table := []) (by simp)
+  rw [List.map_append, List.sum_append, List.map_nil, List.sum_nil] at h
+  simp only [consolidate]
+  exact h
+
+/-- **Link-count conservation at the wrapper**: `links + t1 = t0` — the number of
+equal-degree links plus the final root count is exactly the initial root count, so the
+accounting lane's `El * links` charge is well-defined and no root is dropped. -/
+theorem consolidate_links_add_length (roots : List Tree) :
+    consolidationLinks roots + (consolidate roots).length = roots.length := by
+  have h := consolidateCount_conservation (fuel := 2 * roots.length) (work := roots)
+    (table := []) (by simp)
+  simp only [consolidate, consolidationLinks]
+  exact h
+
+/-- A member's value is at most the sum. -/
+theorem le_sum_of_mem {a : ℕ} {l : List ℕ} (h : a ∈ l) : a ≤ l.sum := by
+  induction l with
+  | nil => cases h
+  | cons b l ih =>
+    rcases List.mem_cons.mp h with rfl | h
+    · simp
+    · simp only [List.sum_cons]
+      have := ih h
+      omega
+
+/-- **Capstone: the post-consolidation root set satisfies every hypothesis of the proved
+`t1_le_Q`.**  Distinct degrees come from the table invariant, `InvOK` from `linkRoots`,
+per-root size from the conserved total — so the final root count is at most
+`Q = rootCap n = 2·log₂ n + 2`, with the link count conserved additively. -/
+theorem t1_le_Q_of_consolidate {roots : List Tree} {n : ℕ}
+    (hinv : ∀ t ∈ roots, InvOK t) (hsum : ((roots.map Tree.size).sum) ≤ n) :
+    ((consolidate roots).map Tree.degree).Nodup
+    ∧ (∀ t ∈ consolidate roots, InvOK t ∧ t.size ≤ n)
+    ∧ consolidationLinks roots + (consolidate roots).length = roots.length
+    ∧ (consolidate roots).length ≤ FibHeapAccounting.rootCap n := by
+  have hszroot : ((consolidate roots).map Tree.size).sum ≤ n := by
+    rw [consolidate_sizes]
+    exact hsum
+  refine ⟨consolidate_nodup roots, ?_, consolidate_links_add_length roots, ?_⟩
+  · intro t ht
+    exact ⟨consolidate_invOK hinv t ht,
+      le_trans (le_sum_of_mem (List.mem_map_of_mem ht)) hszroot⟩
+  · exact t1_le_Q (consolidate_nodup roots) (consolidate_invOK hinv)
+      (fun t ht => le_trans (le_sum_of_mem (List.mem_map_of_mem ht)) hszroot)
+
+/-- **Capstone: the full extract-min root pipeline.**  After removing the minimum root `t`,
+promotion followed by consolidation produces a root list with pairwise-distinct degrees,
+every member `InvOK`, total live size conserved, and the count bounded by `Q` — the
+consolidation `Nodup` hypothesis of `t1_le_Q` is discharged with no assumption. -/
+theorem t1_le_Q_of_promotion {t : Tree} {n : ℕ} (hinv : InvOK t) (hsz : t.size ≤ n) :
+    ((consolidate (promoteRoots t)).map Tree.degree).Nodup
+    ∧ (∀ r ∈ consolidate (promoteRoots t), InvOK r ∧ r.size ≤ n)
+    ∧ consolidationLinks (promoteRoots t) + (consolidate (promoteRoots t)).length
+        = (promoteRoots t).length
+    ∧ (consolidate (promoteRoots t)).length ≤ FibHeapAccounting.rootCap n := by
+  have hsum : (((promoteRoots t).map Tree.size).sum) ≤ n := by
+    rw [promoteRoots_sizeSum]
+    omega
+  exact t1_le_Q_of_consolidate (promoteRoots_invOK hinv) hsum
+
 end Submission.FibHeapDynamic
