@@ -289,4 +289,195 @@ theorem cutAt_subtree_invOK {c : Child} {j : ℕ} {x : Tree} {c' : Child}
         obtain ⟨rfl, rfl⟩ := hcut
         exact hrec _ (List.mem_iff_getElem.mpr ⟨j, hj, rfl⟩)
 
+
+/-! ## Transition 3: the CLRS cascade -/
+
+/-- The mark-bit view of a position-tagged ancestor chain: an entry is marked exactly when
+it has already lost a child (`lost = 1`). -/
+def marksOf (chain : List (ℕ × Child)) : List Bool :=
+  chain.map (fun p => decide (p.2.lost = 1))
+
+/-- The CLRS cascade over the position-tagged ancestor chain of the originally cut node:
+head = deepest ancestor entry, each tag the position of the next-lower tree inside that
+entry's tree.  An entry with `lost = 0` (unmarked) is marked (`lost 0 → 1`), loses the
+child at the recorded position, and the cascade stops; an entry with `lost ≥ 1` (marked)
+is discarded — its tree joins the cut roots — and the cascade continues above it;
+everything above the stopping point is untouched. -/
+def cascadeCut : List (ℕ × Child) → List Child × List Tree
+  | [] => ([], [])
+  | p :: rest =>
+      match p.2.lost with
+      | 0 => (Child.mk (Tree.eraseChild p.2.tree p.1) p.2.linkDegree (p.2.lost + 1)
+                :: rest.map (fun q => q.2), [])
+      | _ + 1 => let (surv, roots) := cascadeCut rest
+                 (surv, p.2.tree :: roots)
+
+/-- The cons step of the cascade on an unmarked head. -/
+theorem cascadeCut_cons_zero (j : ℕ) (c : Child) (rest : List (ℕ × Child))
+    (h0 : c.lost = 0) :
+    cascadeCut ((j, c) :: rest) =
+      (Child.mk (Tree.eraseChild c.tree j) c.linkDegree (c.lost + 1)
+        :: rest.map (fun q => q.2), []) := by
+  have hl : c.lost = (0 : ℕ) := h0
+  simp only [cascadeCut, hl]
+
+/-- The cons step of the cascade on a marked head. -/
+theorem cascadeCut_cons_marked (j : ℕ) (c : Child) (rest : List (ℕ × Child))
+    (h1 : 1 ≤ c.lost) :
+    cascadeCut ((j, c) :: rest) =
+      let (surv, roots) := cascadeCut rest
+      (surv, c.tree :: roots) := by
+  have hl : c.lost = (c.lost - 1).succ := by omega
+  simp only [cascadeCut]
+  rw [hl]
+
+/-- **The cascade keeps every surviving entry admissible.**  Hypotheses: every chain entry
+satisfies the entry conditions (link-time degree equality and one-loss, as supplied by the
+`InvOK` context of the tree holding the chain), and every recorded position is live.  The
+first unmarked entry survives as `(degree − 1, lost 1, same linkDegree)`, which is
+admissible precisely because its `lost` was 0. -/
+theorem cascadeCut_surv_entries_ok {chain : List (ℕ × Child)}
+    (hcond : ∀ p ∈ chain, p.2.tree.degree + p.2.lost = p.2.linkDegree ∧ p.2.lost ≤ 1)
+    (hpos : ∀ p ∈ chain, p.1 < p.2.tree.degree) :
+    ∀ c ∈ (cascadeCut chain).1,
+      c.tree.degree + c.lost = c.linkDegree ∧ c.lost ≤ 1 := by
+  induction chain with
+  | nil => intro c hc; cases hc
+  | cons p rest ih =>
+    obtain ⟨j, c⟩ := p
+    intro cs hcs
+    have hcond' : ∀ q ∈ rest, q.2.tree.degree + q.2.lost = q.2.linkDegree ∧ q.2.lost ≤ 1 :=
+      fun q hq => hcond q (by simp [hq])
+    by_cases h0 : c.lost = 0
+    · rw [cascadeCut_cons_zero _ _ _ h0] at hcs
+      simp only [List.mem_cons] at hcs
+      rcases hcs with rfl | hcs
+      · obtain ⟨hdeq0, hloss0⟩ := hcond (j, c) (by simp)
+        have hdeq : c.tree.degree + c.lost = c.linkDegree := hdeq0
+        have hloss : c.lost ≤ 1 := hloss0
+        have hj : j < c.tree.degree := hpos (j, c) (by simp)
+        have hdeg' : (Tree.eraseChild c.tree j).degree + 1 = c.tree.degree :=
+          degree_eraseChild hj
+        have e1 : (Child.mk (Tree.eraseChild c.tree j) c.linkDegree (c.lost + 1)).tree
+            = Tree.eraseChild c.tree j := rfl
+        have e2 : (Child.mk (Tree.eraseChild c.tree j) c.linkDegree (c.lost + 1)).lost
+            = c.lost + 1 := rfl
+        have e3 : (Child.mk (Tree.eraseChild c.tree j) c.linkDegree (c.lost + 1)).linkDegree
+            = c.linkDegree := rfl
+        refine ⟨?_, ?_⟩
+        · rw [e1, e2, e3]
+          omega
+        · rw [e2]
+          omega
+      · obtain ⟨a, ham, rfl⟩ := List.mem_map.mp hcs
+        exact hcond a (List.mem_cons_of_mem _ ham)
+    · have h1 : 1 ≤ c.lost := by omega
+      rw [cascadeCut_cons_marked _ _ _ h1] at hcs
+      exact ih hcond' (fun q hq => hpos q (by simp [hq])) cs hcs
+
+/-- **The cascade keeps every surviving subtree `InvOK`.**  The first unmarked entry
+survives with one child erased (`invOK_eraseIdx`); entries above it are untouched. -/
+theorem cascadeCut_surv_trees_invOK {chain : List (ℕ × Child)}
+    (hrec : ∀ p ∈ chain, InvOK p.2.tree)
+    (hpos : ∀ p ∈ chain, p.1 < p.2.tree.degree) :
+    ∀ c ∈ (cascadeCut chain).1, InvOK c.tree := by
+  induction chain with
+  | nil => intro c hc; cases hc
+  | cons p rest ih =>
+    obtain ⟨j, c⟩ := p
+    intro cs hcs
+    have hrec' : ∀ q ∈ rest, InvOK q.2.tree := fun q hq => hrec q (by simp [hq])
+    by_cases h0 : c.lost = 0
+    · rw [cascadeCut_cons_zero _ _ _ h0] at hcs
+      simp only [List.mem_cons] at hcs
+      rcases hcs with rfl | hcs
+      · have hj : j < c.tree.degree := hpos (j, c) (by simp)
+        cases c with
+        | mk tt ld ls =>
+          cases tt with
+          | node pid pcs =>
+            simp only [Child.tree, Tree.degree] at hj
+            have hmem : InvOK (Child.mk (.node pid pcs) ld ls).tree := by
+              simpa using hrec (j, Child.mk (.node pid pcs) ld ls) (by simp)
+            exact invOK_eraseIdx hj hmem
+      · obtain ⟨a, ham, rfl⟩ := List.mem_map.mp hcs
+        exact hrec a (List.mem_cons_of_mem _ ham)
+    · have h1 : 1 ≤ c.lost := by omega
+      rw [cascadeCut_cons_marked _ _ _ h1] at hcs
+      exact ih hrec' (fun q hq => hpos q (by simp [hq])) cs hcs
+
+/-- **Every tree the cascade cuts away satisfies `InvOK`**: each discarded entry's tree is
+a member subtree of an `InvOK` tree, promoted to root-hood unchanged. -/
+theorem cascadeCut_roots_invOK {chain : List (ℕ × Child)}
+    (hrec : ∀ p ∈ chain, InvOK p.2.tree) :
+    ∀ t ∈ (cascadeCut chain).2, InvOK t := by
+  induction chain with
+  | nil => intro t ht; cases ht
+  | cons p rest ih =>
+    obtain ⟨j, c⟩ := p
+    intro t ht
+    by_cases h0 : c.lost = 0
+    · rw [cascadeCut_cons_zero _ _ _ h0] at ht
+      exact absurd ht (by simp)
+    · have h1 : 1 ≤ c.lost := by omega
+      rw [cascadeCut_cons_marked _ _ _ h1] at ht
+      replace ht : t ∈ c.tree :: (cascadeCut rest).2 := ht
+      rcases List.mem_cons.mp ht with rfl | ht
+      · exact hrec (j, c) (by simp)
+      · exact ih (fun q hq => hrec q (by simp [hq])) t ht
+
+/-- **The cascade's mark bits satisfy the already-proved `CascadeMarks` relation**, with the
+number of cascade cuts equal to the number of discarded entries.  Hypotheses: every entry
+obeys the one-loss rule (`lost ≤ 1`, from the entry conditions — for `lost ≥ 2` the
+mark-bit list would read `false` where the cascade still discards, and the statement would
+be false), and `mu` bounds the marked entries inside the chain (a global marked-count
+certainly does). -/
+theorem cascadeCut_marks {chain : List (ℕ × Child)}
+    (hloss : ∀ p ∈ chain, p.2.lost ≤ 1) :
+    ∀ μ : ℕ, (marksOf chain).count true ≤ μ →
+      ∃ μ' : ℕ, CascadeMarks (marksOf chain) μ μ' ((cascadeCut chain).2.length) := by
+  intro μ
+  induction chain generalizing μ with
+  | nil => intro _; exact ⟨μ, CascadeMarks.stop⟩
+  | cons p rest ih =>
+    obtain ⟨j, c⟩ := p
+    intro hcnt
+    have hloss' : ∀ q ∈ rest, q.2.lost ≤ 1 := fun q hq => hloss q (by simp [hq])
+    by_cases h0 : c.lost = 0
+    · rw [cascadeCut_cons_zero _ _ _ h0]
+      have hpr : (j, c).2.lost = c.lost := rfl
+      have hd : decide ((j, c).2.lost = 1) = false := decide_eq_false (by rw [hpr]; omega)
+      refine ⟨μ + 1, ?_⟩
+      rw [marksOf, List.map_cons, hd]
+      exact CascadeMarks.mark
+    · have h1 : 1 ≤ c.lost := by omega
+      rw [cascadeCut_cons_marked _ _ _ h1]
+      have hpr : (j, c).2.lost = c.lost := rfl
+      have hlossc : (j, c).2.lost ≤ 1 := hloss (j, c) (by simp)
+      have hc1 : c.lost = 1 := by omega
+      have hd : decide ((j, c).2.lost = 1) = true := by
+        rw [show (j, c).2.lost = 1 from hpr.trans hc1]
+        rfl
+      have hcnt' : (marksOf rest).count true + 1 ≤ μ := by
+        have hstep : (marksOf ((j, c) :: rest)).count true
+            = List.count true (decide ((j, c).2.lost = 1) :: marksOf rest) := rfl
+        rw [hstep, hd, List.count_cons_self] at hcnt
+        exact hcnt
+      obtain ⟨μ', hmarks⟩ := ih hloss' (μ - 1) (by omega)
+      refine ⟨μ', ?_⟩
+      rw [marksOf, List.map_cons, hd]
+      exact CascadeMarks.clear (by omega) hmarks
+
+/-- Wiring: the cascade consumes exactly the proved marking discipline, so the proved
+decrease-key ledger applies with `k + 1` total cuts (the original cut plus `k` cascade
+cuts).  The `CascadeMarks` premise is produced by `cascadeCut_marks` from the marked-count
+hypothesis; the root-count of the cascade is exactly `k`. -/
+theorem decrease_amortized_of_cascadeCut {K D0 D1 μ μ' t t' : ℕ}
+    {chain : List (ℕ × Child)}
+    (hK : D1 ≤ K) (ht : t' = t + ((cascadeCut chain).2.length + 1))
+    (hmarks : CascadeMarks (marksOf chain) μ μ' ((cascadeCut chain).2.length)) :
+    D0 + D1 * ((cascadeCut chain).2.length + 1) + FibHeapAccounting.scaledPotential K t' μ'
+      ≤ FibHeapAccounting.scaledPotential K t μ + (D0 + 3 * K + D1) :=
+  decrease_amortized_of_marks hK ht hmarks
+
 end Submission.FibHeapDynamic
