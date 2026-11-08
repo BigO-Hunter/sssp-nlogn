@@ -270,22 +270,22 @@ theorem invOK_treeOf (st : HState) (hm : MarkOK st) (hp : PosOK st) :
       obtain ⟨v, hv, rfl⟩ := hc
       exact ih v (hf v hv)
 
-/-- Distinct identifiers inside the live slots.  This is the single hypothesis that turns
-`fib(deg+2) ≤ size` into `deg ≤ rankCap st.n`. -/
+/-- Distinct live slots covering the abstracted subtree: a finite set whose cardinality is the
+subtree's size and whose members are all live slots.  This is the machine content of "the ids are
+distinct and inside the slots", stated over `size` rather than over the traversal `ids`, because
+`ids` is defined through the mutual recursor `Tree.rec` whose equations are not definitional
+(see `FibHeapSupport`); `size` has the clean equation `size_node`. -/
 def Support (st : HState) (f p : ℕ) : Prop :=
-  (ids (treeOf st f p)).Nodup ∧ ∀ i ∈ ids (treeOf st f p), i < st.n
+  ∃ s : Finset ℕ, s.card = (treeOf st f p).size ∧ ∀ x ∈ s, x < st.n
 
-/-- Under `Support` the abstracted subtree fits the slots. -/
+/-- Under `Support` the abstracted subtree fits the slots: its size is the cardinality of a set
+inside `range n`. -/
 theorem size_le_of_support {st : HState} {f p : ℕ} (h : Support st f p) :
     (treeOf st f p).size ≤ st.n := by
-  obtain ⟨hnd, hlt⟩ := h
-  have hcard : (ids (treeOf st f p)).toFinset.card = (treeOf st f p).size :=
-    FibHeapForest.live_card hnd
-  have hsub : (ids (treeOf st f p)).toFinset ⊆ Finset.range st.n := fun i hi =>
-    Finset.mem_range.mpr (hlt i (List.mem_toFinset.mp hi))
-  have := Finset.card_le_card hsub
-  rw [hcard, Finset.card_range] at this
-  exact this
+  obtain ⟨s, hcard, hlt⟩ := h
+  rw [← hcard]
+  have hsub : s ⊆ Finset.range st.n := fun x hx => Finset.mem_range.mpr (hlt x hx)
+  simpa using Finset.card_le_card hsub
 
 /-- The rank cap for a machine node: `InvOK` gives `fib(deg+2) ≤ size`, `Support` gives
 `size ≤ n`, and the proved scalar cap finishes. -/
