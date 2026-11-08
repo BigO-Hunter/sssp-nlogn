@@ -151,9 +151,23 @@ def MarkOK (st : HState) : Prop := ∀ p, st.mrk p ≤ 1
 def PosOK (st : HState) : Prop :=
   ∀ p, ∀ j, j < (kids st p).length → j ≤ ldeg st ((kids st p).getD j 0)
 
-/-- No descendant chain of `n` steps returns to its start: the structure is a forest. -/
-def NoCycle (st : HState) : Prop :=
-  ∀ (p : ℕ) (j : ℕ), st.n ≤ j → (st.par^[j]) p ≠ p
+/-- The `rgt`/`chd` walk and the `par` array agree: every child read out of a child list records
+that parent.  This is the tie between the two halves of the encoding, and the premise of every
+uniqueness statement below. -/
+def ParOK (st : HState) : Prop := ∀ p c, c ∈ kids st p → st.par c = p
+
+/-- Live slots are closed downwards along the child relation: a child of a live slot is a live
+slot.  Both directions of a `kids` edge are needed, so the statement gives both. -/
+def SlotOK (st : HState) : Prop := ∀ p, p < st.n → ∀ c ∈ kids st p, c < st.n
+
+/-- Live slots are closed upwards along `par`: the parent of a live slot is a live slot.  This is
+what bounds the `par`-iterates of a chain node by the slot count. -/
+def ParSlot (st : HState) : Prop := ∀ p, p < st.n → st.par p < st.n
+
+/-- **Acyclicity, at every positive length.**  No `par` chain returns to its start.  The earlier
+form of this predicate only excluded returns after `n` or more steps, which leaves the
+repeat-at-depth `j - i` escape open; injectivity of reachable chains needs the strict form. -/
+def NoCycle (st : HState) : Prop := ∀ (p : ℕ) (j : ℕ), 0 < j → (st.par^[j]) p ≠ p
 
 /-! ## The two transitions that move child positions -/
 
