@@ -69,7 +69,8 @@ def KidsNodup (st : HState) (p : ℕ) : Prop :=
 
 /-- **A node sits at exactly one depth.**  Two depths for one node close a `par` cycle of positive
 length, which the strengthened `NoCycle` forbids. -/
-theorem reach_unique_depth (st : HState) (hpar : ParOK st) (hcyc : NoCycle st) {p x i j : ℕ}
+theorem reach_unique_depth (st : HState) (hpar : ParOK st) (hac : Acyc st) {p x i j : ℕ}
+    (hp0 : p ≠ 0)
     (hi : Reach st i p x) (hj : Reach st j p x) : i = j := by
   rcases Nat.lt_trichotomy i j with hlt | heq | hgt
   · have h1 : (st.par^[i]) x = p := reach_par st hpar i p x hi
@@ -78,7 +79,7 @@ theorem reach_unique_depth (st : HState) (hpar : ParOK st) (hcyc : NoCycle st) {
       have h := Function.iterate_add_apply (f := st.par) (m := j - i) (n := i) (x := x)
       rw [show j - i + i = j by omega] at h
       rw [h, h1]
-    exact absurd (hsplit.symm.trans h2) (hcyc p (j - i) (by omega))
+    exact absurd (hac p (j - i) (by omega) (hsplit.symm.trans h2)) hp0
   · exact heq
   · have h1 : (st.par^[i]) x = p := reach_par st hpar i p x hi
     have h2 : (st.par^[j]) x = p := reach_par st hpar j p x hj
@@ -86,6 +87,6 @@ theorem reach_unique_depth (st : HState) (hpar : ParOK st) (hcyc : NoCycle st) {
       have h := Function.iterate_add_apply (f := st.par) (m := i - j) (n := j) (x := x)
       rw [show i - j + j = i by omega] at h
       rw [h, h2]
-    exact absurd (hsplit.symm.trans h1) (hcyc p (i - j) (by omega))
+    exact absurd (hac p (i - j) (by omega) (hsplit.symm.trans h1)) hp0
 
 end Submission.FibHeapSupport

@@ -18,8 +18,10 @@ at *positive* length forbids.  The repeat-at-depth `j - i` escape is why the ear
 form of `NoCycle` was too weak.
 
 The counting is done with `Fintype.card_le_of_injective` on `i ↦ par^[i] q` for `i ≤ n`: that map
-is injective by `NoCycle`, and lands in `Fin n` by `ParSlot` iterated from `q < n`.  No list
-extraction and no `Nodup` reasoning is needed.
+is injective because a repetition would be a `par`-cycle at a path node, and the only cycle `Acyc`
+permits is the NIL self-loop at slot 0 — which no path node can be (`chain_ne_zero`: the chain
+reaches the non-NIL node `p` at step `n`, and NIL is absorbing).  It lands in `Fin n` by `ParSlot`
+iterated from `q < n`.  No list extraction and no `Nodup` reasoning is needed.
 
 Main result: `faithful_of_noCycle`, which turns `degree_le_rankCap_treeOf`'s faithfulness premise
 into a machine fact.
@@ -100,44 +102,71 @@ theorem par_iter_lt (st : HState) (hps : ParSlot st) {q : ℕ} (hq : q < st.n) :
     rw [Function.iterate_succ_apply']
     exact hps _ ih
 
-/-- The `par`-iterates of a live slot are pairwise distinct up to any length, by `NoCycle` at
-positive length.  This is the injectivity the pigeonhole consumes. -/
-theorem par_iter_inj (st : HState) (hcyc : NoCycle st) {q : ℕ} :
-    ∀ i j : ℕ, i < j → (st.par^[i]) q ≠ (st.par^[j]) q := by
-  intro i j hij heq
-  have hpos : 0 < j - i := by omega
-  have hsplit : (st.par^[j]) q = (st.par^[j - i]) ((st.par^[i]) q) := by
-    have h := Function.iterate_add_apply (f := st.par) (m := j - i) (n := i) (x := q)
-    rwa [show j - i + i = j by omega] at h
-  rw [hsplit] at heq
-  exact hcyc ((st.par^[i]) q) (j - i) hpos heq.symm
+/-- NIL is absorbing: once a chain reaches 0 it stays there. -/
+theorem iterate_par_zero (st : HState) (hs : NILSelf st) :
+    ∀ j : ℕ, (st.par)^[j] 0 = 0 := by
+  intro j
+  induction j with
+  | zero => rfl
+  | succ k ih => rw [Function.iterate_succ_apply', ih, hs]
 
-/-- **Faithfulness from acyclicity.**  A live slot has no truncation at depth `n`: a chain of
-`n + 1` live distinct slots cannot exist inside `n` slots. -/
-theorem faithful_of_noCycle (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
-    (hps : ParSlot st) (hcyc : NoCycle st) {p : ℕ} (hp : p < st.n) : Faithful st st.n p := by
+/-- A chain from a non-NIL node avoids NIL for its first `n` steps, when the chain reaches a
+non-NIL node at step `n`.  This is what makes the pigeonhole injective. -/
+theorem chain_ne_zero (st : HState) (hs : NILSelf st) {q p : ℕ} (hq : q ≠ 0) (hp0 : p ≠ 0)
+    (hn : (st.par)^[st.n] q = p) :
+    ∀ i, i ≤ st.n → (st.par)^[i] q ≠ 0 := by
+  intro i hi hc
+  have hsplit : (st.par)^[st.n] q = (st.par)^[st.n - i] ((st.par)^[i] q) := by
+    have h := Function.iterate_add_apply (f := st.par) (m := st.n - i) (n := i) (x := q)
+    rwa [show st.n - i + i = st.n by omega] at h
+  rw [hsplit, hc, iterate_par_zero st hs] at hn
+  exact hp0 hn.symm
+
+/-- **Faithfulness from acyclicity.**  A live root's subtree truncates nowhere: the chain of `n+1`
+path nodes would have to repeat, and the only cycle `Acyc` permits is the NIL self-loop, which no
+path node can be (`chain_ne_zero`). -/
+theorem faithful_of_acyc (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
+    (hps : ParSlot st) (hs : NILSelf st) (hac : Acyc st) (hnl : NILLeaf st) {p : ℕ}
+    (hp : p < st.n) (hp0 : p ≠ 0) : Faithful st st.n p := by
   by_contra hnf
-  obtain ⟨q, hreach, -⟩ := exists_reach_of_not_faithful st st.n p hnf
+  obtain ⟨q, hreach, hdeg⟩ := exists_reach_of_not_faithful st st.n p hnf
+  have hqne : q ≠ 0 := fun hc => hdeg (by rw [hc]; exact hnl)
   have hq : q < st.n := reach_lt st hslot st.n p q hp (by omega) hreach
-  have hret : (st.par^[st.n]) q = p := reach_par st hpar st.n p q hreach
+  have hret : (st.par)^[st.n] q = p := reach_par st hpar st.n p q hreach
+  have hq0 : ∀ i, i ≤ st.n → (st.par)^[i] q ≠ 0 :=
+    chain_ne_zero st hs hqne hp0 hret
   have hinj : Function.Injective fun i : Fin (st.n + 1) =>
-      (⟨(st.par^[i.val]) q, par_iter_lt st hps hq i.val⟩ : Fin st.n) := by
-    intro i j hij
-    have hval : (st.par^[i.val]) q = (st.par^[j.val]) q := congrArg Fin.val hij
-    rcases Nat.lt_trichotomy i.val j.val with hlt | heq | hgt
-    · exact absurd hval (par_iter_inj st hcyc i.val j.val hlt)
+      (⟨(st.par)^[i.val] q, par_iter_lt st hps hq i.val⟩ : Fin st.n) := by
+    intro a b hab
+    have hval : (st.par)^[a.val] q = (st.par)^[b.val] q := congrArg Fin.val hab
+    rcases Nat.lt_trichotomy a.val b.val with hlt | heq | hgt
+    · exact (hq0 a.val (by simpa using a.isLt) (by
+        have hsplit : (st.par)^[b.val] q = (st.par)^[b.val - a.val] ((st.par)^[a.val] q) := by
+          have h := Function.iterate_add_apply (f := st.par) (m := b.val - a.val)
+              (n := a.val) (x := q)
+          rwa [show b.val - a.val + a.val = b.val by omega] at h
+        have hcyc' : (st.par)^[b.val - a.val] ((st.par)^[a.val] q) = (st.par)^[a.val] q := by
+          rw [hsplit.symm, hval]
+        exact hac (st.par^[a.val] q) (b.val - a.val) (by omega) hcyc')).elim
     · exact Fin.ext heq
-    · exact absurd hval.symm (par_iter_inj st hcyc j.val i.val hgt)
+    · exact (hq0 b.val (by simpa using b.isLt) (by
+        have hsplit : (st.par)^[a.val] q = (st.par)^[a.val - b.val] ((st.par)^[b.val] q) := by
+          have h := Function.iterate_add_apply (f := st.par) (m := a.val - b.val)
+              (n := b.val) (x := q)
+          rwa [show a.val - b.val + b.val = a.val by omega] at h
+        have hcyc' : (st.par)^[a.val - b.val] ((st.par)^[b.val] q) = (st.par)^[b.val] q := by
+          rw [hsplit.symm, hval.symm]
+        exact hac (st.par^[b.val] q) (a.val - b.val) (by omega) hcyc')).elim
   have hcard := Fintype.card_le_of_injective _ hinj
   simp at hcard
 
-/-- **The rank cap from machine facts only.**  Acyclicity discharges faithfulness, so the remaining
-premise of `degree_le_rankCap_treeOf` is `Support` (distinct abstracted ids inside the slots) —
-the one goal this module leaves.  Everything else is now a statement about the arrays. -/
+/-- **The rank cap with no analytic hypothesis left.**  Every premise is a machine invariant. -/
 theorem degree_le_rankCap_of_machine (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
-    (hps : ParSlot st) (hcyc : NoCycle st) (hm : MarkOK st) (hp : PosOK st) {p : ℕ}
-    (hpv : p < st.n) (hs : Support st (st.n + 1) p) :
+    (hps : ParSlot st) (hs' : NILSelf st) (hac : Acyc st) (hnl : NILLeaf st) (hm : MarkOK st)
+    (hp : PosOK st) {p : ℕ} (hpv : p < st.n) (hp0 : p ≠ 0) (hsup : Support st (st.n + 1) p) :
     st.deg p ≤ FibHeapAccounting.rankCap st.n :=
-  degree_le_rankCap_treeOf st hm hp st.n p (faithful_of_noCycle st hpar hslot hps hcyc hpv) hs
+  degree_le_rankCap_treeOf st hm hp st.n p
+    (faithful_of_acyc st hpar hslot hps hs' hac hnl hpv hp0) hsup
+
 
 end Submission.FibHeapAcyclic

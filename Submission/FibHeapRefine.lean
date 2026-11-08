@@ -164,10 +164,53 @@ def SlotOK (st : HState) : Prop := ∀ p, p < st.n → ∀ c ∈ kids st p, c < 
 what bounds the `par`-iterates of a chain node by the slot count. -/
 def ParSlot (st : HState) : Prop := ∀ p, p < st.n → st.par p < st.n
 
-/-- **Acyclicity, at every positive length.**  No `par` chain returns to its start.  The earlier
-form of this predicate only excluded returns after `n` or more steps, which leaves the
-repeat-at-depth `j - i` escape open; injectivity of reachable chains needs the strict form. -/
-def NoCycle (st : HState) : Prop := ∀ (p : ℕ) (j : ℕ), 0 < j → (st.par^[j]) p ≠ p
+/-! ## The NIL-sentinel acyclicity (M2c redesign)
+
+The first formulation of acyclicity -- `∀ x j, 0 < j → par^[j] x ≠ x` over ALL nodes -- is
+**unsatisfiable**: a total `par : ℕ → ℕ` on `n` slots has chains that must repeat within `n+1`
+steps, so no machine state could ever satisfy the premise, and `degree_le_rankCap_zero` was
+*vacuous*.  `RootsPar` (roots self-parent) was also inconsistent with it, head-on.
+
+The repair is the CLRS NIL convention: **slot 0 is the NIL sentinel**.  Every root's parent is 0
+(`NILRoots`), 0 is its own parent (`NILSelf`), 0 is in no child list (`NILNotChild`), 0 is not a
+root (`NILNotRoot`), and roots are children only of 0 (`RootNotChild`) and are live (`RootsLive`).
+Acyclicity then says: **the only `par`-cycle is the NIL self-loop at 0** (`Acyc`).  This is
+satisfiable (every root points at 0, 0 points at itself, tree nodes point at their parents), and
+it still forbids everything the proofs need: any cycle at a non-NIL node is excluded, and a
+fortiori so is a node being its own child, or its own parent, or a sibling of itself.
+
+`Forest`-style root-reaching was considered and rejected: it admits 2-cycles through the root,
+which `sib_disjoint` must exclude.  `RootsPar` was rejected: a root self-loop defeats
+`reach_unique_depth` outright.  The NIL sentinel is the design that satisfies both.
+
+A corollary -- every chain from a live slot reaches NIL within `n` steps, by the pigeonhole
+argument (`n+1` chain values in `n` slots, and the only permitted repetition is the NIL self-loop)
+-- is derivable but deferred: it needs the chain values bounded inside the slot range, which the
+consumers supply via `ParSlot` anyway. -/
+
+/-- The acyclicity: the only `par`-cycle is the NIL self-loop at slot 0. -/
+def Acyc (st : HState) : Prop := ∀ (x j : ℕ), 0 < j → (st.par)^[j] x = x → x = 0
+
+/-- Every root's parent is the NIL slot 0. -/
+def NILRoots (st : HState) : Prop := ∀ r ∈ st.roots, st.par r = 0
+
+/-- NIL is its own parent. -/
+def NILSelf (st : HState) : Prop := st.par 0 = 0
+
+/-- NIL is in no child list. -/
+def NILNotChild (st : HState) : Prop := ∀ q, 0 ∉ kids st q
+
+/-- Roots are children only of NIL. -/
+def RootNotChild (st : HState) : Prop := ∀ r ∈ st.roots, ∀ q, q ≠ 0 → r ∉ kids st q
+
+/-- Roots are live slots. -/
+def RootsLive (st : HState) : Prop := ∀ r ∈ st.roots, r < st.n
+
+/-- NIL is not a root. -/
+def NILNotRoot (st : HState) : Prop := 0 ∉ st.roots
+
+/-- NIL has no children: it terminates every chain. -/
+def NILLeaf (st : HState) : Prop := st.deg 0 = 0
 
 /-! ## The two transitions that move child positions -/
 
