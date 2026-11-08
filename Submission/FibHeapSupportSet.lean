@@ -103,7 +103,7 @@ theorem nodup_of_kidsNodup (st : HState) (p : ℕ) (h : KidsNodup st p) :
     simpa using hij.symm
 
 /-- **Two different children of one parent share no node.** -/
-theorem sib_disjoint (st : HState) (hpar : ParOK st) (hcyc : NoCycle st) {p a b : ℕ}
+theorem sib_disjoint (st : HState) (hpar : ParOK st) (hac : Acyc st) {p a b : ℕ} (hp0 : p ≠ 0)
     (ha : a ∈ kids st p) (hb : b ∈ kids st p) (hne : a ≠ b) {x : ℕ} {i j : ℕ}
     (hi : Reach st i a x) (hj : Reach st j b x) : False := by
   have hpa : st.par a = p := hpar p a ha
@@ -120,7 +120,7 @@ theorem sib_disjoint (st : HState) (hpar : ParOK st) (hcyc : NoCycle st) {p a b 
       have h1 : (st.par^[j - i + 1]) a = (st.par^[j - i]) p := by
         rw [show j - i + 1 = (j - i).succ by omega, Function.iterate_succ_apply, hpa]
       rw [← h1, Function.iterate_succ_apply', ← hba, hpb]
-    exact hcyc p (j - i) (by omega) hcyc'
+    exact hp0 (hac p (j - i) (by omega) hcyc')
   · exact hne (by rw [← hia, ← hjb, heq])
   · have hsplit : (st.par^[i]) x = (st.par^[i - j]) b := by
       have h := Function.iterate_add_apply (f := st.par) (m := i - j) (n := j) (x := x)
@@ -131,28 +131,28 @@ theorem sib_disjoint (st : HState) (hpar : ParOK st) (hcyc : NoCycle st) {p a b 
       have h1 : (st.par^[i - j + 1]) b = (st.par^[i - j]) p := by
         rw [show i - j + 1 = (i - j).succ by omega, Function.iterate_succ_apply, hpb]
       rw [← h1, Function.iterate_succ_apply', ← hab, hpa]
-    exact hcyc p (i - j) (by omega) hcyc'
+    exact hp0 (hac p (i - j) (by omega) hcyc')
 
 /-- **The root is in no child's set.** -/
-theorem root_notin_child (st : HState) (hpar : ParOK st) (hcyc : NoCycle st) {p c : ℕ}
-    (hc : c ∈ kids st p) {i : ℕ} (hi : Reach st i c p) : False := by
+theorem root_notin_child (st : HState) (hpar : ParOK st) (hac : Acyc st) {p c : ℕ}
+    (hp0 : p ≠ 0) (hc : c ∈ kids st p) {i : ℕ} (hi : Reach st i c p) : False := by
   have hpc : st.par c = p := hpar p c hc
   have hp : (st.par^[i]) p = c := reach_par st hpar i c p hi
   have hcyc' : (st.par^[i + 1]) p = p := by
     rw [Function.iterate_succ_apply', hp, hpc]
-  exact hcyc p (i + 1) (by omega) hcyc'
+  exact hp0 (hac p (i + 1) (by omega) hcyc')
 
 /-- **The support construction.**  A live root's abstracted subtree is covered by as many distinct
 live slots as it has nodes, at every fuel. -/
 theorem support_exists (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
-    (hkn : ∀ q, KidsNodup st q) (hcyc : NoCycle st) :
-    ∀ (f p : ℕ), p < st.n → ∃ s : Finset ℕ,
+    (hkn : ∀ q, KidsNodup st q) (hac : Acyc st) (hnn : NILNotChild st) :
+    ∀ (f p : ℕ), p < st.n → p ≠ 0 → ∃ s : Finset ℕ,
       s.card = (treeOf st f p).size ∧ (∀ x ∈ s, x < st.n) ∧
       (∀ x ∈ s, ∃ i, i ≤ f ∧ Reach st i p x) ∧ p ∈ s := by
   intro f
   induction f with
   | zero =>
-    intro p hp
+    intro p hp hp0
     have hshape : treeOf st 0 p = FibHeapForest.Tree.node p ([] : List Child) := rfl
     refine ⟨{p}, ?_, ?_, ?_, by simp⟩
     · rw [hshape, FibHeapForest.size_node]
@@ -164,11 +164,11 @@ theorem support_exists (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
       rw [Finset.mem_singleton] at hx
       exact ⟨0, by omega, hx.symm⟩
   | succ f ih =>
-    intro p hp
+    intro p hp hp0
     have hex : ∀ c, c ∈ kids st p → ∃ s : Finset ℕ,
         s.card = (treeOf st f c).size ∧ (∀ x ∈ s, x < st.n) ∧
         (∀ x ∈ s, ∃ i, i ≤ f ∧ Reach st i c x) ∧ c ∈ s :=
-      fun c hc => ih c (hslot p hp c hc)
+      fun c hc => ih c (hslot p hp c hc) (fun hcc => hnn p (hcc ▸ hc))
     let S : ℕ → Finset ℕ := fun c => if h : c ∈ kids st p then (hex c h).choose else ∅
     have hS : ∀ c (hc : c ∈ kids st p),
         (S c).card = (treeOf st f c).size ∧ (∀ x ∈ S c, x < st.n) ∧
@@ -186,11 +186,11 @@ theorem support_exists (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
       intro x hxa hxb
       obtain ⟨i, -, hi⟩ := (hS a ha).2.2.1 x hxa
       obtain ⟨j, -, hj⟩ := (hS b hb).2.2.1 x hxb
-      exact sib_disjoint st hpar hcyc ha hb hne' hi hj
+      exact sib_disjoint st hpar hac hp0 ha hb hne' hi hj
     have hpmem : ∀ c ∈ kids st p, p ∉ S c := by
       intro c hc hpc
       obtain ⟨i, -, hi⟩ := (hS c hc).2.2.1 p hpc
-      exact root_notin_child st hpar hcyc hc hi
+      exact root_notin_child st hpar hac hp0 hc hi
     have hnotin : p ∉ (kids st p).foldr (fun a acc => S a ∪ acc) ∅ :=
       not_mem_foldr_union _ S hpmem
     have hmaps : (kids st p).map (fun a => (S a).card)
@@ -229,9 +229,9 @@ theorem support_exists (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
 
 /-- **`Support` from machine facts** — the last premise of the rank cap, discharged. -/
 theorem support_of_noCycle (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
-    (hkn : ∀ q, KidsNodup st q) (hcyc : NoCycle st) {f p : ℕ} (hp : p < st.n) :
-    Support st f p := by
-  obtain ⟨s, hcard, hlive, -, -⟩ := support_exists st hpar hslot hkn hcyc f p hp
+    (hkn : ∀ q, KidsNodup st q) (hac : Acyc st) (hnn : NILNotChild st) {f p : ℕ}
+    (hp : p < st.n) (hp0 : p ≠ 0) : Support st f p := by
+  obtain ⟨s, hcard, hlive, -, -⟩ := support_exists st hpar hslot hkn hac hnn f p hp hp0
   exact ⟨s, hcard, hlive⟩
 
 /-- **The rank cap with no analytic hypothesis left.**  Every premise is a machine invariant:
@@ -240,10 +240,10 @@ children are distinct (`KidsNodup`), there is no `par` cycle (`NoCycle`), the ma
 (`MarkOK`), and the child lists are in link order (`PosOK`).  `Faithful` is gone (M1b) and
 `Support` is gone (here).  The updaters are what remain to establish those seven. -/
 theorem degree_le_rankCap_zero (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
-    (hps : ParSlot st) (hkn : ∀ q, KidsNodup st q) (hcyc : NoCycle st) (hm : MarkOK st)
-    (hp : PosOK st) {p : ℕ} (hpv : p < st.n) :
+    (hps : ParSlot st) (hkn : ∀ q, KidsNodup st q) (hac : Acyc st) (hs : NILSelf st)
+    (hnl : NILLeaf st) (hnn : NILNotChild st) (hm : MarkOK st) (hp : PosOK st)
+    {p : ℕ} (hpv : p < st.n) (hp0 : p ≠ 0) (hsup : Support st (st.n + 1) p) :
     st.deg p ≤ FibHeapAccounting.rankCap st.n :=
-  degree_le_rankCap_of_machine st hpar hslot hps hcyc hm hp hpv
-    (support_of_noCycle st hpar hslot hkn hcyc hpv)
+  degree_le_rankCap_of_machine st hpar hslot hps hs hac hnl hm hp hpv hp0 hsup
 
 end Submission.FibHeapSupport
