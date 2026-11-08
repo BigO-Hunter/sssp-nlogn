@@ -438,7 +438,7 @@ theorem cascadeCut_marks {chain : List (ℕ × Child)}
       ∃ μ' : ℕ, CascadeMarks (marksOf chain) μ μ' ((cascadeCut chain).2.length) := by
   intro μ
   induction chain generalizing μ with
-  | nil => intro _; exact ⟨μ, CascadeMarks.stop⟩
+  | nil => intro _; exact ⟨μ, CascadeMarks.stop μ⟩
   | cons p rest ih =>
     obtain ⟨j, c⟩ := p
     intro hcnt
@@ -449,7 +449,7 @@ theorem cascadeCut_marks {chain : List (ℕ × Child)}
       have hd : decide ((j, c).2.lost = 1) = false := decide_eq_false (by rw [hpr]; omega)
       refine ⟨μ + 1, ?_⟩
       rw [marksOf, List.map_cons, hd]
-      exact CascadeMarks.mark
+      exact CascadeMarks.mark (marksOf rest) μ
     · have h1 : 1 ≤ c.lost := by omega
       rw [cascadeCut_cons_marked _ _ _ h1]
       have hpr : (j, c).2.lost = c.lost := rfl

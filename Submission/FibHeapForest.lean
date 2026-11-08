@@ -310,9 +310,10 @@ ancestors cut during the cascade (the original cut in `decreaseKey` is not count
 - `mark`: an unmarked parent takes the one terminal new mark and the cascade stops.
 - `clear`: a marked parent loses its mark (μ counts one down) and is cut; the cascade continues. -/
 inductive CascadeMarks : List Bool → ℕ → ℕ → ℕ → Prop
-  | stop : CascadeMarks [] μ μ 0
-  | mark : CascadeMarks (false :: l) μ (μ + 1) 0
-  | clear : 1 ≤ μ → CascadeMarks l (μ - 1) μ' k → CascadeMarks (true :: l) μ μ' (k + 1)
+  | stop (μ : ℕ) : CascadeMarks [] μ μ 0
+  | mark (l : List Bool) (μ : ℕ) : CascadeMarks (false :: l) μ (μ + 1) 0
+  | clear {l : List Bool} {μ μ' k : ℕ} :
+      1 ≤ μ → CascadeMarks l (μ - 1) μ' k → CascadeMarks (true :: l) μ μ' (k + 1)
 
 /-- The exact CLRS marking effect: a cascade that cuts `k` ancestors leaves
 `μ' + (k+1) ≤ μ + 2` — at most `k` marks cleared and at most one terminal new mark. -/
