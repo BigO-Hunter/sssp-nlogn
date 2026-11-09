@@ -293,6 +293,81 @@ theorem transfer_clrs_gap (st : HState) (x y : ℕ) (chain : List (ℕ × ℕ)) 
     omega
   omega
 
+/-! ## The clearing anchors: `clearPromoteState`'s mark count -/
+
+/-- The clearing splice's mark set: `y` and `z` are removed from the mark set
+(the erase of a non-member is the identity, so this is unconditional). -/
+theorem markSet_clearPromote (st : HState) (y z : ℕ) :
+    markSet (clearPromoteState st y z) = ((markSet st).erase z).erase y := by
+  ext i
+  rw [mem_markSet, clearPromoteState_n, clearPromoteState_mrk, Finset.mem_erase,
+    Finset.mem_erase, mem_markSet]
+  by_cases h1 : i = y
+  · subst h1; simp
+  by_cases h2 : i = z
+  · subst h2; simp
+  · rw [if_neg h1, if_neg h2]
+    exact ⟨fun hx => ⟨h1, h2, hx⟩, fun hx => ⟨hx.2.2.1, hx.2.2.2⟩⟩
+
+/-- **Anchor two, intermediate cell.**  Both marks present: the clearing splice
+consumes two (`y`'s banked mark and `z`'s old mark) — the `CascadeMarks` clear
+cell's `−1`-per-cascade-cut ledger, taken two at a time. -/
+theorem machineMarks_clearPromoteState_intermediate (st : HState) (y z : ℕ)
+    (hyn : y < st.n) (hzn : z < st.n) (hy1 : st.mrk y = 1) (hz1 : st.mrk z = 1)
+    (hyz : y ≠ z) :
+    machineMarks (clearPromoteState st y z) + 2 = machineMarks st := by
+  have hmem1 : y ∈ markSet st := by simp [mem_markSet, hy1, hyn]
+  have hmem2 : z ∈ markSet st := by simp [mem_markSet, hz1, hzn]
+  have hyz' : y ∈ (markSet st).erase z := Finset.mem_erase.mpr ⟨hyz, hmem1⟩
+  have hset : markSet (clearPromoteState st y z) = ((markSet st).erase z).erase y :=
+    markSet_clearPromote st y z
+  have hcard2 : 2 ≤ (markSet st).card := by
+    have hznot : z ∉ insert y (∅ : Finset ℕ) := by
+      intro hc
+      simp only [Finset.mem_insert, Finset.mem_singleton, Finset.notMem_empty] at hc
+      rcases hc with hc | hfalse
+      · exact hyz hc.symm
+      · exact absurd hfalse (by simp)
+    have hsub : insert z (insert y (∅ : Finset ℕ)) ⊆ markSet st := by
+      intro x hx
+      simp only [Finset.mem_insert, Finset.mem_singleton, Finset.notMem_empty] at hx
+      rcases hx with rfl | rfl | hfalse
+      · exact hmem2
+      · exact hmem1
+      · exact absurd hfalse (by simp)
+    calc 2 = (insert z (insert y (∅ : Finset ℕ))).card := by
+          rw [Finset.card_insert_of_notMem hznot,
+            Finset.card_insert_of_notMem (by simp : y ∉ (∅ : Finset ℕ))]
+          simp
+      _ ≤ (markSet st).card := Finset.card_le_card hsub
+  have hcard : (((markSet st).erase z).erase y).card + 2 = (markSet st).card := by
+    rw [Finset.card_erase_of_mem hyz', Finset.card_erase_of_mem hmem2]
+    omega
+  calc machineMarks (clearPromoteState st y z) + 2
+      = (markSet (clearPromoteState st y z)).card + 2 := rfl
+    _ = (((markSet st).erase z).erase y).card + 2 := by rw [hset]
+    _ = (markSet st).card := hcard
+    _ = machineMarks st := rfl
+
+/-- **Anchor two, terminal cell.**  Only `y`'s banked mark present: the
+clearing splice consumes it, and the stop's `markState` re-banks (`+1`) —
+net zero for the terminal cell, the `CascadeMarks` mark case. -/
+theorem machineMarks_clearPromoteState_terminal (st : HState) (y z : ℕ)
+    (hyn : y < st.n) (hy1 : st.mrk y = 1) (hz0 : st.mrk z = 0) (hyz : y ≠ z) :
+    machineMarks (clearPromoteState st y z) + 1 = machineMarks st := by
+  have hnotmem : z ∉ markSet st := by simp [mem_markSet, hz0]
+  have hmem1 : y ∈ markSet st := by simp [mem_markSet, hy1, hyn]
+  have hpos : 0 < (markSet st).card := Finset.card_pos.mpr ⟨y, hmem1⟩
+  have hset : markSet (clearPromoteState st y z) = (markSet st).erase y := by
+    rw [markSet_clearPromote, Finset.erase_eq_self.mpr hnotmem]
+  have hcard : ((markSet st).erase y).card + 1 = (markSet st).card := by
+    rw [Finset.card_erase_of_mem hmem1]; omega
+  calc machineMarks (clearPromoteState st y z) + 1
+      = (markSet (clearPromoteState st y z)).card + 1 := rfl
+    _ = ((markSet st).erase y).card + 1 := by rw [hset]
+    _ = (markSet st).card := hcard
+    _ = machineMarks st := rfl
+
 /-! ## The consolidation measure -/
 
 /-- Distinct root degrees: after consolidation no two roots share a rank. -/
