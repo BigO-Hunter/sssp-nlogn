@@ -252,3 +252,28 @@ The 23 remaining (build r4):
 THE PROBE (verified): flat by_cases+subst+simp [casOut, decreaseKeyPath, cascadeRun,
 markState, cutState, promoteState, casPreSt(+ne-hyps)] WORKS for deg at v=5/v∉{1..4}
 and deg 1.  Reuse that exact tactic block for kids_casOut's failing branch.
+
+
+## WIP UPDATE #5 (round 3 — final for this session; 28 errors, witness-only)
+
+Round-3 findings (build29):
+- Adding `kids` to kids_casOut's simp sets made it WORSE (685-694 unsolved — the
+  unfold-first composite + kids double-unfold interact).  REVERT kids_casOut to the
+  r4 rfl-tree state and fix ONLY the single failing branch: find which `subst hX;
+  rfl` fails (build r4 said :687 — one branch) and replace that ONE `rfl` with
+  `simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+  casPreSt]`.
+- `rw [hv] at hv` fails (`hv is a proof of ...` — the membership hyp's type after
+  kids-unfold is not a plain Eq in some branches).  REVERT to hv-in-args
+  (`simp [kids, casPreSt, hq1..hq4, hv] at hv ⊢`) and diagnose why simp leaves the
+  nested-ite ⊢: the residual goals (build r3 :712) showed `(if v = 1 then 2 else
+  ...) = 3` UNREDUCED with hv : v = 2 in context — simp consumed hv while rewriting
+  hv itself.  Robust idiom: `rw [show v = 2 from hv] at *`-style with explicit
+  terms, or `obtain ⟨rfl⟩ := hv` BEFORE the simp (destruct v instead).
+  RECOMMENDED: replace the compact by_cases+simp-at form with explicit
+  `rcases`-destruct of q first (q ∈ {1,2,3,4} by the hq disjunction), subst v per
+  cell from the kid-list equalities, then `simp [casPreSt]` per cell.
+- casOut_roots/casOut_n are RE-ADDED after kids_casOut (needed by casOut_capstone).
+- Round-3 file state = committed d8.. (round 3 commit).  Error list: 685-694
+  (kids_casOut six branches — revert-first), 714 ×4 (rw [hv] idiom — revert-first),
+  then the previously-listed ParOK/KidsNodup/SlotOK/PosOK/Acyc/Support sites.
