@@ -429,6 +429,147 @@ theorem machineMarks_clearCascade_hmarks (st : HState) (x y : ℕ)
   rw [hcut] at h1
   omega
 
+/-! ## The machine ledger: the clearing chain's flags as a `CascadeMarks` witness -/
+
+/-- `clearFlags` on a cell unfolds to the head bit plus the ancestor's branch —
+the equation lemma the witness construction splits on. -/
+theorem clearFlags_cons (s : HState) (y z : ℕ) (rest : List (ℕ × ℕ)) :
+    clearFlags s ((y, z) :: rest)
+      = true :: (if s.mrk z = 1 then true :: clearFlags (clearPromoteState s y z) rest
+        else false :: clearFlags (clearPromoteState s y z) rest) := rfl
+
+/-- **Intermediate cell** (`z` already marked): the flags are `true, true` — the
+consumed banked mark at `y` and the consumed old mark at `z`. -/
+theorem clearFlags_cons_marked (s : HState) (y z : ℕ) (rest : List (ℕ × ℕ))
+    (hz : s.mrk z = 1) :
+    clearFlags s ((y, z) :: rest)
+      = true :: true :: clearFlags (clearPromoteState s y z) rest := by
+  rw [clearFlags_cons, if_pos hz]
+
+/-- **Terminal cell** (`z` unmarked): the flags are `true, false` — the consumed
+banked mark at `y`, then the stop's fresh mark. -/
+theorem clearFlags_cons_unmarked (s : HState) (y z : ℕ) (rest : List (ℕ × ℕ))
+    (hz : s.mrk z = 0) :
+    clearFlags s ((y, z) :: rest)
+      = true :: false :: clearFlags (clearPromoteState s y z) rest := by
+  rw [clearFlags_cons, if_neg (by omega)]
+
+/-- The well-formed clearing chain: `ClearChain` plus the terminal discipline —
+every non-final cell's ancestor `z` is marked, so the chain stops exactly at
+the first unmarked ancestor.  This is the CLRS cascade shape: each
+intermediate's `z` is marked because a previous decrease-key left it so (the
+mark-supply fact, stated structurally instead of as a count hypothesis). -/
+def ClearChainStrict (st : HState) : List (ℕ × ℕ) → Prop
+  | [] => True
+  | (y, z) :: rest =>
+      y < st.n ∧ z < st.n ∧ st.mrk y = 1 ∧ y ≠ z
+        ∧ (rest ≠ [] → st.mrk z = 1)
+        ∧ ClearChainStrict (clearPromoteState st y z) rest
+
+/-- The clearing fold adds exactly one root per cell; the stop's mark adds none. -/
+theorem clearCascadeRun_roots (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s : HState),
+    (clearCascadeRun s chain stop).roots.length = s.roots.length + chain.length := by
+  intro chain
+  induction chain with
+  | nil => intro s; simp [clearCascadeRun, markState_roots]
+  | cons cell tail ih =>
+    intro s
+    obtain ⟨y, z⟩ := cell
+    simp only [clearCascadeRun]
+    rw [ih (clearPromoteState s y z), clearPromoteState_roots', promoteState_roots]
+    simp
+    omega
+
+open Submission.FibHeapForest in
+/-- **The machine-chain-to-ledger bridge** (`clearChain_cascadeMarks`).  The
+clearing chain's mark-state-dependent flags (`clearFlags`) satisfy the forest
+lane's `CascadeMarks` relation exactly, with the cut count `c` = the number of
+consumed marks: each intermediate cell consumes two (`clear` twice — `y`'s
+banked mark and `z`'s old mark), the terminal cell one (`clear`, then the
+stop's `mark`), so `c = 2k−1` for a `k`-cell cascade and `k ≤ c`.  The
+relation's final mark count `μ'` tracks the machine fold in lockstep (the
+relation's per-flag `−1` is the splice's `−2`-per-intermediate /
+`−1`-per-terminal, read one bit at a time), which lands both ledgers with no
+slack: the relation's CLRS form `μ' + (c+1) ≤ μ₀ + 2` (equality in fact), and
+the count-level machine form `μ' + k ≤ μ₀ + 1`.  Mark state threads through
+`clearPromoteState` (Anchor 1's `promoteClear_MarkOK`); no count hypothesis is
+needed — the mark supply `2k−1 ≤ μ₀ + 1` is a consequence, not an assumption. -/
+theorem clearChain_cascadeMarks :
+    ∀ (chain : List (ℕ × ℕ)) (s : HState), MarkOK s → ClearChainStrict s chain →
+    ∃ c μ', CascadeMarks (clearFlags s chain) (machineMarks s) μ' c
+      ∧ chain.length ≤ c
+      ∧ μ' + (c + 1) ≤ machineMarks s + 2
+      ∧ μ' + chain.length ≤ machineMarks s + 1 := by
+  intro chain
+  induction chain with
+  | nil =>
+    intro s _ _
+    refine ⟨0, machineMarks s, CascadeMarks.stop _, ?_, ?_, ?_⟩
+    · simp
+    · omega
+    · simp only [List.length_nil]; omega
+  | cons cell tail ih =>
+    intro s hm hcc
+    obtain ⟨y, z⟩ := cell
+    obtain ⟨hyn, hzn, hy1, hyz, hstrict, hrest⟩ := hcc
+    by_cases hz1 : s.mrk z = 1
+    · -- intermediate cell: two consumptions, two `clear`s
+      obtain ⟨c', μ'', hcm, hlen, hled2, hled1⟩ :=
+        ih (clearPromoteState s y z) (promoteClear_MarkOK s y z hm) hrest
+      have hanchor : machineMarks (clearPromoteState s y z) + 2 = machineMarks s :=
+        machineMarks_clearPromoteState_intermediate s y z hyn hzn hy1 hz1 hyz
+      have hge : 2 ≤ machineMarks s := by omega
+      have heq : machineMarks s - 1 - 1 = machineMarks (clearPromoteState s y z) := by
+        omega
+      have hcm' : CascadeMarks (clearFlags (clearPromoteState s y z) tail)
+          (machineMarks s - 1 - 1) μ'' c' := by rw [heq]; exact hcm
+      have hcm1 : CascadeMarks (true :: clearFlags (clearPromoteState s y z) tail)
+          (machineMarks s - 1) μ'' (c' + 1) := CascadeMarks.clear (by omega) hcm'
+      rw [clearFlags_cons_marked s y z tail hz1]
+      refine ⟨c' + 2, μ'', CascadeMarks.clear (by omega) hcm1, ?_, ?_, ?_⟩
+      · simp only [List.length_cons]; omega
+      · omega
+      · simp only [List.length_cons]; omega
+    · -- terminal cell: one consumption, then the stop's `mark`
+      have hz0 : s.mrk z = 0 := by have := hm z; omega
+      have htail : tail = [] := by
+        by_contra hne
+        exact hz1 (hstrict hne)
+      subst htail
+      have hge : 1 ≤ machineMarks s := by
+        have hanchor := machineMarks_clearPromoteState_terminal s y z hyn hy1 hz0 hyz
+        omega
+      rw [clearFlags_cons_unmarked s y z [] hz0]
+      refine ⟨1, machineMarks s - 1 + 1,
+        CascadeMarks.clear hge (CascadeMarks.mark _ (machineMarks s - 1)), ?_, ?_, ?_⟩
+      · simp only [List.length_cons, List.length_nil]; omega
+      · omega
+      · simp only [List.length_cons, List.length_nil]; omega
+
+/-- **The scaled lift.**  The count-level mark ledger (the landed
+`markcount_clearCells`) discharges `decrease_amortized_clrs`'s `hmarks` at
+`c = chain.length`, with `ht` the fold's root accounting (`t' = t +
+chain.length` — the accounting `t` is the fold's iterations, landed as
+`clearCascadeRun_roots`).  This is the decrease-key amortization's scaled
+`D0 + 3K + D1` form for the clearing cascade — the machine counterpart of the
+forest lane's `decrease_amortized_of_cascadeCut`. -/
+theorem decrease_amortized_of_clearCascadeRun {K D0 D1 : ℕ} {t t' μ μ' : ℕ}
+    {s : HState} {chain : List (ℕ × ℕ)} {stop : ℕ}
+    (hK : D1 ≤ K) (hc : 1 ≤ chain.length)
+    (hts : t = s.roots.length) (hμ : μ = machineMarks s)
+    (hts' : t' = (clearCascadeRun s chain stop).roots.length)
+    (hμ' : μ' = machineMarks (clearCascadeRun s chain stop))
+    (hm : MarkOK s) (hcc : ClearChain s s.n chain) :
+    D0 + D1 * chain.length + FibHeapAccounting.scaledPotential K t' μ'
+      ≤ FibHeapAccounting.scaledPotential K t μ + (D0 + 3 * K + D1) := by
+  have ht : t' = t + chain.length := by
+    rw [hts', clearCascadeRun_roots, hts]
+  have hmarks : μ' + chain.length ≤ μ + 2 := by
+    rw [hμ', hμ]
+    have h1 := markcount_clearCells stop chain s hm hcc
+    omega
+  exact FibHeapAccounting.decrease_amortized_clrs (c := chain.length) hc hK ht hmarks
+
 /-- **The clearing splice's potential drops.**  One fresh root (`+1`) against
 at least one consumed mark (`−2·1` or better): `Φ' ≤ Φ + 1 − 2 ≤ Φ`. -/
 theorem machinePotential_clearPromoteState_le (st : HState) (y z : ℕ)
