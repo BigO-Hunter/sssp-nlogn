@@ -1448,6 +1448,48 @@ def extractOp : Stmt :=
   .seq (wset "j" (lit 0))
     (.seq kidLoop (.seq absorbMin rootsCompact))
 
+/-! ## The op `Runs` receipts (p2d)
+
+The per-op receipts: eval facts from the `wa_*_of_rel` readers (every branch
+test reads a pre-store cell), the store chains bridged by the landed
+`decode_cutSplice` / `decode_extractSplice` congruences (the decode lands
+exactly at the window frames `cutPend` / `extractStateAbs`), and the appends
+wired by the pending-append receipt.  Cost bounds are per-branch counts.
+Peel discipline (measured this session): every state-layer peel goes through
+`simp only` (order-insensitive over the charge/storeW wrappers — hand-counted
+`rw` chains fail on the outermost-constructor order), with the meta-assigning
+`rw`/`rfl` as the tail. -/
+
+/-- The generic pending append: `logPush reg` from a window state — the window
+grows by one cell carrying the register's value, cost exactly `2`.
+(`insertOp_RelLog` is the `"x"` instance; the cascade cells and the extract's
+child loop append through other registers.) -/
+theorem logPush_RelLog (reg : String) (stW : HState) (pending : List ℕ)
+    (r : State ℝ≥0) (e : ℕ)
+    (hR : RelLog stW pending r) (hcap0 : 1 < r.cap) (hcapE : e + 1 < r.cap)
+    (he : r.w "e" = e) (hb : e < r.wlen "elog") :
+    Runs realOps (logPush reg) r (fun r' =>
+      RelLog stW (pending ++ [r.w reg]) r' ∧ r'.cost = r.cost + 2) := by
+  unfold logPush
+  have hadd : evalW ((r.storeW "elog" e (r.w reg)).charge 1)
+      (add (var "e") (lit 1)) = some (e + 1) := by
+    refine evalW_add_of ?_
+      (evalW_lit_of (by simp only [cap_charge, cap_storeW]; exact hcap0))
+      (by simp only [cap_charge, cap_storeW]; exact hcapE)
+    rw [evalW_var, w_charge, w_storeW, he]
+  refine runs_seq (runs_wstore (hi := by rw [evalW_var, he]) (he := by rw [evalW_var]) hb
+    (runs_wset hadd ?_))
+  refine ⟨?_, ?_⟩
+  · -- RelLog stW (pending ++ [r.w reg]) (final state): decode/logOf read no cost,
+    -- so the tail charge is transparent and RelLog.bump lands it exactly
+    show decode (((((r.storeW "elog" e (r.w reg)).charge 1).setW "e" (e + 1))).charge 1) = stW ∧
+      logOf (((((r.storeW "elog" e (r.w reg)).charge 1).setW "e" (e + 1))).charge 1)
+        = pending ++ [r.w reg]
+    rw [decode_charge, logOf_charge]
+    exact RelLog.bump hR (r.w reg) e he hcapE hb
+  · -- cost
+    rw [cost_charge, cost_setW, cost_charge, cost_storeW]
+
 /-! ## Axiom probes -/
 
 #print axioms insertOp_runs
@@ -1461,3 +1503,4 @@ def extractOp : Stmt :=
 #print axioms decode_extractSplice
 #print axioms flt_filter_append
 #print axioms flt_eq_filter_append
+#print axioms logPush_RelLog

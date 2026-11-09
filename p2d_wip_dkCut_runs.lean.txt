@@ -1,0 +1,316 @@
+set_option maxHeartbeats 8000000 in
+set_option maxRecDepth 20000 in
+/-- **The cut op's `Runs` receipt.**  The store chain's eval facts ride the
+`wa_*_of_rel` readers (every branch test reads a pre-store cell), the decode
+bridges by the `decode_cutSplice` shape (the chain lands exactly at `cutPend`),
+and the append rides `logPush_RelLog`.  Cost `≤ 10` (7 in the `deg y = 1`
+branch, 8 when the inner `ite` takes its then-arm, 10 in the full relink
+else). -/
+theorem dkCut_runs (stW : HState) (pending : List ℕ) (x y : ℕ) (r : State ℝ≥0)
+    (hR : RelLog stW pending r)
+    (hx : r.w "x" = x) (hy : r.w "y" = y)
+    (hxp : x < r.wlen "par") (hyp : y < r.wlen "par") (hym : y < r.wlen "mrk")
+    (hyc : y < r.wlen "chd") (hyd : y < r.wlen "deg")
+    (hxr : x < r.wlen "rgt") (hxl : x < r.wlen "lft")
+    (hlf : r.wa "lft" x < r.wlen "rgt") (hrg : r.wa "rgt" x < r.wlen "lft")
+    (hcap0 : 1 < r.cap) (hcapE : r.w "e" + 1 < r.cap) (hb : r.w "e" < r.wlen "elog") :
+    Runs realOps dkCut r (fun r' =>
+      RelLog (cutPend stW x y) (pending ++ [x]) r' ∧ r'.cost ≤ r.cost + 10) := by
+  unfold dkCut
+  -- Elaboration discipline (measured r4–r6): a named-arg `by` block is
+  -- elaborated AFTER the application's state/`j`/`a` are assigned, so its goal
+  -- is concrete — peel with `simp only` (order-free over the rfl-transparent
+  -- store/charge wrappers) and close with the pre-state fact.  Term-mode
+  -- `congrArg some hy` cannot unify there (the state is still a meta); it is
+  -- reserved for the concrete `have`s.  Never open a `by` with same-line
+  -- tactics that continue on the next line (parser ends the block at EOL).
+  by_cases h1 : stW.deg y = 1
+  · -- the `deg y = 1` branch: par, mrk, chd y := 0, deg, logPush — cost 7
+    refine runs_seq (runs_wstore (j := x) (a := 0)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hx])
+      (he := evalW_lit_of (by omega)) (hj := hxp) ?_)
+    refine runs_seq (runs_wstore (j := y) (a := 1)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hym) ?_)
+    -- the branch test reads the pre-store `deg y` through the decode
+    have hdeg2 : (((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).wa "deg" y
+        = stW.deg y := by
+      simp [wa_charge, wa_storeW, wa_deg_of_rel hR.1 y]
+    have hwld2 : (((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).wlen "deg"
+        = r.wlen "deg" := rfl
+    have hc1 : evalW ((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1)
+        (eq (load "deg" (var "y")) (lit 1)) = some 1 :=
+      Eq.trans (evalW_eq_of
+        (Eq.trans (evalW_load_of (congrArg some hy)
+            (by simp only [wlen_charge, wlen_storeW]; exact hyd))
+          (congrArg some hdeg2))
+        (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+        (by simp only [cap_charge, cap_storeW]; exact hcap0))
+        (congrArg some (if_pos h1))
+    refine runs_seq (runs_ite_true hc1 (by decide) ?_)
+    refine runs_wstore (j := y) (a := 0)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hyc) ?_
+    have hEd1 : evalW (((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1
+        ).charge 1).storeW "chd" y 0).charge 1) (load "deg" (var "y"))
+        = some (stW.deg y) := by
+      rw [evalW_load_of (j := y) (by simp only [evalW_var, w_charge, w_storeW, hy])
+        (by simp only [wlen_charge, wlen_storeW]; exact hyd)]
+      exact congrArg some hdeg2
+    refine runs_seq (runs_wstore (j := y) (a := stW.deg y - 1)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_sub_of hEd1
+        (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega)))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hyd) ?_)
+    refine Runs.mono (logPush_RelLog "x" (cutPend stW x y) pending _ (r.w "e")
+      ?hR hcap0 hcapE ?he ?hb) ?post
+    · -- hR: the decode lands exactly at the window frame (decode_cutSplice's shape)
+      refine ⟨?_, ?_⟩
+      · simp only [FibHeapDecode.Rel]
+        simp [decode_storeW_deg, decode_storeW_chd, decode_storeW_mrk,
+          decode_storeW_par, decode_charge, cutPend, cutState, if_pos h1,
+          HState.mk.injEq, degUpd_eq, wa_par_of_rel hR.1, wa_mrk_of_rel hR.1,
+          wa_chd_of_rel hR.1, wa_deg_of_rel hR.1]
+        exact ⟨congrArg HState.rgt hR.1, congrArg HState.lft hR.1,
+          congrArg HState.roots hR.1, congrArg HState.n hR.1⟩
+      · -- the log is untouched by the stores
+        simp only [logOf_storeW (b := "deg") (by decide),
+          logOf_storeW (b := "chd") (by decide),
+          logOf_storeW (b := "mrk") (by decide),
+          logOf_storeW (b := "par") (by decide), logOf_charge]
+        exact hR.2
+    · simp only [w_charge, w_storeW]
+    · simp only [wlen_charge, wlen_storeW]; exact hb
+    rintro r'' ⟨hrel, hcost⟩
+    obtain ⟨hdec, hlog⟩ := hrel
+    refine ⟨?_, ?_⟩
+    · refine ⟨hdec, ?_⟩
+      rw [hlog]
+      simp only [w_charge, w_storeW, hx]
+    · simp only [cost_storeW, cost_charge] at hcost
+      omega
+  · -- the `deg y ≥ 2` branch
+    refine runs_seq (runs_wstore (j := x) (a := 0)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hx])
+      (he := evalW_lit_of (by omega)) (hj := hxp) ?_)
+    refine runs_seq (runs_wstore (j := y) (a := 1)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hym) ?_)
+    have hdeg2 : (((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).wa "deg" y
+        = stW.deg y := by
+      simp [wa_charge, wa_storeW, wa_deg_of_rel hR.1 y]
+    have hchd2 : (((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).wa "chd" y
+        = stW.chd y := by
+      simp [wa_charge, wa_storeW, wa_chd_of_rel hR.1 y]
+    have hrgt2 : (((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).wa "rgt" x
+        = stW.rgt x := by
+      simp [wa_charge, wa_storeW, wa_rgt_of_rel hR.1 x]
+    have hlf2 : (((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).wa "lft" x
+        = stW.lft x := by
+      simp [wa_charge, wa_storeW, wa_lft_of_rel hR.1 x]
+    have hwld2 : (((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).wlen "deg"
+        = r.wlen "deg" := rfl
+    have hc1 : evalW ((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1)
+        (eq (load "deg" (var "y")) (lit 1)) = some 0 :=
+      Eq.trans (evalW_eq_of
+        (Eq.trans (evalW_load_of (congrArg some hy)
+            (by simp only [wlen_charge, wlen_storeW]; exact hyd))
+          (congrArg some hdeg2))
+        (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+        (by simp only [cap_charge, cap_storeW]; exact hcap0))
+        (congrArg some (if_neg h1))
+    refine runs_seq (runs_ite_false hc1 ?_)
+    by_cases h2 : stW.chd y = x
+    · -- inner then-arm: the head write — cost 8
+      have hwc2 : ((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).wlen "chd"
+          = r.wlen "chd" := rfl
+      have hc2 : evalW (((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1
+          ).charge 1)
+          (eq (load "chd" (var "y")) (var "x")) = some 1 :=
+        Eq.trans (evalW_eq_of
+          (Eq.trans (evalW_load_of (congrArg some hy)
+              (by simp only [wlen_charge, wlen_storeW]; exact hyc))
+            (congrArg some hchd2))
+          (congrArg some hx)
+          (by simp only [cap_charge, cap_storeW]; exact hcap0))
+          (congrArg some (if_pos h2))
+      refine runs_seq (runs_ite_true hc2 (by decide) ?_)
+      refine runs_wstore (j := y) (a := stW.rgt x)
+        (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+        (he := by
+          rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+            (by simp only [wlen_charge, wlen_storeW]; exact hxr)]
+          exact congrArg some hrgt2)
+        (hj := by simp only [wlen_charge, wlen_storeW]; exact hyc) ?_
+      -- the relinks run in BOTH inner arms (the outer else is
+      -- .seq (inner ite) (.seq rgt lft)) — checked against the program text;
+      -- the relink reads ride hoisted haves on the post-chd chain
+      have hErg2t : evalW ((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).storeW "chd" y (stW.rgt x)).charge 1) (load "rgt" (var "x"))
+          = some (stW.rgt x) := by
+        rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+          (by simp only [wlen_charge, wlen_storeW]; exact hxr)]
+        rw [wa_charge, wa_storeW, if_neg (by simp),
+          wa_charge, wa_charge, wa_charge, wa_storeW,
+          if_neg (by simp), wa_charge, wa_storeW,
+          if_neg (by simp), wa_rgt_of_rel hR.1 x]
+      have hElf2t : evalW ((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).storeW "chd" y (stW.rgt x)).charge 1) (load "lft" (var "x"))
+          = some (stW.lft x) := by
+        rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+          (by simp only [wlen_charge, wlen_storeW]; exact hxl)]
+        exact congrArg some hlf2
+      refine runs_seq (runs_wstore (j := stW.lft x) (a := stW.rgt x)
+        (hi := hElf2t) (he := hErg2t)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_lft_of_rel hR.1 x]; exact hlf) ?_)
+      have hErg2u : evalW ((((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).storeW "chd" y (stW.rgt x)).charge 1).storeW "rgt" (stW.lft x) (stW.rgt x)).charge 1) (load "rgt" (var "x"))
+          = some (stW.rgt x) := by
+        rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+          (by simp only [wlen_charge, wlen_storeW]; exact hxr)]
+        rw [wa_charge, wa_storeW]
+        by_cases hx2 : x = stW.lft x
+        · rw [if_pos (by simp [hx2])]
+        · rw [if_neg (by simp [hx2]), wa_charge, wa_storeW,
+            if_neg (by simp), wa_charge, wa_charge, wa_charge,
+            wa_storeW, if_neg (by simp), wa_charge,
+            wa_storeW, if_neg (by simp), wa_rgt_of_rel hR.1 x]
+      have hElf2u : evalW ((((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).storeW "chd" y (stW.rgt x)).charge 1).storeW "rgt" (stW.lft x) (stW.rgt x)).charge 1) (load "lft" (var "x"))
+          = some (stW.lft x) := by
+        rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+          (by simp only [wlen_charge, wlen_storeW]; exact hxl)]
+        exact congrArg some hlf2
+      refine runs_wstore (j := stW.rgt x) (a := stW.lft x)
+        (hi := hErg2u) (he := hElf2u)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_rgt_of_rel hR.1 x]; exact hrg) ?_
+      have hEd2 : evalW ((((((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).storeW "chd" y (stW.rgt x)).charge 1).storeW "rgt" (stW.lft x) (stW.rgt x)).charge 1).storeW "lft" (stW.rgt x) (stW.lft x)).charge 1) (load "deg" (var "y"))
+          = some (stW.deg y) := by
+        rw [evalW_load_of (j := y) (by simp only [evalW_var, w_charge, w_storeW, hy])
+          (by simp only [wlen_charge, wlen_storeW]; exact hyd)]
+        exact congrArg some hdeg2
+      refine runs_seq (runs_wstore (j := y) (a := stW.deg y - 1)
+        (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+        (he := evalW_sub_of hEd2
+          (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega)))
+        (hj := by simp only [wlen_charge, wlen_storeW]; exact hyd) ?_)
+      refine Runs.mono (logPush_RelLog "x" (cutPend stW x y) pending _ (r.w "e")
+        ?hR hcap0 hcapE ?he ?hb) ?post
+      · -- hR
+        refine ⟨?_, ?_⟩
+        · simp only [FibHeapDecode.Rel]
+          simp [decode_storeW_deg, decode_storeW_chd, decode_storeW_mrk,
+            decode_storeW_par, decode_storeW_rgt, decode_storeW_lft, decode_charge,
+            cutPend, cutState, if_neg h1, if_pos h2, HState.mk.injEq, degUpd_eq,
+            wa_par_of_rel hR.1, wa_mrk_of_rel hR.1, wa_rgt_of_rel hR.1,
+            wa_lft_of_rel hR.1, wa_chd_of_rel hR.1, wa_deg_of_rel hR.1,
+            congrArg HState.rgt hR.1, congrArg HState.lft hR.1,
+            congrArg HState.roots hR.1, congrArg HState.n hR.1]
+          all_goals first
+            | rfl
+            | (funext i; simp)
+        · simp only [logOf_storeW (b := "deg") (by decide),
+            logOf_storeW (b := "chd") (by decide),
+            logOf_storeW (b := "mrk") (by decide),
+            logOf_storeW (b := "par") (by decide), logOf_charge]
+          exact hR.2
+      · simp only [w_charge, w_storeW]
+      · simp only [wlen_charge, wlen_storeW]; exact hb
+      rintro r'' ⟨hrel, hcost⟩
+      obtain ⟨hdec, hlog⟩ := hrel
+      refine ⟨?_, ?_⟩
+      · refine ⟨hdec, ?_⟩
+        rw [hlog]
+        simp only [w_charge, w_storeW, hx]
+      · simp only [cost_storeW, cost_charge] at hcost
+        omega
+    · -- inner else-arm: skip + both relinks — cost 10
+      have hwc2 : ((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).wlen "chd"
+          = r.wlen "chd" := rfl
+      have hc2 : evalW (((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1
+          ).charge 1)
+          (eq (load "chd" (var "y")) (var "x")) = some 0 :=
+        Eq.trans (evalW_eq_of
+          (Eq.trans (evalW_load_of (congrArg some hy)
+              (by simp only [wlen_charge, wlen_storeW]; exact hyc))
+            (congrArg some hchd2))
+          (congrArg some hx)
+          (by simp only [cap_charge, cap_storeW]; exact hcap0))
+          (congrArg some (if_neg h2))
+      refine runs_seq (runs_ite_false hc2 ?_)
+      refine runs_skip ?_
+      have hErg2 : evalW (((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).charge 1).storeW "rgt" (stW.lft x) (stW.rgt x)).charge 1) (load "rgt" (var "x"))
+          = some (stW.rgt x) := by
+        rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+          (by simp only [wlen_charge, wlen_storeW]; exact hxr)]
+        rw [wa_charge, wa_storeW]
+        by_cases hx2 : x = stW.lft x
+        · rw [if_pos (by simp [hx2])]
+        · rw [if_neg (by simp [hx2]), wa_charge, wa_charge, wa_charge, wa_charge,
+            wa_storeW, if_neg (by simp), wa_charge,
+            wa_storeW, if_neg (by simp), wa_charge,
+            wa_rgt_of_rel hR.1 x]
+      have hElf2 : evalW (((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).charge 1).storeW "rgt" (stW.lft x) (stW.rgt x)).charge 1) (load "lft" (var "x"))
+          = some (stW.lft x) := by
+        rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+          (by simp only [wlen_charge, wlen_storeW]; exact hxl)]
+        exact congrArg some hlf2
+      refine runs_seq (runs_wstore (j := stW.rgt x) (a := stW.lft x)
+        (hi := by
+          rw [evalW_load_of (j := x) (by simp only [evalW_var, w_charge, w_storeW, hx])
+            (by simp only [wlen_charge, wlen_storeW]; exact hxr)]
+          by_cases hx2 : x = stW.lft x
+          · rw [if_pos (by simp [hx2])]
+          · rw [if_neg (by simp [hx2]), wa_charge, wa_charge, wa_charge, wa_storeW,
+              if_neg (by simp), wa_charge, wa_storeW,
+              if_neg (by simp), wa_charge, wa_rgt_of_rel hR.1 x])
+        (he := hElf2)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_rgt_of_rel hR.1 x]; exact hrg) ?_)
+      -- the rgt relink: index `lft x`, value `rgt x`, both pre-state reads
+      refine runs_seq (runs_wstore (j := stW.lft x) (a := stW.rgt x)
+        (hi := hElf2) (he := hErg2)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_lft_of_rel hR.1 x]; exact hlf) ?_)
+      -- the lft relink: index `rgt x` read AFTER the rgt store — when `x` is
+      -- the rgt-store's own target cell the read returns the written value,
+      -- which is `stW.rgt x` either way (measured split)
+      have hEd3 : evalW (((((((((((r.storeW "par" x 0).charge 1).storeW "mrk" y 1).charge 1).charge 1).charge 1).charge 1).storeW "rgt" (stW.lft x) (stW.rgt x)).charge 1).storeW "lft" (stW.rgt x) (stW.lft x)).charge 1) (load "deg" (var "y"))
+          = some (stW.deg y) := by
+        rw [evalW_load_of (j := y) (by simp only [evalW_var, w_charge, w_storeW, hy])
+          (by simp only [wlen_charge, wlen_storeW]; exact hyd)]
+        exact congrArg some hdeg2
+      refine runs_seq (runs_wstore (j := y) (a := stW.deg y - 1)
+        (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+        (he := evalW_sub_of hEd3
+          (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega)))
+        (hj := by simp only [wlen_charge, wlen_storeW]; exact hyd) ?_)
+      refine Runs.mono (logPush_RelLog "x" (cutPend stW x y) pending _ (r.w "e")
+        ?hR hcap0 hcapE ?he ?hb) ?post
+      · -- hR
+        refine ⟨?_, ?_⟩
+        · simp only [FibHeapDecode.Rel]
+          simp [decode_storeW_deg, decode_storeW_lft, decode_storeW_rgt,
+            decode_storeW_mrk, decode_storeW_par, decode_charge,
+            cutPend, cutState, if_neg h1, if_neg h2, HState.mk.injEq, degUpd_eq,
+            wa_par_of_rel hR.1, wa_mrk_of_rel hR.1, wa_rgt_of_rel hR.1,
+            wa_lft_of_rel hR.1, wa_chd_of_rel hR.1, wa_deg_of_rel hR.1,
+            congrArg HState.rgt hR.1, congrArg HState.lft hR.1,
+            congrArg HState.roots hR.1, congrArg HState.n hR.1]
+          all_goals first
+            | rfl
+            | (funext i; simp)
+        · simp only [logOf_storeW (b := "deg") (by decide),
+            logOf_storeW (b := "chd") (by decide),
+            logOf_storeW (b := "rgt") (by decide),
+            logOf_storeW (b := "lft") (by decide),
+            logOf_storeW (b := "mrk") (by decide),
+            logOf_storeW (b := "par") (by decide), logOf_charge]
+          exact hR.2
+      · simp only [w_charge, w_storeW]
+      · simp only [wlen_charge, wlen_storeW]; exact hb
+      rintro r'' ⟨hrel, hcost⟩
+      obtain ⟨hdec, hlog⟩ := hrel
+      refine ⟨?_, ?_⟩
+      · refine ⟨hdec, ?_⟩
+        rw [hlog]
+        simp only [w_charge, w_storeW, hx]
+      · simp only [cost_storeW, cost_charge] at hcost
+        omega

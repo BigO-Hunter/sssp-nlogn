@@ -1,0 +1,2641 @@
+⚠ [2041/2206] Replayed Frontier.RAMLogic
+warning: Frontier/RAMLogic.lean:43:28: This simp argument is unused:
+  Option.bind_some
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [evalW, ha, hb, fit]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Frontier/RAMLogic.lean:50:28: This simp argument is unused:
+  Option.bind_some
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [evalW, ha, hb, fit]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2042/2206] Replayed Frontier.RAMWitness
+warning: Frontier/RAMWitness.lean:384:56: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [2044/2206] Replayed Submission.DijkstraModel
+warning: Submission/DijkstraModel.lean:31:12: Variable name `hv` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hv
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraModel.lean:105:44: Variable name `hp` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hp
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraModel.lean:133:72: This simp argument is unused:
+  len_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraModel.lean:143:42: Variable name `hp` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hp
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraModel.lean:285:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [2045/2206] Replayed Submission.DijkstraDecode
+warning: Submission/DijkstraDecode.lean:37:18: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+warning: Submission/DijkstraDecode.lean:115:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraDecode.lean:115:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraDecode.lean:151:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraDecode.lean:151:53: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraDecode.lean:163:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [2046/2206] Replayed Submission.DijkstraSim
+warning: Submission/DijkstraSim.lean:55:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:57:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:59:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:208:19: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:247:19: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:333:38: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:334:38: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:336:56: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:424:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:425:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:425:56: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:426:19: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:426:67: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:429:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:430:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:430:56: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:431:19: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:431:67: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:434:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:436:64: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:437:74: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:438:40: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:439:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:439:60: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:440:34: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:441:74: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:442:40: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:443:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:443:60: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:444:34: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:445:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:448:40: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:451:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:454:40: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:456:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:457:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:457:60: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:458:40: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:459:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:460:74: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:461:40: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:462:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:462:60: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:463:74: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:464:40: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:465:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:466:74: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:467:40: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:468:74: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:469:42: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:472:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:473:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:473:54: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:476:36: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:479:6: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:484:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:485:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:485:54: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:486:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:486:65: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:490:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:491:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:491:54: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:492:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:495:64: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:498:36: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:553:44: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:554:31: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:556:44: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:566:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:566:74: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:570:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:571:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:583:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:584:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:619:33: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:625:62: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:627:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:628:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:629:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:643:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:644:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:645:62: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+warning: Submission/DijkstraSim.lean:647:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:648:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:659:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:660:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraSim.lean:662:51: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+warning: Submission/DijkstraSim.lean:687:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraSim.lean:690:36: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [chainOf, chainWalk, hst0, wa_setW, hzero, outChainK]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraSim.lean:690:47: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [chainOf, chainWalk, hst0, wa_charge, hzero, outChainK]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraSim.lean:691:16: This simp argument is unused:
+  cost_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hst0, cost_setW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraSim.lean:691:29: This simp argument is unused:
+  cost_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hst0, cost_charge]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2047/2206] Replayed Submission.DijkstraHeap
+warning: Submission/DijkstraHeap.lean:60:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:61:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:65:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:65:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:67:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:67:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:70:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:70:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:72:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:72:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:78:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:82:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:82:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:85:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:85:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:93:15: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:93:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:96:15: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:96:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:101:83: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:103:83: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:107:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:107:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:110:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:110:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:134:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:135:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:139:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:139:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:141:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:141:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:144:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:144:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:146:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:146:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:152:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:156:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:156:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:159:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:159:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:167:15: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:167:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:170:15: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:170:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:174:83: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:176:83: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:180:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:180:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:183:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:183:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:228:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:229:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:233:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:233:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:235:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:235:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:238:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:238:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:240:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:240:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:246:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:250:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:250:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:253:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:253:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:261:15: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:261:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:264:15: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:264:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:268:83: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:270:83: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:274:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:274:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:277:17: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:277:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:293:13: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:294:13: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:483:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:483:26: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:485:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:485:26: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:489:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:512:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:512:31: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:521:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:522:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:526:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:526:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:527:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:527:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:531:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:531:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:532:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:532:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:534:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:534:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:535:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:535:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:545:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:545:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:561:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:561:33: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:573:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:573:33: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:575:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:575:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:595:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:761:53: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:906:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:907:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:909:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:911:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:937:53: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:830:52: This simp argument is unused:
+  htv
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1052:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1055:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1056:12: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1057:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1058:60: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1068:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1069:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1082:60: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1083:25: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1086:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1087:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1090:25: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1090:43: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1093:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1093:38: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1097:25: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1100:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1104:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1105:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1110:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1111:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1117:25: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1118:25: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1121:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1123:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1134:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1134:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1147:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1147:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1110:32: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/DijkstraHeap.lean:1110:32: Unused tactic linter: `try exact le_rfl` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/DijkstraHeap.lean:1346:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1346:33: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1376:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1376:33: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1403:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1403:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1417:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1417:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1440:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1440:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1344:33: This simp argument is unused:
+  Ne.symm hne
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1374:33: This simp argument is unused:
+  Ne.symm hne
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1404:28: This simp argument is unused:
+  Ne.symm hne
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [heqd]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1435:34: This simp argument is unused:
+  Ne.symm hne
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [heqd]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1490:40: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1490:52: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1496:40: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1496:52: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1502:38: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1762:55: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1892:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1892:44: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1898:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:1902:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1902:43: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1950:55: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2002:46: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2041:58: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2079:55: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2097:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2097:36: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2117:55: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2128:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2128:36: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2148:60: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2156:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2180:48: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:1920:135: This simp argument is unused:
+  va_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, va_setW, va_storeV, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1920:146: This simp argument is unused:
+  va_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, va_charge, va_storeV, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1920:155: This simp argument is unused:
+  va_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, va_charge, va_setW, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1920:166: This simp argument is unused:
+  va_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, va_charge, va_setW, va_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1922:135: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1922:146: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1922:155: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1922:166: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1924:135: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1924:146: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1924:155: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1924:166: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1926:135: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1926:146: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1926:155: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1926:166: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1928:135: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1928:146: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1928:155: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1928:166: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, ht2, ht3, ht4, ht5, ht6, ht7,
+    ht8, ht9, wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1966:50: This simp argument is unused:
+  State.setV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, State.storeV, htY, htS2, va_charge, va_setW, va_storeV,
+    va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1966:62: This simp argument is unused:
+  State.storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeV, htY, htS2, va_charge, va_setW, va_storeV, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1966:76: This simp argument is unused:
+  State.storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, htY, htS2, va_charge, va_setW, va_storeV, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1966:101: This simp argument is unused:
+  va_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, va_setW, va_storeV,
+    va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1966:112: This simp argument is unused:
+  va_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, va_charge, va_storeV,
+    va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1966:121: This simp argument is unused:
+  va_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, va_charge, va_setW,
+    va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1966:132: This simp argument is unused:
+  va_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, va_charge, va_setW,
+    va_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1968:50: This simp argument is unused:
+  State.setV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1968:62: This simp argument is unused:
+  State.storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1968:76: This simp argument is unused:
+  State.storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1968:101: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1968:112: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1968:121: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1968:132: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1970:50: This simp argument is unused:
+  State.setV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1970:62: This simp argument is unused:
+  State.storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1970:76: This simp argument is unused:
+  State.storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1970:101: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1970:112: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1970:121: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1970:132: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1972:50: This simp argument is unused:
+  State.setV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1972:62: This simp argument is unused:
+  State.storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1972:76: This simp argument is unused:
+  State.storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1972:101: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1972:112: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1972:121: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1972:132: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1974:50: This simp argument is unused:
+  State.setV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1974:62: This simp argument is unused:
+  State.storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeV, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1974:76: This simp argument is unused:
+  State.storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, htY, htS2, wa_charge, wa_setW, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1974:101: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_setW, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1974:112: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_storeV,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1974:121: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:1974:132: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, htY, htS2, wa_charge, wa_setW,
+    wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2292:38: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2333:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2336:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2337:61: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2355:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2356:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2358:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2359:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2363:19: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2363:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2365:19: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2365:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2370:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2372:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2383:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2386:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2391:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2392:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2395:42: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2403:41: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2311:119: This simp argument is unused:
+  va_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, va_setW,
+    va_storeV, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2311:130: This simp argument is unused:
+  va_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    va_charge, va_storeV, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2311:139: This simp argument is unused:
+  va_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    va_charge, va_setW, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2311:150: This simp argument is unused:
+  va_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    va_charge, va_setW, va_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2312:119: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_setW,
+    wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2312:130: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2312:139: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2312:150: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2313:119: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_setW,
+    wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2313:130: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2313:139: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2313:150: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2314:119: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_setW,
+    wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2314:130: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2314:139: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2314:150: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2315:119: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5, wa_setW,
+    wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2315:130: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_storeV, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2315:139: This simp argument is unused:
+  wa_storeV
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2315:150: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.setV, State.storeW, State.storeV, ht1, ht2, ht3, hb0, hb1, ht5,
+    wa_charge, wa_setW, wa_storeV]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:2539:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2563:5: Variable name `hreachx` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hreachx
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraHeap.lean:2591:31: Variable name `hins` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hins
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraHeap.lean:2865:48: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2876:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2880:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2885:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2889:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:2894:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2900:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2908:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2911:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2914:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3005:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3009:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:2816:5: Variable name `hval` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hval
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraHeap.lean:3072:50: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3076:63: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3121:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3136:33: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3139:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3144:65: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3175:47: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3180:65: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3277:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3292:33: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3295:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3300:65: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3464:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3693:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3742:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3759:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3807:24: Variable name `hins` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hins
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraHeap.lean:3842:5: Variable name `hreach` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hreach
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraHeap.lean:3867:26: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3880:55: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3881:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3885:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3887:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3904:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3905:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3924:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3925:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3945:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3945:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3948:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3948:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3952:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3953:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3993:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:3995:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:4008:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:4009:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:4028:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraHeap.lean:4030:28: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraHeap.lean:3970:5: Variable name `hdu` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hdu
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraHeap.lean:3983:31: Variable name `hins` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hins
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraHeap.lean:4076:60: This simp argument is unused:
+  va_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, va_setW, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4076:71: This simp argument is unused:
+  va_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, va_charge, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4076:80: This simp argument is unused:
+  va_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, va_charge, va_setW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4079:60: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4079:71: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4079:80: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4082:60: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4082:71: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4082:80: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4085:60: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4085:71: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4085:80: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4088:60: This simp argument is unused:
+  wa_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_setW, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4088:71: This simp argument is unused:
+  wa_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4088:80: This simp argument is unused:
+  wa_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, wa_charge, wa_setW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4091:60: This simp argument is unused:
+  va_charge
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, va_setW, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4091:71: This simp argument is unused:
+  va_setW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, va_charge, va_storeW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraHeap.lean:4091:80: This simp argument is unused:
+  va_storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [State.charge, State.setW, State.storeW, ht1, ht2, va_charge, va_setW]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2048/2206] Replayed Submission.DijkstraMain
+warning: Submission/DijkstraMain.lean:104:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraMain.lean:119:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraMain.lean:193:44: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraMain.lean:260:46: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraMain.lean:349:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraMain.lean:350:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraMain.lean:362:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraMain.lean:363:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraMain.lean:436:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [2257/2286] Replayed Submission.DijkstraRow
+warning: Submission/DijkstraRow.lean:75:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/DijkstraRow.lean:90:28: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/DijkstraRow.lean:213:66: Variable name `hL0` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hL0
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraRow.lean:223:65: Variable name `hL0` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hL0
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/DijkstraRow.lean:234:13: This simp argument is unused:
+  div_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [Cap, Real.rpow_one]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraRow.lean:239:38: This simp argument is unused:
+  Real.rpow_two
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [Time, div_one, Real.rpow_one, Real.rpow_zero]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/DijkstraRow.lean:307:4: `push_neg` has been deprecated. Prefer using `push Not` instead.
+If you'd rather continue using `push_neg` in your project, you can implement it as follows:
+```
+open Lean.Parser.Tactic in
+macro "push_neg" cfg:optConfig loc:(location)? : tactic =>
+  `(tactic| push $cfg:optConfig Not $[$loc]?)
+```
+⚠ [2264/2286] Replayed Submission.FibHeapAcyclic
+warning: Submission/FibHeapAcyclic.lean:115:65: Variable name `hq` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hq
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [2267/2286] Replayed Submission.FibHeapSupportSet
+warning: Submission/FibHeapSupportSet.lean:179:12: `dif_pos` has been deprecated: Use `dite_eq_left` instead
+warning: Submission/FibHeapSupportSet.lean:243:24: Variable name `hkn` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hkn
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapSupportSet.lean:244:24: Variable name `hnn` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnn
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [2268/2286] Replayed Submission.FibHeapLink
+warning: Submission/FibHeapLink.lean:88:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLink.lean:89:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLink.lean:95:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLink.lean:96:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLink.lean:102:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLink.lean:103:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLink.lean:109:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLink.lean:110:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLink.lean:113:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLink.lean:116:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLink.lean:120:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLink.lean:124:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLink.lean:134:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLink.lean:135:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [2269/2286] Replayed Submission.FibHeapLinkWalk
+warning: Submission/FibHeapLinkWalk.lean:54:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:52:46: Variable name `h` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapLinkWalk.lean:62:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:94:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:109:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:110:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:116:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:117:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:71:47: Variable name `hpar` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpar
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapLinkWalk.lean:133:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:140:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:171:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:175:26: This simp argument is unused:
+  hq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [linkState, h]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapLinkWalk.lean:241:25: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:241:52: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:247:25: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:248:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:254:27: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:262:25: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:262:52: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:287:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:335:25: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:337:25: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:373:25: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:388:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:388:33: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:390:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:390:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:397:27: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:401:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:410:19: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:410:31: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:412:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:412:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:367:69: This simp argument is unused:
+  Nat.lt_one_iff
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [List.nil_append, List.length_cons, List.length_nil] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapLinkWalk.lean:444:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:575:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:585:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:598:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:601:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:605:10: This simp argument is unused:
+  kids_linked
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [linked_deg, hq] at hk
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapLinkWalk.lean:621:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:632:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapLinkWalk.lean:673:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:673:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapLinkWalk.lean:674:50: This simp argument is unused:
+  Nat.lt_one_iff
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [List.length_cons, List.length_nil] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapLinkWalk.lean:679:10: This simp argument is unused:
+  ldeg
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [linked_deg, linked_mrk, List.getD_nil, hq] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapLinkWalk.lean:679:16: This simp argument is unused:
+  linked_deg
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [ldeg, linked_mrk, List.getD_nil, hq] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapLinkWalk.lean:679:28: This simp argument is unused:
+  linked_mrk
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [ldeg, linked_deg, List.getD_nil, hq] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapLinkWalk.lean:679:40: This simp argument is unused:
+  List.getD_nil
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [ldeg, linked_deg, linked_mrk, hq] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2270/2286] Replayed Submission.FibHeapCut
+warning: Submission/FibHeapCut.lean:87:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:88:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:94:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:95:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:101:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:102:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:118:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:122:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:125:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:129:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:225:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:232:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:262:38: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:264:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:264:30: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:265:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:265:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:278:15: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:278:27: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:280:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:281:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:287:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:292:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:293:34: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:297:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:299:25: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:301:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:307:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:309:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:311:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:322:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:315:49: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCut.lean:337:38: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:339:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:339:30: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:340:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:340:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:342:29: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:367:72: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:371:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:390:5: Variable name `hnd` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnd
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCut.lean:420:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:424:39: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:460:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:461:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:514:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:514:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:515:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:515:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:516:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:516:52: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:517:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:518:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:523:30: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:524:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:528:31: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:533:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:534:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:537:31: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:551:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:552:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:555:31: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:564:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:565:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:570:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:571:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:576:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:577:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:587:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:605:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:631:24: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:632:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:627:42: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCut.lean:687:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:688:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:713:29: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:732:51: Variable name `hnc` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnc
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCut.lean:763:47: Variable name `hrk` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hrk
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCut.lean:801:33: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:811:42: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:813:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:813:34: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:814:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:814:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:816:35: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:830:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:831:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:831:66: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:848:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:854:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:859:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:865:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:877:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:878:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:879:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:880:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:886:35: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:891:35: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:891:35: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:897:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:897:27: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:898:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:898:27: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:899:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:899:58: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:900:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:901:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:904:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:905:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:908:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:909:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:914:35: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:917:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:918:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:920:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:931:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:931:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:938:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:939:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCut.lean:940:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:946:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:960:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:963:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:963:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:966:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:987:44: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:1006:39: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:1024:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:1024:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:1028:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCut.lean:781:28: Variable name `hnl` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnl
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCut.lean:1058:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+⚠ [2271/2286] Replayed Submission.FibHeapMerge
+warning: Submission/FibHeapMerge.lean:89:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:90:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:96:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:97:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:103:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:104:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:109:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:110:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:116:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:117:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:120:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:123:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:127:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:131:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:136:38: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:136:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:137:38: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:137:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:136:27: This simp argument is unused:
+  linkState
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [mergeState, if_pos h2, if_neg hqp]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:137:27: This simp argument is unused:
+  linkState
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [mergeState, if_neg h2, if_neg hqp]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:137:49: This simp argument is unused:
+  if_neg hqp
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [mergeState, linkState, if_neg h2]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:142:6: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:148:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:153:6: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:159:6: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:163:37: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:163:48: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:167:37: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:171:55: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:171:66: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:175:25: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:177:47: Variable name `h` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapMerge.lean:212:46: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:216:38: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:221:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:222:41: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:222:52: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:218:51: Variable name `h` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _h
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapMerge.lean:247:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:262:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:263:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:269:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:270:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:224:48: Variable name `hpar` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpar
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapMerge.lean:286:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:293:35: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:324:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:331:42: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:332:41: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:333:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:373:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:374:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:414:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:464:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:466:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:505:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:505:69: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:520:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:520:33: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:522:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:522:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:529:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:534:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:544:19: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:544:31: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:546:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:546:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:499:69: This simp argument is unused:
+  Nat.lt_one_iff
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [List.nil_append, List.length_cons, List.length_nil] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:574:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:574:54: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:580:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:580:54: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:585:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:594:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:594:54: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:626:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:710:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:726:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:744:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:755:70: Variable name `hnl` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnl
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapMerge.lean:778:49: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapMerge.lean:836:81: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:844:55: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:845:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:849:55: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:850:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:852:36: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:852:68: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:857:49: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:862:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:869:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:909:54: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:910:53: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:911:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:913:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:916:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:916:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:920:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:921:57: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:929:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:873:30: This simp argument is unused:
+  linkState
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [mergeState, h, hqp]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:874:30: This simp argument is unused:
+  linkState
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [mergeState, h, hqp]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:874:44: This simp argument is unused:
+  hqp
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [mergeState, linkState, h]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:950:52: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapMerge.lean:950:52: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapMerge.lean:970:42: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [merged, mergeState, mergePreSt]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:980:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:990:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:1003:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:1006:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:1010:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:1027:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:1038:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:1103:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:1103:21: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMerge.lean:1108:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMerge.lean:1104:50: This simp argument is unused:
+  Nat.lt_one_iff
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [List.length_cons, List.length_nil] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMerge.lean:1134:51: This simp argument is unused:
+  merged
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2272/2286] Replayed Submission.FibHeapPromote
+warning: Submission/FibHeapPromote.lean:101:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:102:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:109:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:110:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:116:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:117:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:133:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:137:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:140:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:144:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:144:44: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:148:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:148:44: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:244:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:251:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:281:50: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:283:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:283:30: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:284:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:284:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:297:15: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:297:27: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:299:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:300:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:306:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:311:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:312:34: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:316:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:318:25: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:320:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:326:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:328:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:330:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:341:41: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:334:53: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapPromote.lean:356:50: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:358:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:358:30: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:359:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:359:45: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:361:41: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:386:72: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:390:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:409:5: Variable name `hnd` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnd
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapPromote.lean:439:34: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:443:51: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:482:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:484:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:484:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:485:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:485:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:538:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:538:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:539:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:539:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:540:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:540:52: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:541:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:542:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:547:30: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:548:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:552:43: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:557:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:558:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:561:43: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:575:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:576:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:579:43: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:588:32: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:589:32: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:594:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:595:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:600:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:601:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:611:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:629:47: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:655:36: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:656:36: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:651:47: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapPromote.lean:711:34: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:712:34: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:737:41: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:756:55: Variable name `hnc` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnc
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapPromote.lean:787:52: Variable name `hrk` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hrk
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapPromote.lean:825:45: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:835:54: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:837:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:837:34: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:838:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:838:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:840:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:854:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:855:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:855:66: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:872:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:878:20: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:883:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:889:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:901:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:902:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:903:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:904:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:910:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:915:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:915:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:921:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:921:27: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:922:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:922:27: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:923:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:923:58: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:924:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:925:14: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:928:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:929:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:932:16: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:933:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:938:47: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:941:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:942:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:944:17: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:955:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:955:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:962:16: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:963:14: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:964:61: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:970:47: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:984:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:987:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:987:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:990:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1011:56: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1030:51: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1048:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1048:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1052:49: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:805:32: Variable name `hnl` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnl
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapPromote.lean:1126:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1130:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1137:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1141:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1148:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1154:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1157:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1161:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1176:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1178:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1186:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1190:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1233:19: This simp argument is unused:
+  hx2
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hx3]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapPromote.lean:1249:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1255:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1255:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1260:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1256:50: This simp argument is unused:
+  Nat.lt_one_iff
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [List.length_cons, List.length_nil] at hj
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapPromote.lean:1327:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1328:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1334:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1335:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1347:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1347:20: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1362:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1362:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1363:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1363:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1369:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1369:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1370:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1370:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1376:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1376:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1377:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1377:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1383:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1383:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1384:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1384:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1390:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1390:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1391:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1391:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1397:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1397:18: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1398:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1398:18: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1480:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPromote.lean:1481:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapPromote.lean:1475:49: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [2273/2286] Replayed Submission.FibHeapCascade
+warning: Submission/FibHeapCascade.lean:53:21: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCascade.lean:69:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCascade.lean:70:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCascade.lean:82:8: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapCascade.lean:87:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapCascade.lean:198:51: Variable name `hpar` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpar
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCascade.lean:199:5: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCascade.lean:200:5: Variable name `hnoz` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hnoz
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCascade.lean:447:22: Variable name `hc` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hc
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCascade.lean:501:26: Variable name `hc` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hc
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapCascade.lean:610:58: This simp argument is unused:
+  h4
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState, casPreSt, h1, h2, h3]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:592:20: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:600:24: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:608:50: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:592:20: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:600:24: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:608:50: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:634:46: This simp argument is unused:
+  h1
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState, casPreSt, h2, h3, h4]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:616:20: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:624:24: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:632:50: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:616:20: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:624:24: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:632:50: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:640:20: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:648:24: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:656:50: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:640:20: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:648:24: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:656:50: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:664:20: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:672:24: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:680:50: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:664:20: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:672:24: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:680:50: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:689:20: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:697:24: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:705:50: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:689:20: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:697:24: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:705:50: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:714:20: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:722:24: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:730:50: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:714:20: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:722:24: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:730:50: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:753:18: This simp argument is unused:
+  casOut
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState, casPreSt, h1, h2, h3, h4, h5]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:753:26: This simp argument is unused:
+  decreaseKeyPath
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casOut, cascadeRun, markState, cutState, transferPromoteState, casPreSt, h1, h2, h3, h4, h5]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:753:66: This simp argument is unused:
+  cutState
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casOut, decreaseKeyPath, cascadeRun, markState, transferPromoteState, casPreSt, h1, h2, h3, h4, h5]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:754:14: This simp argument is unused:
+  casPreSt
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState, h1, h2, h3, h4, h5]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:754:40: This simp argument is unused:
+  h5
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState, casPreSt, h1, h2, h3,
+    h4]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:762:20: This simp argument is unused:
+  h
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casPreSt]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:792:16: This simp argument is unused:
+  casPreSt
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hq1, hq2, hq3, hq4] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:822:16: This simp argument is unused:
+  casPreSt
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hq1, hq2, hq3, hq4] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:939:36: This simp argument is unused:
+  h4
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [casPreSt, h1, h2, h3, hx5]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:866:46: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:918:32: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapCascade.lean:912:30: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Submission/FibHeapCascade.lean:915:30: Used `tac1 <;> tac2` where `(tac1; tac2)` would suffice
+
+Note: This linter can be disabled with `set_option linter.unnecessarySeqFocus false`
+warning: Submission/FibHeapCascade.lean:866:46: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:918:32: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapCascade.lean:983:16: This simp argument is unused:
+  casPreSt
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hq1, hq2, hq3, hq4] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapCascade.lean:1003:16: This simp argument is unused:
+  casPreSt
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hq1, hq2, hq3, hq4] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2274/2286] Replayed Submission.FibHeapExtractMin
+warning: Submission/FibHeapExtractMin.lean:83:24: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapExtractMin.lean:88:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:93:24: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapExtractMin.lean:98:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:110:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:110:54: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:166:26: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapExtractMin.lean:169:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:200:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:200:56: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:223:33: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapExtractMin.lean:223:63: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:226:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:226:58: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:271:24: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:340:44: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapExtractMin.lean:391:28: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:395:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:397:30: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapExtractMin.lean:1006:21: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extracted]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1017:40: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapExtractMin.lean:1017:40: Unused tactic linter: `omega` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapExtractMin.lean:1156:6: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, h0, h1, h2, h3, h4, h5, Function.iterate_succ_apply', Function.iterate_zero_apply]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1191:40: This simp argument is unused:
+  hv0
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, hv1, hv2, hv3, hv4, hv5] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1191:55: This simp argument is unused:
+  hv3
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, hv0, hv1, hv2, hv4, hv5] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1191:60: This simp argument is unused:
+  hv4
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, hv0, hv1, hv2, hv3, hv5] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1199:62: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, Function.iterate_succ_apply'] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1202:64: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, Function.iterate_succ_apply'] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1205:66: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, Function.iterate_succ_apply'] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1208:68: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, Function.iterate_succ_apply'] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1211:70: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, Function.iterate_succ_apply'] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1212:40: This simp argument is unused:
+  hv0
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, hv1, hv2, hv3, hv4, hv5, Function.iterate_succ_apply', Function.iterate_one] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1212:55: This simp argument is unused:
+  hv3
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, hv0, hv1, hv2, hv4, hv5, Function.iterate_succ_apply', Function.iterate_one] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1212:60: This simp argument is unused:
+  hv4
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, hv0, hv1, hv2, hv3, hv5, Function.iterate_succ_apply', Function.iterate_one] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1213:52: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, hv0, hv1, hv2, hv3, hv4, hv5, Function.iterate_succ_apply'] at hv
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1228:65: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [extractPreSt, Function.iterate_succ_apply']
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1236:12: This simp argument is unused:
+  Function.iterate_one
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [Function.iterate_zero_apply, hrgt1, hchd3] at heq
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1249:12: This simp argument is unused:
+  hchd2
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1237:22: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+warning: Submission/FibHeapExtractMin.lean:1237:22: Unused tactic linter: `exact absurd heq (by omega)` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+warning: Submission/FibHeapExtractMin.lean:1302:10: This simp argument is unused:
+  extracted_chd
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapExtractMin.lean:1308:12: This simp argument is unused:
+  extracted_chd
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2275/2286] Replayed Submission.FibHeapWitness
+warning: Submission/FibHeapWitness.lean:86:20: This simp argument is unused:
+  Function.iterate_succ_apply
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [witness]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+⚠ [2276/2286] Replayed Submission.FibHeapMeasure
+warning: Submission/FibHeapMeasure.lean:69:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:68:10: This simp argument is unused:
+  cutState_mrk
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:82:12: This simp argument is unused:
+  hz
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hy, hyn, hiz, hzn]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:82:30: This simp argument is unused:
+  hzn
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hz, hy, hyn, hiz]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:85:12: This simp argument is unused:
+  hyn
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hy, hzn]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:85:17: This simp argument is unused:
+  hy
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hyn, hzn]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:86:22: This simp argument is unused:
+  hy
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hiy, hiz, hz, hyn, hzn]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:86:26: This simp argument is unused:
+  hz
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hiy, hiz, hy, hyn, hzn]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:86:30: This simp argument is unused:
+  hyn
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hiy, hiz, hy, hz, hzn]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:86:35: This simp argument is unused:
+  hzn
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hiy, hiz, hy, hz, hyn]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:94:10: This simp argument is unused:
+  markState_n
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markState_mrk, markSet, hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:94:23: This simp argument is unused:
+  markState_mrk
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markState_n, markSet, hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:94:38: This simp argument is unused:
+  markSet
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markState_n, markState_mrk, hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:95:10: This simp argument is unused:
+  markSet
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markState, markState_mrk, Finset.mem_filter, Finset.mem_range, h', hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:95:19: This simp argument is unused:
+  markState
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markSet, markState_mrk, Finset.mem_filter, Finset.mem_range, h', hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:95:30: This simp argument is unused:
+  markState_mrk
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markSet, markState, Finset.mem_filter, Finset.mem_range, h', hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:95:45: This simp argument is unused:
+  Finset.mem_filter
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markSet, markState, markState_mrk, Finset.mem_range, h', hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:95:64: This simp argument is unused:
+  Finset.mem_range
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markSet, markState, markState_mrk, Finset.mem_filter, h', hy]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:95:86: This simp argument is unused:
+  hy
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [markSet, markState, markState_mrk, Finset.mem_filter, Finset.mem_range, h']
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:117:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMeasure.lean:119:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:253:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMeasure.lean:255:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:309:8: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:309:19: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:327:36: This simp argument is unused:
+  Finset.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Finset.mem_insert, Finset.notMem_empty] at hc
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:333:36: This simp argument is unused:
+  Finset.mem_singleton
+
+Hint: Omit it from the simp argument list.
+  [apply] simp only [Finset.mem_insert, Finset.notMem_empty] at hx
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: Submission/FibHeapMeasure.lean:356:64: Variable name `hyz` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hyz
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: Submission/FibHeapMeasure.lean:447:23: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMeasure.lean:455:23: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:658:15: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMeasure.lean:658:27: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:661:15: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:661:27: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapMeasure.lean:663:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:663:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapMeasure.lean:647:5: Variable name `hpre` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hpre
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [2278/2286] Replayed Submission.FibHeapAmortized
+warning: Submission/FibHeapAmortized.lean:183:21: Variable name `hK` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hK
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [2279/2286] Replayed Submission.FibHeapDepth
+warning: Submission/FibHeapDepth.lean:261:26: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+⚠ [2280/2286] Replayed Submission.FibHeapPop
+warning: Submission/FibHeapPop.lean:46:12: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapPop.lean:48:12: `if_neg` has been deprecated: Use `ite_eq_right` instead
+⚠ [2281/2286] Replayed Submission.FibHeapRow
+warning: Submission/FibHeapRow.lean:147:32: Variable name `hrnc` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hrnc
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+⚠ [2282/2286] Replayed Submission.FibHeapConsolidate
+warning: Submission/FibHeapConsolidate.lean:186:26: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapConsolidate.lean:223:22: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapConsolidate.lean:228:22: `if_neg` has been deprecated: Use `ite_eq_right` instead
+warning: Submission/FibHeapConsolidate.lean:258:10: `if_pos` has been deprecated: Use `ite_eq_left` instead
+warning: Submission/FibHeapConsolidate.lean:295:10: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Build completed successfully (2286 jobs).
+full-build-exit=0

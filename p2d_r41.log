@@ -1,0 +1,195 @@
+Submission/FibHeapProg.lean:186:8: warning: This simp argument is unused:
+  List.getElem?_range
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hj] at h1
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:302:31: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:304:55: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:308:55: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:361:33: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:380:54: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:387:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:395:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:395:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:399:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:403:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:421:33: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:423:33: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:443:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:443:45: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:443:55: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:444:23: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:444:41: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:448:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:448:25: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:448:36: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:454:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:454:61: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:455:10: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:456:21: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:456:39: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:460:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:460:23: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:460:34: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:487:28: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:495:12: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:485:12: warning: This simp argument is unused:
+  show ¬(t < t) from lt_irrefl t
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:634:26: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:636:31: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:657:70: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:659:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:662:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:665:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:682:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:698:37: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:699:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:708:12: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:710:16: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:714:16: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:720:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:721:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:731:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:762:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:764:37: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:765:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:779:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:780:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:808:16: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:846:16: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:933:19: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:940:60: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:942:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:943:14: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:945:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:946:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:948:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:949:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:952:19: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:983:77: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:985:46: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:990:41: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:994:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1002:62: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1004:33: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1007:71: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1011:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1014:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1130:18: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1133:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1134:41: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1120:5: warning: Variable name `hcap` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hcap
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Submission/FibHeapProg.lean:1120:28: warning: Variable name `hwl` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _hwl
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Submission/FibHeapProg.lean:1165:43: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1174:10: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1177:46: warning: This simp argument is unused:
+  hb
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1258:45: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1260:45: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1262:17: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1267:17: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1259:10: warning: This simp argument is unused:
+  h1
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [decode, State.storeW, HState.mk.injEq, degUpd_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1259:36: warning: This simp argument is unused:
+  HState.mk.injEq
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h1, decode, State.storeW, degUpd_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1263:12: warning: This simp argument is unused:
+  h1
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h2, decode, State.storeW, HState.mk.injEq, degUpd_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1263:16: warning: This simp argument is unused:
+  h2
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h1, decode, State.storeW, HState.mk.injEq, degUpd_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1268:12: warning: This simp argument is unused:
+  h1
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h2, decode, State.storeW, HState.mk.injEq, degUpd_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1268:16: warning: This simp argument is unused:
+  h2
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h1, decode, State.storeW, HState.mk.injEq, degUpd_eq]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1407:8: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:1412:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:1410:25: warning: This simp argument is unused:
+  State.storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h, decode, extractState]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1415:25: warning: This simp argument is unused:
+  State.storeW
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [h, decode, extractState]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:1411:8: warning: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+Submission/FibHeapProg.lean:1416:8: warning: this tactic is never executed
+
+Note: This linter can be disabled with `set_option linter.unreachableTactic false`
+Submission/FibHeapProg.lean:1411:8: warning: Unused tactic linter: `(funext i; simp [h, decode, State.storeW, extractState])` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+Submission/FibHeapProg.lean:1416:8: warning: Unused tactic linter: `(funext i; simp [h, decode, State.storeW, extractState])` does nothing
+
+Note: This linter can be disabled with `set_option linter.unusedTactic false`
+'Submission.FibHeapProg.insertOp_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.copyLoop_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.stashLoop_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.rootsCompact_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.insertOp_RelLog' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.decode_cutSplice' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.decode_twoStore_clear' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.decode_foldl_clear' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.decode_extractSplice' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.flt_filter_append' depends on axioms: [propext, Quot.sound]
+'Submission.FibHeapProg.flt_eq_filter_append' depends on axioms: [propext, Quot.sound]
+'Submission.FibHeapProg.logPush_RelLog' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
