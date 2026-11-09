@@ -22,11 +22,13 @@ import Submission.FibHeapCascade
 import Submission.FibHeapRefine
 import Submission.FibHeapForest
 import Submission.FibHeapAcyclic
+import Submission.FibHeapSupport
 
 namespace Submission.FibHeapDepth
 
 open Submission.FibHeapCascade Submission.FibHeapRefine Submission.FibHeapForest
 open Submission.FibHeapAcyclic
+open Submission.FibHeapSupport
 
 /-- A connected cascade walk starting at `y`: each cell `(a, b)` has
 `a ∈ kids st b` (so `par a = b` under `ParOK`) and the rest of the walk
@@ -291,14 +293,275 @@ theorem reach_self_absurd (st : HState) (hpar : ParOK st) (hac : Acyc st)
   rw [hnil] at hc
   exact List.not_mem_nil hc
 
-/- The LiveDistinct bridge's remaining cell, precisely named: the
-fold-Nodup assembly.  `nodup_append`'s third component (cross-segment
-inequality) is not derivable from the pairwise-disjoint-segments form
-when two segments are equal as lists — the right route is
-`List.nodup_flatten` over the identity `l.foldr append [] = l.flatten`
-(verify both at this pin), consuming `reach_unique`-based segment
-disjointness as the `Disjoint`-form.  `reach_par`, `reach_unique`,
-`reach_self_absurd` (with `Acyc` + `NILLeaf` closing the self-cycle)
-are proved above; `mem_ids_reach` (ids-membership to Reach at the
-self-case) is its remaining inner cell. -/
+/- The LiveDistinct bridge: the `ids` fold's machine decomposition.  Landed
+2026-11-09, the recursor cell included: `ids_node_eq` unrolls `ids` along
+`treeOf` through the aux recursor `Tree.rec_1` (the pin generates no equation
+lemmas for it; the working recipe is `simp only [List.map_cons, List.foldr_cons]`
+for the cons iota plus plain delta on the head — never a `show` against
+`rec_1`-on-cons, whose elaborated motives mismatch).  On top of it:
+`mem_foldr_append` (the climb), `mem_ids_reach` (ids-membership to `Reach`),
+the two disjointness combos (`ids_not_self`, `ids_disjoint_cross` —
+`reach_self_absurd` and `reach_unique_depth`+`reach_unique`), and
+`liveDistinct_treeOf` via `List.nodup_flatten` (per-segment Nodup from the fuel
+IH, `Pairwise Disjoint` from `KidsNodup` + `List.disjoint_iff_ne`). -/
+section LiveDistinctBridge
+
+/-- **The `ids` fold unrolls along `treeOf`.**  The aux-recursor cell: the
+`Tree.rec_1` fold over the spliced child list equals the appended fold of the
+children's id lists.  The cons case's head recursion value is
+`ids (treeOf st f a)` by pure unfolding (`Child.mk` projections and the child
+recursor's identity case), which is why the map is over machine ids. -/
+theorem ids_node_eq (st : HState) (f p : ℕ) :
+    ids (treeOf st (f + 1) p)
+      = p :: List.foldr (fun xs ys : List ℕ => xs ++ ys) []
+          ((kids st p).map fun c => ids (treeOf st f c)) := by
+  have hnode : treeOf st (f + 1) p
+      = FibHeapForest.Tree.node p
+          ((kids st p).map fun c => Child.mk (treeOf st f c) (ldeg st c) (st.mrk c)) := rfl
+  rw [hnode]
+  have hunroll : ids (FibHeapForest.Tree.node p
+        ((kids st p).map fun c => Child.mk (treeOf st f c) (ldeg st c) (st.mrk c)))
+      = p :: Tree.rec_1 (motive_1 := fun _ => List ℕ) (motive_2 := fun _ => List ℕ)
+        (motive_3 := fun _ => List ℕ)
+        (fun id _ childIds => id :: childIds) (fun _ _ _ treeIds => treeIds) []
+        (fun _ _ headIds tailIds => headIds ++ tailIds)
+        ((kids st p).map fun c => Child.mk (treeOf st f c) (ldeg st c) (st.mrk c)) := by
+    simp [ids]
+  rw [hunroll]
+  have aux : ∀ ks : List ℕ,
+      Tree.rec_1 (motive_1 := fun _ => List ℕ) (motive_2 := fun _ => List ℕ)
+        (motive_3 := fun _ => List ℕ)
+        (fun id _ childIds => id :: childIds) (fun _ _ _ treeIds => treeIds) []
+        (fun _ _ headIds tailIds => headIds ++ tailIds)
+        (ks.map fun c => Child.mk (treeOf st f c) (ldeg st c) (st.mrk c))
+      = List.foldr (fun xs ys : List ℕ => xs ++ ys) []
+          (ks.map fun c => ids (treeOf st f c)) := by
+    intro ks
+    induction ks with
+    | nil => rfl
+    | cons a ks ih =>
+      simp only [List.map_cons, List.foldr_cons]
+      rw [ih]
+      rfl
+  rw [aux]
+
+/-- The foldr-append membership decomposition. -/
+theorem mem_foldr_append {x : ℕ} : ∀ (L : List (List ℕ)),
+    x ∈ L.foldr (fun xs ys : List ℕ => xs ++ ys) [] ↔ ∃ xs ∈ L, x ∈ xs := by
+  intro L
+  induction L with
+  | nil => simp
+  | cons a L ih => simp [List.mem_append, ih]
+
+/-- The `foldr (++) []` form is the flatten. -/
+theorem foldr_append_eq_flatten (L : List (List ℕ)) :
+    L.foldr (fun xs ys : List ℕ => xs ++ ys) [] = L.flatten := by
+  induction L with
+  | nil => rfl
+  | cons a L ih => simp [ih]
+
+/-- **The ids→Reach climb** (the `mem_ids_reach` cell named in
+`FibHeapSupport`): every id collected in the abstraction sits below its root
+in the parent relation.  Fuel induction through `ids_node_eq`. -/
+theorem mem_ids_reach (st : HState) : ∀ (f c x : ℕ),
+    x ∈ ids (treeOf st f c) → ∃ g, Reach st g c x := by
+  intro f
+  induction f with
+  | zero =>
+    intro c x hx
+    simp only [treeOf] at hx
+    simp [ids] at hx
+    exact ⟨0, hx.symm⟩
+  | succ f ih =>
+    intro c x hx
+    rw [ids_node_eq] at hx
+    rcases List.mem_cons.mp hx with rfl | hx
+    · exact ⟨0, rfl⟩
+    · obtain ⟨xs, hxsm, hxs⟩ := Iff.mp (mem_foldr_append _) hx
+      simp only [List.mem_map] at hxsm
+      obtain ⟨d, hdmem, rfl⟩ := hxsm
+      obtain ⟨g, hg⟩ := ih d x hxs
+      exact ⟨g + 1, ⟨d, hdmem, hg⟩⟩
+
+/-- **Disjointness combo, self half.**  A parent's own id is not in a child's
+subtree: that closes a `par` cycle, and `Acyc` only tolerates the NIL loop. -/
+theorem ids_not_self (st : HState) (hpar : ParOK st) (hac : Acyc st) (hnl : NILLeaf st)
+    {f c p : ℕ} (hc : c ∈ kids st p) : p ∉ ids (treeOf st f c) := by
+  intro hmem
+  obtain ⟨g, hg⟩ := mem_ids_reach st f c p hmem
+  exact reach_self_absurd st hpar hac hnl hc hg
+
+/-- **Disjointness combo, cross half.**  Two distinct children's subtrees share
+no id: a shared id climbs to both children, `reach_unique_depth` equalizes the
+climb lengths from the common (non-NIL, live) parent and `reach_unique` lands
+the children equal. -/
+theorem ids_disjoint_cross (st : HState) (hpar : ParOK st) (hac : Acyc st) (hnl : NILLeaf st)
+    {f c1 c2 p : ℕ} (h1 : c1 ∈ kids st p) (h2 : c2 ∈ kids st p) (hne : c1 ≠ c2) :
+    List.Disjoint (ids (treeOf st f c1)) (ids (treeOf st f c2)) := by
+  rw [List.disjoint_iff_ne]
+  intro a ha b hb hab
+  subst hab
+  obtain ⟨g1, hg1⟩ := mem_ids_reach st f c1 a ha
+  obtain ⟨g2, hg2⟩ := mem_ids_reach st f c2 a hb
+  have hp0 : p ≠ 0 := by
+    intro h0
+    rw [h0] at h1
+    rw [kids_eq_nil hnl] at h1
+    simp at h1
+  have hp1 : Reach st (g1 + 1) p a := ⟨c1, h1, hg1⟩
+  have hp2 : Reach st (g2 + 1) p a := ⟨c2, h2, hg2⟩
+  have hgd := reach_unique_depth st hpar hac hp0 hp1 hp2
+  have hgg : g1 = g2 := by omega
+  exact hne (reach_unique st hpar g1 c1 c2 a hg1 (hgg ▸ hg2))
+
+/-- Index-Nodup form is list Nodup (generic, over `getD` with default `0`). -/
+theorem nodup_of_getD_ne : ∀ (l : List ℕ),
+    (∀ j k, j < k → k < l.length → l.getD j 0 ≠ l.getD k 0) → l.Nodup := by
+  intro l
+  induction l with
+  | nil => intro _; exact List.Pairwise.nil
+  | cons a t ih =>
+    intro h
+    refine List.pairwise_cons.mpr ⟨?_, ih (fun j k hj hk => h (j + 1) (k + 1) (by omega)
+      (by simp only [List.length_cons]; omega))⟩
+    intro b hb
+    obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp hb
+    obtain ⟨hilt, hid⟩ := List.getElem?_eq_some_iff.mp hi
+    have hne : a ≠ t.getD i 0 := by
+      have h0 := h 0 (i + 1) (by omega) (by simp only [List.length_cons]; omega)
+      simpa using h0
+    rw [List.getD_eq_getElem t 0 hilt, hid] at hne
+    exact hne
+
+/-- `KidsNodup`'s index form is list Nodup. -/
+theorem kids_nodup_list {st : HState} {p : ℕ} (h : KidsNodup st p) : (kids st p).Nodup := by
+  refine nodup_of_getD_ne (kids st p) (fun j k hj hk => ?_)
+  rw [kids_length] at hk
+  exact h j k hj hk
+
+/-- Pairwise disjointness of the id segments over a Nodup child list. -/
+theorem ids_segments_pairwise (st : HState) (hpar : ParOK st) (hac : Acyc st) (hnl : NILLeaf st)
+    (f p : ℕ) : ∀ ks : List ℕ, (∀ c ∈ ks, c ∈ kids st p) → ks.Nodup →
+    (ks.map fun c => ids (treeOf st f c)).Pairwise List.Disjoint := by
+  intro ks
+  induction ks with
+  | nil => intro _ _; exact List.Pairwise.nil
+  | cons a ks ih =>
+    intro hmem hnod
+    obtain ⟨hanot, htail⟩ := List.nodup_cons.mp hnod
+    refine List.pairwise_cons.mpr ⟨?_, ih (fun c hc => hmem c (List.mem_cons_of_mem _ hc)) htail⟩
+    intro b hb
+    simp only [List.mem_map] at hb
+    obtain ⟨c, hc, rfl⟩ := hb
+    have hac2 : a ≠ c := by
+      intro h
+      exact hanot (by rw [h]; exact hc)
+    exact ids_disjoint_cross st hpar hac hnl (hmem a List.mem_cons_self)
+      (hmem c (List.mem_cons_of_mem _ hc)) hac2
+
+/-- **LiveDistinct over the machine state.**  The abstraction's id list has no
+repeats: per-segment Nodup is the fuel induction, cross-segment disjointness is
+`ids_disjoint_cross` gated by `KidsNodup`. -/
+theorem liveDistinct_treeOf (st : HState) (hpar : ParOK st) (hac : Acyc st) (hnl : NILLeaf st)
+    (hnd : ∀ q, KidsNodup st q) : ∀ (f p : ℕ), LiveDistinct (treeOf st f p) := by
+  intro f
+  induction f with
+  | zero =>
+    intro p
+    simp [treeOf, ids, LiveDistinct]
+  | succ f ih =>
+    intro p
+    simp only [LiveDistinct]
+    rw [ids_node_eq, List.nodup_cons]
+    refine ⟨?_, ?_⟩
+    · intro hmem
+      obtain ⟨xs, hxsm, hxs⟩ := Iff.mp (mem_foldr_append _) hmem
+      simp only [List.mem_map] at hxsm
+      obtain ⟨c, hc, rfl⟩ := hxsm
+      exact ids_not_self st hpar hac hnl hc hxs
+    · rw [foldr_append_eq_flatten, List.nodup_flatten]
+      refine ⟨fun xs hxsm => ?_, ?_⟩
+      · simp only [List.mem_map] at hxsm
+        obtain ⟨c, -, rfl⟩ := hxsm
+        exact ih c
+      · exact ids_segments_pairwise st hpar hac hnl f p (kids st p) (fun _ hc => hc)
+          (kids_nodup_list (hnd p))
+
+/-- Every id in an in-range node's abstraction is a live slot: the climb
+descends only through `kids` (which `SlotOK` bounds) or stops at the root. -/
+theorem mem_ids_lt {st : HState} (hslot : SlotOK st)
+    {f p x : ℕ} (hp : p < st.n) (hx : x ∈ ids (treeOf st f p)) : x < st.n := by
+  obtain ⟨g, hg⟩ := mem_ids_reach st f p x hx
+  cases g with
+  | zero =>
+    simp only [Reach] at hg
+    rw [hg] at hp
+    exact hp
+  | succ g' => exact reach_lt st hslot (g' + 1) p x hp (by omega) hg
+
+/-- The machine abstraction at fuel `st.n` fits the live slots: `Size ≤ st.n`
+for every in-range node. -/
+theorem treeOf_size_le_n (st : HState) (hpar : ParOK st) (hac : Acyc st) (hnl : NILLeaf st)
+    (hnd : ∀ q, KidsNodup st q) (hslot : SlotOK st) {p : ℕ} (hp : p < st.n) :
+    (treeOf st st.n p).size ≤ st.n := by
+  have hld := liveDistinct_treeOf st hpar hac hnl hnd st.n p
+  have hcard : (ids (treeOf st st.n p)).toFinset.card = (treeOf st st.n p).size :=
+    live_card hld
+  have hsub : (ids (treeOf st st.n p)).toFinset ⊆ Finset.range st.n := fun x hx => by
+    simpa [Finset.mem_range] using mem_ids_lt hslot hp (by simpa using hx)
+  calc (treeOf st st.n p).size = (ids (treeOf st st.n p)).toFinset.card := hcard.symm
+    _ ≤ st.n := by simpa using Finset.card_le_card hsub
+
+/-- **The walk bound at the live size `B := st.n`.**  Every node of an
+in-range walk is in range: the bottom by hypothesis, each parent by
+`ParSlot`, the NIL parent excluded by `NILLeaf`.  So the Size measure's
+strict climb (`size_mono_machine`) lives inside `range st.n` and the walk
+is at most `st.n` long. -/
+theorem walkUp_len_le_n (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
+    (hps : ParSlot st) (hs : NILSelf st) (hac : Acyc st) (hnl : NILLeaf st)
+    (hnd : ∀ q, KidsNodup st q)
+    {y : ℕ} {chain : List (ℕ × ℕ)} (hW : WalkUp st y chain) (hy : y < st.n) :
+    chain.length ≤ st.n := by
+  have hclimb : ∀ (a b : ℕ), a ∈ kids st b → a < st.n → b < st.n ∧ b ≠ 0 ∧
+      (treeOf st st.n a).size < (treeOf st st.n b).size := by
+    intro a b hk han
+    have hb0 : b ≠ 0 := by
+      intro h0
+      rw [h0] at hk
+      rw [kids_eq_nil hnl] at hk
+      simp at hk
+    have hbn : b < st.n := by rw [← walkUp_par hpar hk]; exact hps a han
+    exact ⟨hbn, hb0, size_mono_machine st hpar hslot hps hs hac hnl hk hbn hb0⟩
+  have main : ∀ (chain : List (ℕ × ℕ)) (y : ℕ),
+      WalkUp st y chain → y < st.n →
+      chain.length + (treeOf st st.n y).size ≤ st.n + 1 := by
+    intro chain
+    induction chain with
+    | nil =>
+      intro y hW hy
+      have hsz := treeOf_size_le_n st hpar hac hnl hnd hslot hy
+      simp only [List.length_nil]
+      omega
+    | cons cell rest ih =>
+      intro y hW hy
+      cases hW with
+      | @cons _ z _ hk hW' =>
+        obtain ⟨hz1, hz2, hz3⟩ := hclimb y z hk hy
+        have hz : rest.length + (treeOf st st.n z).size ≤ st.n + 1 := ih z hW' hz1
+        have hsz := treeOf_size_le_n st hpar hac hnl hnd hslot hy
+        simp only [List.length_cons]
+        omega
+  have hm := main chain y hW hy
+  have hpos : 0 < (treeOf st st.n y).size := size_pos _
+  omega
+
+end LiveDistinctBridge
+
+/- The bridge's remaining cells, precisely named: (1) the `ChainOk → WalkUp`
+lift — the cascade's cells read the *evolving* kids, and the lift is that cut
+and promote only remove edges, so each cell's membership lifts to the original
+state's `kids` (`kids_promote_unchanged` class); (2) the walk bound at
+`B := st.n` for in-range walks, feeding `DkRun`'s per-step `chain.length ≤ L`
+with `L := st.n`; (3) the row's sequential total over matched states.  The
+ids side (`ids_node_eq` through `liveDistinct_treeOf`) is landed above. -/
 end Submission.FibHeapDepth
