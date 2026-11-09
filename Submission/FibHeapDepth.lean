@@ -220,4 +220,27 @@ theorem treeDepthF_le_size : ∀ (f : ℕ) (t : Tree), treeDepthF f t ≤ t.size
         _ = 1 + sizeSum children := by rw [hmap]
         _ = (FibHeapForest.Tree.node id children).size := hsize.symm
 
+/-! ## The composition: the walk bound at the Size measure -/
+
+/-- **The depth recount, composed.**  A connected cascade walk starting
+anywhere has length at most the Size range `B` — `size_mono_machine`
+supplies the strict monotonicity, `size_pos` the nonzero start, and the
+range is a hypothesis (its log-form instantiation needs the
+`LiveDistinct` bridge for `treeOf`'s output; named, not claimed).  The
+`live-parent` condition excludes the NIL slot from the walk. -/
+theorem walkUp_len_le_size (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
+    (hps : ParSlot st) (hs : NILSelf st) (hac : Acyc st) (hnl : NILLeaf st)
+    (hlive : ∀ z, (∃ y, y ∈ kids st z) → z < st.n ∧ z ≠ 0)
+    {y : ℕ} {chain : List (ℕ × ℕ)} (hW : WalkUp st y chain) {B : ℕ}
+    (hB : ∀ p, (treeOf st st.n p).size ≤ B) :
+    chain.length ≤ B := by
+  have hmono : ∀ a b, a ∈ kids st b → (treeOf st st.n a).size < (treeOf st st.n b).size := by
+    intro a b hk
+    have hz := hlive b ⟨a, hk⟩
+    exact size_mono_machine st hpar hslot hps hs hac hnl hk hz.1 hz.2
+  have hB' : ∀ p, (treeOf st st.n p).size ≤ B := hB
+  have h1 := walkUp_len_le (μ := fun p => (treeOf st st.n p).size) hmono hB' hW
+  have hpos : 0 < (treeOf st st.n y).size := size_pos _
+  omega
+
 end Submission.FibHeapDepth
