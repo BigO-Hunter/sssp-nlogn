@@ -1340,5 +1340,175 @@ theorem promoteClear_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
   · rw [if_neg hqy, if_neg hqz]
     exact hm q
 
+/-! ## The clearing suite: the splice is field-identical, only `mrk` differs
+
+`clearPromoteState` and `promoteState` write the same `par`/`deg`/`chd`/
+`rgt`/`lft`/`roots`/`n` — they differ only in `mrk` (`z` cleared vs banked).
+Every structural projection is therefore `rfl`-congruent, and the whole
+transfer preservation suite transfers through per-field congruences instead
+of replaying the proofs. -/
+
+theorem clearPromoteState_deg' (st : HState) (y z q : ℕ) :
+    (clearPromoteState st y z).deg q = (promoteState st y z).deg q := by
+  unfold clearPromoteState promoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h, if_pos h]
+  · rw [if_neg h, if_neg h]
+
+theorem clearPromoteState_chd' (st : HState) (y z q : ℕ) :
+    (clearPromoteState st y z).chd q = (promoteState st y z).chd q := by
+  unfold clearPromoteState promoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h, if_pos h]
+  · rw [if_neg h, if_neg h]
+
+theorem clearPromoteState_par' (st : HState) (y z q : ℕ) :
+    (clearPromoteState st y z).par q = (promoteState st y z).par q := by
+  unfold clearPromoteState promoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h, if_pos h]
+  · rw [if_neg h, if_neg h]
+
+theorem clearPromoteState_rgt' (st : HState) (y z q : ℕ) :
+    (clearPromoteState st y z).rgt q = (promoteState st y z).rgt q := by
+  unfold clearPromoteState promoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h, if_pos h]
+  · rw [if_neg h, if_neg h]
+
+theorem clearPromoteState_lft' (st : HState) (y z q : ℕ) :
+    (clearPromoteState st y z).lft q = (promoteState st y z).lft q := by
+  unfold clearPromoteState promoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h, if_pos h]
+  · rw [if_neg h, if_neg h]
+
+theorem clearPromoteState_roots' (st : HState) (y z : ℕ) :
+    (clearPromoteState st y z).roots = (promoteState st y z).roots := by
+  unfold clearPromoteState promoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h, if_pos h]
+  · rw [if_neg h, if_neg h]
+
+/-- Bare-projection congruences (for rewriting under `iterate`/`ofFn`). -/
+theorem clearPromoteState_deg (st : HState) (y z : ℕ) :
+    (clearPromoteState st y z).deg = (promoteState st y z).deg :=
+  funext fun q => clearPromoteState_deg' st y z q
+
+theorem clearPromoteState_rgt (st : HState) (y z : ℕ) :
+    (clearPromoteState st y z).rgt = (promoteState st y z).rgt :=
+  funext fun q => clearPromoteState_rgt' st y z q
+
+theorem clearPromoteState_chd (st : HState) (y z : ℕ) :
+    (clearPromoteState st y z).chd = (promoteState st y z).chd :=
+  funext fun q => clearPromoteState_chd' st y z q
+
+theorem clearPromoteState_par (st : HState) (y z : ℕ) :
+    (clearPromoteState st y z).par = (promoteState st y z).par :=
+  funext fun q => clearPromoteState_par' st y z q
+
+theorem clearPromoteState_lft (st : HState) (y z : ℕ) :
+    (clearPromoteState st y z).lft = (promoteState st y z).lft :=
+  funext fun q => clearPromoteState_lft' st y z q
+
+/-- The child lists agree, so every `kids`-reading property transfers. -/
+theorem kids_congr_clear (st : HState) (y z q : ℕ) :
+    kids (clearPromoteState st y z) q = kids (promoteState st y z) q := by
+  simp only [kids, clearPromoteState_rgt, clearPromoteState_chd,
+    clearPromoteState_deg]
+  rw [List.ofFn_inj.mpr (funext fun i => by rw [Fin.val_cast])]
+
+/-- **Anchor suite: `ParOK`.** -/
+theorem promoteClear_ParOK (st : HState) (y z : ℕ) (hpar : ParOK st) (hrk : RingOK st)
+    (hpre : PromotePre st y z) (hnd : KidsNodup st z) :
+    ParOK (clearPromoteState st y z) := by
+  have h := promote_ParOK st y z hpar hrk hpre hnd
+  intro p v hv
+  rw [kids_congr_clear] at hv
+  rw [clearPromoteState_par']
+  exact h p v hv
+
+/-- **Anchor suite: `SlotOK`.** -/
+theorem promoteClear_SlotOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hslot : SlotOK st) :
+    SlotOK (clearPromoteState st y z) := by
+  have h := promote_SlotOK st y z hrk hpar hpre hslot
+  intro q hq v hv
+  have hqn : q < st.n := by rw [clearPromoteState_n] at hq; exact hq
+  rw [kids_congr_clear] at hv
+  rw [clearPromoteState_n]
+  have hconcl := h q (by rw [promoteState_n]; exact hqn) v hv
+  rw [promoteState_n] at hconcl
+  exact hconcl
+
+/-- **Anchor suite: `KidsNodup`.** -/
+theorem promoteClear_KidsNodup (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hnd : ∀ q, KidsNodup st q) :
+    ∀ q, KidsNodup (clearPromoteState st y z) q := by
+  have h := promote_KidsNodup st y z hrk hpar hpre hnd
+  intro q
+  show ∀ j k : ℕ, j < k → k < (clearPromoteState st y z).deg q →
+    (kids (clearPromoteState st y z) q).getD j 0
+      ≠ (kids (clearPromoteState st y z) q).getD k 0
+  rw [clearPromoteState_deg', kids_congr_clear]
+  exact h q
+
+/-- **Anchor suite: `ParSlot`.** -/
+theorem promoteClear_ParSlot (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
+    (hps : ParSlot st) : ParSlot (clearPromoteState st y z) := by
+  have h := promote_ParSlot st y z hpre hps
+  intro q hq
+  have hqn : q < st.n := by rw [clearPromoteState_n] at hq; exact hq
+  rw [clearPromoteState_n, clearPromoteState_par']
+  have hconcl := h q (by rw [promoteState_n]; exact hqn)
+  rw [promoteState_n] at hconcl
+  exact hconcl
+
+/-- **Anchor suite: `NILLeaf`.** -/
+theorem promoteClear_NILLeaf (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
+    (hnl : NILLeaf st) : NILLeaf (clearPromoteState st y z) := by
+  show (clearPromoteState st y z).deg 0 = 0
+  rw [clearPromoteState_deg', promoteState_deg]
+  by_cases hz0 : 0 = z
+  · rw [if_pos hz0, hnl]
+  · rw [if_neg hz0]; exact hnl
+
+/-- **Anchor suite: `NILNotChild`.** -/
+theorem promoteClear_NILNotChild (st : HState) (y z : ℕ) (hrk : RingOK st)
+    (hpar : ParOK st) (hpre : PromotePre st y z) (hnc : NILNotChild st) :
+    NILNotChild (clearPromoteState st y z) := by
+  have h := promote_NILNotChild st y z hrk hpar hpre hnc
+  intro q hv
+  rw [kids_congr_clear] at hv
+  exact h q hv
+
+/-- **Anchor suite: `RingOK`.** -/
+theorem promoteClear_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hnl : NILLeaf st) :
+    RingOK (clearPromoteState st y z) := by
+  have h := promote_RingOK st y z hrk hpar hpre hnl
+  show ∀ p, (clearPromoteState st y z).deg p = 0 ∨
+    (((clearPromoteState st y z).rgt)^[((clearPromoteState st y z).deg p)]
+        ((clearPromoteState st y z).chd p) = (clearPromoteState st y z).chd p ∧
+      (∀ j k, j < (clearPromoteState st y z).deg p → k < (clearPromoteState st y z).deg p →
+        ((clearPromoteState st y z).rgt)^[j] ((clearPromoteState st y z).chd p)
+          = ((clearPromoteState st y z).rgt)^[k] ((clearPromoteState st y z).chd p)
+            → j = k) ∧
+      (clearPromoteState st y z).lft ((clearPromoteState st y z).chd p)
+        = ((clearPromoteState st y z).rgt)^[((clearPromoteState st y z).deg p - 1)]
+            ((clearPromoteState st y z).chd p))
+  intro p
+  rw [clearPromoteState_deg', clearPromoteState_rgt, clearPromoteState_chd',
+    clearPromoteState_lft']
+  exact h p
+
+/-- **Anchor suite: `Acyc`.** -/
+theorem promoteClear_Acyc (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
+    (hns : NILSelf st) (hac : Acyc st) : Acyc (clearPromoteState st y z) := by
+  have h := promote_Acyc st y z hpre hns hac
+  intro x j hj hiter
+  rw [clearPromoteState_par] at hiter
+  exact h x j hj hiter
+
 end Submission.FibHeapPromote
 
