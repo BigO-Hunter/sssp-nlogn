@@ -427,6 +427,12 @@ ancestors up to the stopping ancestor, which the fold marks. -/
 def decreaseKeyPath (st : HState) (x y : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ) : HState :=
   cascadeRun (cutState st x y) chain stop
 
+/-- **The clearing decrease-key path** (Route A): the same cut, then the
+CLRS-clearing cascade — each cell clears the consumed mark at `y` and the old
+mark at the cascaded ancestor, instead of banking-and-moving. -/
+def decreaseKeyPathClear (st : HState) (x y : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ) : HState :=
+  clearCascadeRun (cutState st x y) chain stop
+
 theorem decreaseKeyPath_MarkOK (st : HState) (x y : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ)
     (hm : MarkOK st) (hc : CutPre st x y) (hchain : ChainOk (cutState st x y) chain) :
     MarkOK (decreaseKeyPath st x y chain stop) :=
