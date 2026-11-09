@@ -141,9 +141,28 @@ The row is potential-level accounting, not yet the program-level
    decode contract for one simulated decrease-key: `x, y, chain, stop`,
    `y` live + unmarked, the cascade-chain witness `hcc` — the sim's own
    witness-generation risk — and the length cap; the carried `MarkOK`
-   completes `DkRunClear.cons`).  Next in (b): the `p2`-layout half of the
-   relation (the RAM array decode of `par/mrk/deg/chd/rgt/lft/roots` — the
-   roots-as-RAM-array risk lives there), then the program `p2` itself; (c) **the
+   completes `DkRunClear.cons`).  **STEP 7 2026-11-09: the `p2` layout
+   pinned** (`FibHeapDecode`, the relation's other half, `p2`-agnostic):
+   six word-arrays `"par" "mrk" "deg" "chd" "rgt" "lft"` of length `n`,
+   register `"n"`; **the roots-list-as-RAM-array decision: contiguous
+   word-array `"roots"` carrying its length** (`wlen "roots"` = root
+   count, index order = list order) — the 0-terminated-chain encoding was
+   rejected (sound — 0 is NIL and `NILNotRoot` — but every filter becomes
+   an O(len) compaction and the length register disappears), the
+   intrusive-second-ring encoding was rejected (`rgt`/`lft` are the child
+   rings; no spare fields; doubles the link-discharge surface).  The
+   relation is `Rel st r := decode r = st` (one clause), and the step
+   mechanics are congruences: `decode (r.storeW f j v)` is *exactly* the
+   pointwise splice shape every machine lemma proves
+   (`mergeState_par`/`linkState_par`/`cutState`/`promoteState`/
+   `extractState`), so a sim step is run-the-stores, apply-the-
+   congruences, land-on-the-splice-equation; foreign writes and non-`n`
+   register writes leave `Rel` untouched; `rel_of_pointwise` is the F0
+   idiom constructor for the initialization sequence.  Next in (b): the
+   program `p2` itself (insert / extract-min / decrease-key over the
+   decoded frame; the consolidation's roots filter is the store-
+   compaction loop), then the step lemmas wiring `SimOK` + `merge_SimOK`
+   + `DkEvidence` across `Runs`; (c) **the
    charge** — per-op RAM cost constants (cut/promote/link O(1)-splices,
    extract O(deg r) + the walk), with the potential ledger (`row_nlog`'s
    `m·5 + 2·rankCap + 2`, scaled lane `D0+6K+D1`) as the amortized
