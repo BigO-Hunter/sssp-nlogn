@@ -326,7 +326,7 @@ theorem machineMarks_clearPromoteState_intermediate (st : HState) (y z : ℕ)
       intro hc
       simp only [Finset.mem_insert, Finset.mem_singleton, Finset.notMem_empty] at hc
       rcases hc with hc | hfalse
-      · exact hyz hc.symm
+      · exact absurd hc.symm hyz
       · exact absurd hfalse (by simp)
     have hsub : insert z (insert y (∅ : Finset ℕ)) ⊆ markSet st := by
       intro x hx
@@ -426,6 +426,7 @@ theorem machineMarks_clearCascade_hmarks (st : HState) (x y : ℕ)
   have hm' : MarkOK (cutState st x y) := cut_MarkOK st x y hm
   have h1 := markcount_clearCells stop chain (cutState st x y) hm'
     (by rw [cutState_n]; exact hcc)
+  rw [hcut] at h1
   omega
 
 /-- **The clearing splice's potential drops.**  One fresh root (`+1`) against
