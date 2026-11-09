@@ -20,10 +20,11 @@ consumes).  It is named here, not claimed.
 -/
 import Submission.FibHeapCascade
 import Submission.FibHeapRefine
+import Submission.FibHeapForest
 
 namespace Submission.FibHeapDepth
 
-open Submission.FibHeapCascade Submission.FibHeapRefine
+open Submission.FibHeapCascade Submission.FibHeapRefine Submission.FibHeapForest
 
 /-- A connected cascade walk starting at `y`: each cell `(a, b)` has
 `a ∈ kids st b` (so `par a = b` under `ParOK`) and the rest of the walk
@@ -71,5 +72,37 @@ theorem walkUp_len_le_deg {st : HState} {B : ℕ}
     {y : ℕ} {chain : List (ℕ × ℕ)} (h : WalkUp st y chain) (hy0 : 0 < st.deg y) :
     chain.length ≤ B :=
   walkUp_len_le_of_pos hmono hb h hy0
+
+/-! ## The size route: fuel monotonicity of the abstraction -/
+
+/-- Pointwise fuel monotonicity lifts to the summed child sizes. -/
+theorem sizeSum_map_fuel_mono (st : HState) (f : ℕ) (ks : List ℕ)
+    (h : ∀ c ∈ ks, (treeOf st f c).size ≤ (treeOf st (f + 1) c).size) :
+    sizeSum (ks.map fun c => Child.mk (treeOf st f c) (ldeg st c) (st.mrk c))
+      ≤ sizeSum (ks.map fun c => Child.mk (treeOf st (f + 1) c) (ldeg st c) (st.mrk c)) := by
+  induction ks with
+  | nil => simp [sizeSum]
+  | cons a ks ih =>
+    have h1 : (Child.mk (treeOf st f a) (ldeg st a) (st.mrk a)).size
+        ≤ (Child.mk (treeOf st (f + 1) a) (ldeg st a) (st.mrk a)).size := by
+      simp only [Child.size]
+      exact h a List.mem_cons_self
+    have h2 := ih fun c hc => h c (List.mem_cons_of_mem _ hc)
+    simp only [List.map_cons, sizeSum, List.sum_cons] at h2 ⊢
+    omega
+
+/-- **Fuel monotonicity.**  One more fuel level only adds represented
+descendants: the abstraction's size never shrinks. -/
+theorem treeOf_fuel_mono (st : HState) : ∀ (f p : ℕ),
+    (treeOf st f p).size ≤ (treeOf st (f + 1) p).size := by
+  intro f p
+  induction f generalizing p with
+  | zero => simp only [treeOf, size_node, sizeSum, List.map_nil,
+      List.sum_nil]; omega
+  | succ f ih =>
+    simp only [treeOf, size_node]
+    have h := sizeSum_map_fuel_mono st f (kids st p) fun c _hc => ih c
+    simp only [treeOf] at h
+    omega
 
 end Submission.FibHeapDepth
