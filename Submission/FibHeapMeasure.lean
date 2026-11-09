@@ -67,7 +67,7 @@ theorem mem_markSet {st : HState} {i : ℕ} :
   · subst h'
     simp [cutState_mrk, hy]
   · rw [if_neg h']
-    exact ⟨fun h => Or.inr h, fun h => (h.resolve_left h').elim⟩
+    exact ⟨fun h => Or.inr h, fun h => h.elim (absurd · h') id⟩
 
 @[simp] theorem markSet_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
     (hzn : z < st.n) (hy : st.mrk y = 1) (hz : st.mrk z = 0) :
@@ -79,11 +79,11 @@ theorem mem_markSet {st : HState} {i : ℕ} :
     by_cases hiz : i = z
     · subst hiz
       simp [hzn, hy]
-    · simp [hz, hy, hyn, hiz]
+    · simp [hz, hy, hyn, hiz, hzn]
   · by_cases hiz : i = z
     · subst hiz
-      simp [hyn, hy]
-    · simp [hiy, hiz, hy, hz, hyn]
+      simp [hyn, hy, hzn]
+    · simp [hiy, hiz, hy, hz, hyn, hzn]
 
 @[simp] theorem markSet_markState (st : HState) (y : ℕ) (hy : y < st.n) :
     markSet (markState st y) = insert y (markSet st) := by
@@ -132,10 +132,9 @@ theorem machineMarks_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n) (hz
   · subst hyz
     have h : markSet (promoteState st y y) = markSet st := by
       ext i
-      rw [mem_markSet, promoteState_n, promoteState_mrk, Finset.mem_insert, mem_markSet]
       by_cases hiy : i = y
-      · subst hiy; simp [hy]
-      · simp [hiy]
+      · subst hiy; simp [markSet, markState_n, markState_mrk, hy]
+      · simp [markSet, markState_n, markState_mrk, hiy]
     rw [h]
   · rw [markSet_promoteState st y z hyn hzn hy hz]
     have hyin : y ∈ markSet st := by simp [mem_markSet, hy]
@@ -314,7 +313,7 @@ theorem extractedMinState_root_bound :
   have h2 : extractedMinState.roots.length = 2 := by simp [extractedMinState_roots]
   have h1 : 1 ≤ FibHeapAccounting.rankCap extractedMinState.n := by
     simp only [FibHeapAccounting.rankCap]
-    omega
+    exact Nat.le_add_left 1 _
   simp only [FibHeapAccounting.rootCap]
   omega
 
