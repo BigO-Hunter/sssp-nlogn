@@ -44,17 +44,25 @@ does not discharge it.  **No carry** — the consolidation fold consumes `Extrac
 chains the table generates (`FibHeapConsolidate`); the pairwise-distinct-degrees
 restriction is the stated remainder.
 
+## Landed (this module, complete)
+
+1. **The stash loop** (`stashLoop_runs`) — invariant `StashI`: `k` cells scanned, the
+   live prefix of the combined source sits in `"rt2"` (cell agreement in total-`getD`
+   form), the decode is untouched, `L`/`e` pinned, cost `≤ 8·k`.  Per iteration the
+   select `ite` reads cell `j` (roots list below `L`, promotion log above —
+   `wa_roots_of_rel`/`wa_par_of_rel` carry the reads), the live test reads `par`
+   through the decode, and the stash store is foreign (`decode_storeW_foreign`).
+   The per-iteration state after the select carries the while + ite + write charges
+   (`s.cost + 3`); the tail re-establishes `StashI (k+1)`.
+2. **The full compaction** (`rootsCompact_runs`) — `stashLoop_runs` + the proved
+   `copyLoop_runs` composed through the re-allocating `walloc "roots"`
+   (`decode_allocW_roots`): post
+   `Rel {st with roots := flt st (r.wa "elog") L (L+e)}` (the decode exact at the
+   compaction boundary), `wlen "roots"` = the live count, cost `≤ 14·(L+e) + 7`
+   (arithmetic: `(k+1) + 2 + (8k+1) + (T+1) + 1 + (4T+1)` with `T ≤ k`).
+
 ## Named remainder (next landing)
 
-- `stashLoop_runs` — the stash loop's per-iteration proof: invariant "`k` cells
-  scanned, the live prefix of the combined source sits in `"rt2"`, the decode is
-  untouched, cost `≤ 8·k`"; per iteration the select `ite` reads cell `j` (roots list
-  below `L`, promotion log above), the live test reads `par` through the decode
-  (`wa_par_of_rel`), and the stash store is foreign (`decode_storeW_foreign`).
-  Its composition with the proved `copyLoop_runs` through the re-allocating
-  `walloc "roots"` (`decode_allocW_roots`) and the final `rel_of_pointwise` assembly
-  is `rootsCompact_runs`: post `Rel {st with roots := flt st elogR L (L+e)}`,
-  cost `≤ 14·(L+e) + 7`.
 - The decrease-key and extract-min program texts, and the per-step lemmas wiring
   `SimOK` + `merge_SimOK` + `DkEvidence` across `Runs` (the pending-log window needs
   its own relation shape: `decode r = st ∧ log r = pending`).
@@ -197,7 +205,8 @@ theorem flt_len_le (st : HState) (elogR : ℕ → ℕ) (L k : ℕ) :
 
 /-- **The stash loop**: scan cells `j < L + e` of the combined source (roots list for
 `j < L`, promotion log for `j ≥ L`), stashing every live entry into `"rt2"` at
-position `t`, `t` counting.  (Runs lemma = the named remainder `stashLoop_runs`.) -/
+position `t`, `t` counting.  (Proved: `stashLoop_runs` — invariant `StashI`, cost
+`≤ 8·(L+e) + 1`.) -/
 def stashLoop : Stmt :=
   .while (lt (var "j") (add (var "L") (var "e")))
     (.seq
@@ -475,9 +484,534 @@ theorem copyLoop_runs (r : State ℝ≥0) (st : HState) (rd : ℕ → ℕ) (t : 
       simp
     exact ⟨hj0, ht0, Nat.zero_le t, h4, h5, hrt2, hrl, rfl, rfl, le_refl _⟩
 
+/-! ## The stash loop's receipt -/
+
+/-- A register read survives an allocation (`allocW` touches only `wa`/`wlen`/`space`). -/
+theorem w_allocW (s : State V) (arr : String) (k : ℕ) (y : String) :
+    (s.allocW arr k).w y = s.w y := rfl
+
+/-- Evaluate a truncated subtraction (no word-size check: the result is below the
+minuend). -/
+theorem evalW_sub_of {s : State V} {a b : WExpr} {x y : ℕ}
+    (ha : evalW s a = some x) (hb : evalW s b = some y) :
+    evalW s (.sub a b) = some (x - y) := by
+  simp [evalW, ha, hb]
+
+/-- `flt` at zero scans is empty. -/
+theorem flt_zero (st : HState) (elogR : ℕ → ℕ) (L : ℕ) : flt st elogR L 0 = [] := by
+  unfold flt; simp
+
+/-- **The stash-loop invariant** (the module-docstring sketch): `k` cells of the combined
+source scanned (the roots list for `j < L`, the promotion log above), the live prefix
+sitting in `"rt2"` (cell agreement in total-`getD` form: in range it is the cell, and
+`"rt2"` is zeroed scratch), the decode untouched, `"L"`/`"e"` pinned, the log reads
+stable, cost `≤ 8·k`. -/
+def StashI (r : State V) (st : HState) (elogR : ℕ → ℕ) (L e k : ℕ) (s : State V) : Prop :=
+  s.w "j" = k ∧
+  s.w "t" = (flt st elogR L k).length ∧
+  Rel st s ∧
+  (∀ j, j < (flt st elogR L k).length →
+    s.wa "rt2" j = (flt st elogR L k).getD j 0) ∧
+  s.wlen "rt2" = L + e ∧
+  s.wlen "roots" = L ∧
+  s.wlen "par" = r.wlen "par" ∧
+  s.wlen "elog" = r.wlen "elog" ∧
+  s.w "L" = L ∧
+  s.w "e" = e ∧
+  (∀ i, s.wa "elog" i = elogR i) ∧
+  s.cap = r.cap ∧
+  s.cost ≤ r.cost + 8 * k
+
+/-- **The stash loop runs** — the named remainder: `L + e` cells of the combined source
+scanned (the select `ite` reads cell `j` of the roots list below `L`, of the promotion
+log above; `wa_roots_of_rel`/`wa_par_of_rel` carry the reads through the decode), the
+live prefix parked in `"rt2"` at the count register, the decode untouched throughout
+(every stash store is foreign, every register write non-`n`), cost `≤ 8·(L+e) + 1`. -/
+theorem stashLoop_runs (r : State ℝ≥0) (st : HState) (elogR : ℕ → ℕ) (L e : ℕ)
+    (hR : Rel st r) (hcap0 : 1 < r.cap)
+    (hj0 : r.w "j" = 0) (ht0 : r.w "t" = 0)
+    (hL : r.w "L" = L) (he : r.w "e" = e)
+    (hrl : r.wlen "roots" = L) (hrt2L : r.wlen "rt2" = L + e)
+    (helog0 : ∀ i, r.wa "elog" i = elogR i)
+    (hlogcap : ∀ i, i < e → i < r.wlen "elog")
+    (hid : (∀ j, j < L → st.roots.getD j 0 < r.wlen "par") ∧
+      (∀ i, i < e → elogR i < r.wlen "par"))
+    (hcap : L + e < r.cap) :
+    Runs realOps stashLoop r (fun r' =>
+      r'.w "j" = L + e ∧
+      r'.w "t" = (flt st elogR L (L + e)).length ∧
+      Rel st r' ∧
+      (∀ j, j < (flt st elogR L (L + e)).length →
+        r'.wa "rt2" j = (flt st elogR L (L + e)).getD j 0) ∧
+      r'.wlen "rt2" = L + e ∧ r'.wlen "roots" = L ∧
+      r'.w "L" = L ∧ r'.w "e" = e ∧ (∀ i, r'.wa "elog" i = elogR i) ∧
+      r'.cap = r.cap ∧ r'.cost ≤ r.cost + 8 * (L + e) + 1) := by
+  unfold stashLoop
+  refine runs_while (I := StashI r st elogR L e) (K := L + e) (Q := fun r' =>
+      r'.w "j" = L + e ∧
+      r'.w "t" = (flt st elogR L (L + e)).length ∧
+      Rel st r' ∧
+      (∀ j, j < (flt st elogR L (L + e)).length →
+        r'.wa "rt2" j = (flt st elogR L (L + e)).getD j 0) ∧
+      r'.wlen "rt2" = L + e ∧ r'.wlen "roots" = L ∧
+      r'.w "L" = L ∧ r'.w "e" = e ∧ (∀ i, r'.wa "elog" i = elogR i) ∧
+      r'.cap = r.cap ∧ r'.cost ≤ r.cost + 8 * (L + e) + 1)
+    ?hstep ?hexit r ?entry
+  case hstep =>
+    intro k hk s his
+    obtain ⟨hj, hwt, hrel, hwa, hwl2, hrl', hwlP, hwlE, hL', he', helog, hcapS, hcost⟩ := his
+    set t := (flt st elogR L k).length with htd
+    have hcap' : 1 < s.cap := by rw [hcapS]; exact hcap0
+    have hbLe : evalW s (add (var "L") (var "e")) = some (L + e) := by
+      refine evalW_add_of (x := L) (y := e) (by rw [evalW_var, hL']) (by rw [evalW_var, he']) ?_
+      rw [hcapS]; exact hcap
+    have hte : evalW s (lt (var "j") (add (var "L") (var "e"))) = some 1 := by
+      rw [evalW_lt_of (x := k) (y := L + e) (by rw [evalW_var, hj]) hbLe hcap']
+      simp [hk]
+    refine ⟨1, hte, one_ne_zero, ?_⟩
+    -- The shared tail (live-test + stash + count) from the post-select state; the select
+    -- costs the while test, its own test and the register write: `s.cost + 3`.
+    have htail : ∀ (v : ℕ) (s1 : State ℝ≥0),
+        v < r.wlen "par" →
+        (if k < L then st.roots.getD k 0 else elogR (k - L)) = v →
+        s1.w "r" = v → s1.w "j" = k → s1.w "t" = t →
+        Rel st s1 → (∀ j, s1.wa "rt2" j = s.wa "rt2" j) →
+        s1.wlen "rt2" = L + e → s1.wlen "roots" = L →
+        s1.wlen "par" = r.wlen "par" → s1.wlen "elog" = r.wlen "elog" →
+        s1.w "L" = L → s1.w "e" = e → (∀ i, s1.wa "elog" i = elogR i) →
+        s1.cap = r.cap → s1.cost = s.cost + 3 →
+        Runs realOps
+          (.seq (.ite (eq (load "par" (var "r")) (lit 0))
+              (.seq (wstore "rt2" (var "t") (var "r"))
+                (wset "t" (add (var "t") (lit 1))))
+              skip)
+            (.wset "j" (add (var "j") (lit 1))))
+          s1 (StashI r st elogR L e (k + 1)) := by
+      intro v s1 hv hsrcv hr1 hj1 hwt1 hrel1 hwa1 hwl21 hrl1 hwlP1 hwlE1 hL1 he1 helog1
+        hcap1 hcost1
+      have hcap1' : 1 < s1.cap := by rw [hcap1]; exact hcap0
+      have htL : t ≤ k := flt_len_le st elogR L k
+      have hparv : s1.wa "par" v = st.par v := wa_par_of_rel hrel1 v
+      have hldp : evalW s1 (load "par" (var "r")) = some (s1.wa "par" v) := by
+        rw [evalW_load_of (by rw [evalW_var, hr1]) (by rw [hwlP1]; exact hv)]
+      have hc2 : evalW s1 (eq (load "par" (var "r")) (lit 0))
+          = some (if s1.wa "par" v = 0 then 1 else 0) := by
+        rw [evalW_eq_of hldp (evalW_lit_of (by have := hcap1; omega)) hcap1']
+      have hlivB : isLive st v = true ↔ st.par v = 0 := by simp [isLive]
+      by_cases hpv : st.par v = 0
+      · -- live: stash the cell
+        have hliv : isLive st v = true := hlivB.mpr hpv
+        have hc2' : evalW s1 (eq (load "par" (var "r")) (lit 0)) = some 1 := by
+          rw [hc2, hparv, if_pos hpv]
+        have hlenk1 : (flt st elogR L (k + 1)).length = t + 1 := by
+          rw [flt_step, hsrcv, if_pos hliv, List.length_append, ← htd]; simp
+        refine runs_seq (runs_ite_true hc2' (by decide) ?_)
+        refine runs_seq (runs_wstore (hi := by rw [evalW_var, w_charge, hwt1])
+          (he := by rw [evalW_var, w_charge, hr1]) (hj := by rw [wlen_charge, hwl21]; omega) ?_)
+        set s2 := ((s1.charge 1).storeW "rt2" t v).charge 1 with hs2
+        have hwt2 : s2.w "t" = t := by rw [hs2, w_charge, w_storeW, w_charge, hwt1]
+        have hcap2 : s2.cap = r.cap := by rw [hs2, cap_charge, cap_storeW, cap_charge, hcap1]
+        have hwa2 : ∀ j, s2.wa "rt2" j = if j = t then v else s.wa "rt2" j := by
+          intro j
+          rw [hs2, wa_charge, wa_storeW, wa_charge, hwa1]
+          by_cases hjt : j = t
+          · simp [hjt]
+          · simp [hjt]
+        have hcost2 : s2.cost = s1.cost + 2 := by
+          rw [hs2, cost_charge, cost_storeW, cost_charge]
+        have hadd : evalW s2 (add (var "t") (lit 1)) = some (t + 1) := by
+          refine evalW_add_of (x := t) (y := 1) (by rw [evalW_var, hwt2])
+            (evalW_lit_of (by rw [hcap2]; omega)) ?_
+          rw [hcap2]; omega
+        refine runs_wset hadd ?_
+        set s3 := (s2.setW "t" (t + 1)).charge 1 with hs3
+        have hwt3 : s3.w "t" = t + 1 := by rw [hs3, w_charge, w_setW, if_pos (by simp)]
+        have hj3' : s3.w "j" = k := by
+          rw [hs3, w_charge, w_setW, if_neg (by decide : ("j" : String) ≠ "t"), hs2,
+            w_charge, w_storeW, w_charge, hj1]
+        have hL3' : s3.w "L" = L := by
+          rw [hs3, w_charge, w_setW, if_neg (by decide : ("L" : String) ≠ "t"), hs2,
+            w_charge, w_storeW, w_charge, hL1]
+        have he3' : s3.w "e" = e := by
+          rw [hs3, w_charge, w_setW, if_neg (by decide : ("e" : String) ≠ "t"), hs2,
+            w_charge, w_storeW, w_charge, he1]
+        have hwl23 : s3.wlen "rt2" = L + e := by
+          rw [hs3, wlen_charge, wlen_setW, hs2, wlen_charge, wlen_storeW, wlen_charge]
+          exact hwl21
+        have hrl3' : s3.wlen "roots" = L := by
+          rw [hs3, wlen_charge, wlen_setW, hs2, wlen_charge, wlen_storeW, wlen_charge]
+          exact hrl1
+        have hwlP3' : s3.wlen "par" = r.wlen "par" := by
+          rw [hs3, wlen_charge, wlen_setW, hs2, wlen_charge, wlen_storeW, wlen_charge]
+          exact hwlP1
+        have hwlE3' : s3.wlen "elog" = r.wlen "elog" := by
+          rw [hs3, wlen_charge, wlen_setW, hs2, wlen_charge, wlen_storeW, wlen_charge]
+          exact hwlE1
+        have helog3 : ∀ i, s3.wa "elog" i = elogR i := by
+          intro i
+          rw [hs3, wa_charge, wa_setW, hs2, wa_charge, wa_storeW,
+            if_neg (by simp), wa_charge]
+          exact helog1 i
+        have hrel3 : Rel st s3 := by
+          show decode s3 = st
+          rw [hs3, decode_charge, decode_w_other _ (by decide : ("t" : String) ≠ "n"), hs2,
+            decode_charge, decode_storeW_foreign _ (by decide) t v, decode_charge]
+          exact hrel1
+        have hcap3' : s3.cap = r.cap := by
+          rw [hs3, cap_charge, cap_setW, hs2, cap_charge, cap_storeW, cap_charge, hcap1]
+        have hadd2 : evalW s3 (add (var "j") (lit 1)) = some (k + 1) := by
+          refine evalW_add_of (x := k) (y := 1) (by rw [evalW_var, hj3'])
+            (evalW_lit_of (by rw [hcap3']; omega)) ?_
+          rw [hcap3']; omega
+        refine runs_wset hadd2 ?_
+        set s4 := (s3.setW "j" (k + 1)).charge 1 with hs4
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · rw [hs4, w_charge, w_setW, if_pos (by simp)]
+        · rw [hs4, w_charge, w_setW, if_neg (by decide : ("t" : String) ≠ "j"), hwt3, hlenk1]
+        · show decode s4 = st
+          rw [hs4, decode_charge, decode_w_other _ (by decide : ("j" : String) ≠ "n"), hs3,
+            decode_charge, decode_w_other _ (by decide : ("t" : String) ≠ "n"), hs2,
+            decode_charge, decode_storeW_foreign _ (by decide) t v, decode_charge]
+          exact hrel1
+        · intro j hjl
+          rw [hlenk1] at hjl
+          rw [hs4, wa_charge, wa_setW, hs3, wa_charge, wa_setW, hwa2 j, flt_step, hsrcv,
+            if_pos hliv]
+          rcases Nat.lt_or_ge j t with hjt | hjt
+          · rw [if_neg (by omega : ¬(j = t)), List.getD_append _ _ _ _ (by omega)]
+            exact hwa j (by omega)
+          · have hjte : j = t := by omega
+            subst hjte
+            rw [if_pos (by simp), List.getD_append_right _ _ _ _ (by omega), htd]
+            simp
+        · rw [hs4, wlen_charge, wlen_setW, wlen_charge]; exact hwl23
+        · rw [hs4, wlen_charge, wlen_setW, wlen_charge]; exact hrl3'
+        · rw [hs4, wlen_charge, wlen_setW, wlen_charge]; exact hwlP3'
+        · rw [hs4, wlen_charge, wlen_setW, wlen_charge]; exact hwlE3'
+        · rw [hs4, w_charge, w_setW, if_neg (by decide : ("L" : String) ≠ "j")]; exact hL3'
+        · rw [hs4, w_charge, w_setW, if_neg (by decide : ("e" : String) ≠ "j")]; exact he3'
+        · intro i
+          rw [hs4, wa_charge, wa_setW]; exact helog3 i
+        · rw [hs4, cap_charge, cap_setW]; exact hcap3'
+        · rw [hs4, cost_charge, cost_setW, hs3, cost_charge, cost_setW, hcost2, hcost1]
+          omega
+      · -- dead: skip the stash
+        have hdead : ¬(isLive st v = true) := by
+          simp [isLive, hpv]
+        have hc2'' : evalW s1 (eq (load "par" (var "r")) (lit 0)) = some 0 := by
+          rw [hc2, hparv, if_neg hpv]
+        refine runs_seq (runs_ite_false hc2'' ?_)
+        refine runs_skip ?_
+        set s2 := (s1.charge 1).charge 1 with hs2
+        have hwt2 : s2.w "t" = t := by rw [hs2, w_charge, w_charge, hwt1]
+        have hj2 : s2.w "j" = k := by rw [hs2, w_charge, w_charge, hj1]
+        have hL2 : s2.w "L" = L := by rw [hs2, w_charge, w_charge, hL1]
+        have he2 : s2.w "e" = e := by rw [hs2, w_charge, w_charge, he1]
+        have hwl22 : s2.wlen "rt2" = L + e := by
+          rw [hs2, wlen_charge, wlen_charge]; exact hwl21
+        have hrl2 : s2.wlen "roots" = L := by
+          rw [hs2, wlen_charge, wlen_charge]; exact hrl1
+        have hwlP2 : s2.wlen "par" = r.wlen "par" := by
+          rw [hs2, wlen_charge, wlen_charge]; exact hwlP1
+        have hwlE2 : s2.wlen "elog" = r.wlen "elog" := by
+          rw [hs2, wlen_charge, wlen_charge]; exact hwlE1
+        have helog2 : ∀ i, s2.wa "elog" i = elogR i := by
+          intro i; rw [hs2, wa_charge, wa_charge]; exact helog1 i
+        have hrel2 : Rel st s2 := by
+          show decode s2 = st
+          rw [hs2, decode_charge, decode_charge]
+          exact hrel1
+        have hcap2 : s2.cap = r.cap := by rw [hs2, cap_charge, cap_charge]; exact hcap1
+        have hcost2 : s2.cost = s1.cost + 2 := by rw [hs2, cost_charge, cost_charge]
+        have hadd : evalW s2 (add (var "j") (lit 1)) = some (k + 1) := by
+          refine evalW_add_of (x := k) (y := 1) (by rw [evalW_var, hj2])
+            (evalW_lit_of (by rw [hcap2]; omega)) ?_
+          rw [hcap2]; omega
+        refine runs_wset hadd ?_
+        set s3 := (s2.setW "j" (k + 1)).charge 1 with hs3
+        have hfltd : flt st elogR L (k + 1) = flt st elogR L k := by
+          rw [flt_step, hsrcv, if_neg hdead]; simp
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · rw [hs3, w_charge, w_setW, if_pos (by simp)]
+        · rw [hs3, w_charge, w_setW, if_neg (by decide : ("t" : String) ≠ "j"), hwt2, hfltd,
+            ← htd]
+        · show decode s3 = st
+          rw [hs3, decode_charge, decode_w_other _ (by decide : ("j" : String) ≠ "n"), hs2,
+            decode_charge, decode_charge]
+          exact hrel1
+        · intro j hjl
+          rw [hfltd] at hjl ⊢
+          rw [hs3, wa_charge, wa_setW, hs2, wa_charge, wa_charge, hwa1]
+          exact hwa j hjl
+        · rw [hs3, wlen_charge, wlen_setW, wlen_charge]; exact hwl22
+        · rw [hs3, wlen_charge, wlen_setW, wlen_charge]; exact hrl2
+        · rw [hs3, wlen_charge, wlen_setW, wlen_charge]; exact hwlP2
+        · rw [hs3, wlen_charge, wlen_setW, wlen_charge]; exact hwlE2
+        · rw [hs3, w_charge, w_setW, if_neg (by decide : ("L" : String) ≠ "j")]; exact hL2
+        · rw [hs3, w_charge, w_setW, if_neg (by decide : ("e" : String) ≠ "j")]; exact he2
+        · intro i
+          rw [hs3, wa_charge, wa_setW]; exact helog2 i
+        · rw [hs3, cap_charge, cap_setW]; exact hcap2
+        · rw [hs3, cost_charge, cost_setW, hcost2, hcost1]
+          omega
+    rcases Nat.lt_or_ge k L with hkL | hkL
+    · -- the select reads the roots cell
+      have hc1 : evalW s (lt (var "j") (var "L")) = some 1 := by
+        rw [evalW_lt_of (x := k) (y := L) (by rw [evalW_var, hj]) (by rw [evalW_var, hL']) hcap']
+        simp [hkL]
+      have hldR : evalW ((s.charge 1).charge 1) (load "roots" (var "j"))
+          = some (((s.charge 1).charge 1).wa "roots" k) := by
+        rw [evalW_load_of (by rw [evalW_var, w_charge, w_charge, hj])
+          (by rw [wlen_charge, wlen_charge, hrl']; exact hkL)]
+      have hrelR : Rel st
+          ((((s.charge 1).charge 1).setW "r" (((s.charge 1).charge 1).wa "roots" k)).charge 1) := by
+        show decode _ = st
+        rw [decode_charge, decode_w_other _ (by decide : ("r" : String) ≠ "n"), decode_charge,
+          decode_charge]
+        exact hrel
+      have hcostR : ((((s.charge 1).charge 1).setW "r"
+            (((s.charge 1).charge 1).wa "roots" k)).charge 1).cost = s.cost + 3 := by
+        rw [cost_charge, cost_setW, cost_charge, cost_charge]
+      refine runs_seq (runs_ite_true hc1 one_ne_zero ?_)
+      refine runs_wset hldR ?_
+      refine htail (((s.charge 1).charge 1).wa "roots" k) _
+        (by rw [wa_charge, wa_charge, wa_roots_of_rel hrel hrl' hkL]; exact hid.1 k hkL)
+        (by rw [if_pos hkL, wa_charge, wa_charge, wa_roots_of_rel hrel hrl' hkL])
+        (by simp [State.charge, State.setW])
+        (by simp [State.charge, State.setW, hj])
+        (by simp [State.charge, State.setW, hwt])
+        hrelR
+        (by intro j; simp [State.charge, State.setW])
+        (by simp [State.charge, State.setW, hwl2])
+        (by simp [State.charge, State.setW, hrl'])
+        (by simp [State.charge, State.setW, hwlP])
+        (by simp [State.charge, State.setW, hwlE])
+        (by simp [State.charge, State.setW, hL'])
+        (by simp [State.charge, State.setW, he'])
+        (by intro i; simp [State.charge, State.setW, helog])
+        (by simp [State.charge, State.setW, hcapS])
+        hcostR
+    · -- the select reads the promotion-log cell
+      have hc1' : evalW s (lt (var "j") (var "L")) = some 0 := by
+        rw [evalW_lt_of (x := k) (y := L) (by rw [evalW_var, hj]) (by rw [evalW_var, hL']) hcap']
+        simp [hkL]
+      have hsub : evalW ((s.charge 1).charge 1) (sub (var "j") (var "L")) = some (k - L) := by
+        refine evalW_sub_of (by rw [evalW_var, w_charge, w_charge, hj])
+          (by rw [evalW_var, w_charge, w_charge, hL'])
+      have hld : evalW ((s.charge 1).charge 1) (load "elog" (sub (var "j") (var "L")))
+          = some (elogR (k - L)) := by
+        rw [evalW_load_of hsub
+          (by rw [wlen_charge, wlen_charge, hwlE]; exact hlogcap (k - L) (by omega)),
+          wa_charge, wa_charge, helog]
+      have hrelL : Rel st ((((s.charge 1).charge 1).setW "r" (elogR (k - L))).charge 1) := by
+        show decode _ = st
+        rw [decode_charge, decode_w_other _ (by decide : ("r" : String) ≠ "n"), decode_charge,
+          decode_charge]
+        exact hrel
+      have hcostL : ((((s.charge 1).charge 1).setW "r" (elogR (k - L))).charge 1).cost
+          = s.cost + 3 := by
+        rw [cost_charge, cost_setW, cost_charge, cost_charge]
+      refine runs_seq (runs_ite_false hc1' ?_)
+      refine runs_wset hld ?_
+      refine htail (elogR (k - L)) _ (hid.2 (k - L) (by omega))
+        (by rw [if_neg (Nat.not_lt.mpr hkL)])
+        (by simp [State.charge, State.setW])
+        (by simp [State.charge, State.setW, hj])
+        (by simp [State.charge, State.setW, hwt])
+        hrelL
+        (by intro j; simp [State.charge, State.setW])
+        (by simp [State.charge, State.setW, hwl2])
+        (by simp [State.charge, State.setW, hrl'])
+        (by simp [State.charge, State.setW, hwlP])
+        (by simp [State.charge, State.setW, hwlE])
+        (by simp [State.charge, State.setW, hL'])
+        (by simp [State.charge, State.setW, he'])
+        (by intro i; simp [State.charge, State.setW, helog])
+        (by simp [State.charge, State.setW, hcapS])
+        hcostL
+  case hexit =>
+    intro s his
+    obtain ⟨hj, hwt, hrel, hwa, hwl2, hrl', hwlP, hwlE, hL', he', helog, hcapS, hcost⟩ := his
+    have hcap' : 1 < s.cap := by rw [hcapS]; exact hcap0
+    have hbLe : evalW s (add (var "L") (var "e")) = some (L + e) := by
+      refine evalW_add_of (x := L) (y := e) (by rw [evalW_var, hL']) (by rw [evalW_var, he']) ?_
+      rw [hcapS]; exact hcap
+    have hte : evalW s (lt (var "j") (add (var "L") (var "e"))) = some 0 := by
+      rw [evalW_lt_of (x := L + e) (y := L + e) (by rw [evalW_var, hj]) hbLe hcap']
+      simp
+    refine ⟨hte, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · rw [w_charge, hj]
+    · rw [w_charge]; exact hwt
+    · show decode (s.charge 1) = st
+      rw [decode_charge]
+      exact hrel
+    · intro j hjl; rw [wa_charge]; exact hwa j hjl
+    · rw [wlen_charge]; exact hwl2
+    · rw [wlen_charge]; exact hrl'
+    · rw [w_charge]; exact hL'
+    · rw [w_charge]; exact he'
+    · intro i; rw [wa_charge]; exact helog i
+    · rw [cap_charge]; exact hcapS
+    · rw [cost_charge]; omega
+  case entry =>
+    refine ⟨hj0, ?_, hR, ?_, hrt2L, hrl, rfl, rfl, hL, he, helog0, rfl, by omega⟩
+    · rw [flt_zero, ht0]; simp
+    · intro j hjl
+      rw [flt_zero] at hjl
+      simp at hjl
+
+/-! ## The full compaction receipt -/
+
+/-- **The consolidation roots filter runs** — the full store-compaction: allocate the
+scratch (`walloc "rt2"`), stash the live entries of the combined source (the proved
+`stashLoop_runs`), re-allocate `"roots"` at the live count (`walloc "roots"`,
+`decode_allocW_roots`), and copy back (the proved `copyLoop_runs` through the landed
+`decode_storeW_roots` splices).  The decode is exact at the compaction boundary:
+post `Rel {st with roots := flt st (r.wa "elog") L (L+e)}`, cost `≤ 14·(L+e) + 7`. -/
+theorem rootsCompact_runs (r : State ℝ≥0) (st : HState) (L e : ℕ)
+    (hR : Rel st r) (hcap0 : 1 < r.cap)
+    (hL : r.w "L" = L) (he : r.w "e" = e)
+    (hrl : r.wlen "roots" = L)
+    (hlogcap : ∀ i, i < e → i < r.wlen "elog")
+    (hid : (∀ j, j < L → st.roots.getD j 0 < r.wlen "par") ∧
+      (∀ i, i < e → r.wa "elog" i < r.wlen "par"))
+    (hcap : L + e + 1 < r.cap) :
+    Runs realOps rootsCompact r (fun r' =>
+      Rel {st with roots := flt st (r.wa "elog") L (L + e)} r' ∧
+      r'.wlen "roots" = (flt st (r.wa "elog") L (L + e)).length ∧
+      r'.cap = r.cap ∧ r'.cost ≤ r.cost + 14 * (L + e) + 7) := by
+  unfold rootsCompact
+  -- Phase 1: allocate the scratch
+  have halloc : evalW r (add (var "L") (var "e")) = some (L + e) := by
+    refine evalW_add_of (x := L) (y := e) (by rw [evalW_var, hL]) (by rw [evalW_var, he]) ?_
+    omega
+  refine runs_seq (runs_walloc halloc ?_)
+  set r1 := (r.allocW "rt2" (L + e)).charge (L + e + 1) with hr1
+  -- Phase 2: t := 0
+  have hl0 : evalW r1 (lit 0) = some 0 :=
+    evalW_lit_of (by rw [hr1, cap_charge, cap_allocW]; omega)
+  refine runs_seq (runs_wset hl0 ?_)
+  set r2 := (r1.setW "t" 0).charge 1 with hr2
+  -- Phase 3: j := 0
+  have hl0' : evalW r2 (lit 0) = some 0 :=
+    evalW_lit_of (by rw [hr2, cap_charge, cap_setW, hr1, cap_charge, cap_allocW]; omega)
+  refine runs_seq (runs_wset hl0' ?_)
+  set r3 := (r2.setW "j" 0).charge 1 with hr3
+  -- r3 facts
+  have hwlen_ne : ∀ X : String, X ≠ "rt2" → r3.wlen X = r.wlen X := by
+    intro X hX
+    rw [hr3, wlen_charge, wlen_setW, hr2, wlen_charge, wlen_setW, hr1, wlen_charge,
+      wlen_allocW, if_neg hX]
+  have hR3 : Rel st r3 := by
+    show decode r3 = st
+    rw [hr3, decode_charge, decode_w_other _ (by decide : ("j" : String) ≠ "n"), hr2,
+      decode_charge, decode_w_other _ (by decide : ("t" : String) ≠ "n"), hr1, decode_charge,
+      decode_allocW_foreign (b := "rt2") r (by decide) (L + e)]
+    exact hR
+  have hj03 : r3.w "j" = 0 := by rw [hr3, w_charge, w_setW, if_pos (by simp)]
+  have ht03 : r3.w "t" = 0 := by
+    rw [hr3, w_charge, w_setW, if_neg (by decide : ("t" : String) ≠ "j"), hr2, w_charge,
+      w_setW, if_pos (by simp)]
+  have hL3 : r3.w "L" = L := by
+    rw [hr3, w_charge, w_setW, if_neg (by decide : ("L" : String) ≠ "j"), hr2, w_charge,
+      w_setW, if_neg (by decide : ("L" : String) ≠ "t"), hr1, w_charge, w_allocW, hL]
+  have he3 : r3.w "e" = e := by
+    rw [hr3, w_charge, w_setW, if_neg (by decide : ("e" : String) ≠ "j"), hr2, w_charge,
+      w_setW, if_neg (by decide : ("e" : String) ≠ "t"), hr1, w_charge, w_allocW, he]
+  have hrt23 : r3.wlen "rt2" = L + e := by
+    rw [hr3, wlen_charge, wlen_setW, hr2, wlen_charge, wlen_setW, hr1, wlen_charge,
+      wlen_allocW, if_pos (by simp)]
+  have hrl3 : r3.wlen "roots" = L := by
+    rw [hwlen_ne "roots" (by decide)]; exact hrl
+  have hlogcap3 : ∀ i, i < e → i < r3.wlen "elog" := by
+    intro i hi; rw [hwlen_ne "elog" (by decide)]; exact hlogcap i hi
+  have hid3 : (∀ j, j < L → st.roots.getD j 0 < r3.wlen "par") ∧
+      (∀ i, i < e → r.wa "elog" i < r3.wlen "par") := by
+    constructor
+    · intro j hj; rw [hwlen_ne "par" (by decide)]; exact hid.1 j hj
+    · intro i hi; rw [hwlen_ne "par" (by decide)]; exact hid.2 i hi
+  have hcap3 : 1 < r3.cap := by
+    rw [hr3, cap_charge, cap_setW, hr2, cap_charge, cap_setW, hr1, cap_charge, cap_allocW]
+    exact hcap0
+  have hcap3eq : r3.cap = r.cap := by
+    rw [hr3, cap_charge, cap_setW, hr2, cap_charge, cap_setW, hr1, cap_charge, cap_allocW]
+  have hr3cost : r3.cost = r.cost + (L + e + 1) + 1 + 1 := by
+    rw [hr3, cost_charge, cost_setW, hr2, cost_charge, cost_setW, hr1, cost_charge,
+      cost_allocW]
+  -- Phase 4: the stash loop
+  refine runs_seq ?head
+  · refine Runs.mono (h := stashLoop_runs r3 st (r.wa "elog") L e hR3 hcap3 hj03 ht03
+      hL3 he3 hrl3 hrt23 (fun _ => rfl) hlogcap3 hid3 (by rw [hcap3eq]; omega)) ?_
+    intro s' hs'
+    obtain ⟨hj4, hwt4, hrel4, hwa4, hwl24, hrl4, hL4, he4, helog4, hcap4, hcost4⟩ := hs'
+    set T := (flt st (r.wa "elog") L (L + e)).length with hT
+    have hcap4' : 1 < s'.cap := by rw [hcap4]; exact hcap0
+    have hTle : T ≤ L + e := flt_len_le st (r.wa "elog") L (L + e)
+    -- Phase 5: re-allocate "roots" at the live count
+    have hte5 : evalW s' (var "t") = some T := by rw [evalW_var, hwt4]
+    refine runs_seq (runs_walloc hte5 ?_)
+    set s5 := (s'.allocW "roots" T).charge (T + 1) with hs5
+    have hrl5 : s5.wlen "roots" = T := by rw [hs5, wlen_charge, wlen_allocW, if_pos (by simp)]
+    have hwa5 : ∀ j, s5.wa "roots" j = 0 := by
+      intro j; rw [hs5, wa_charge, wa_allocW, if_pos (by simp)]
+    have hR5 : Rel {st with roots := (List.range T).map (fun _ => (0 : ℕ))} s5 := by
+      show decode s5 = {st with roots := (List.range T).map (fun _ => (0 : ℕ))}
+      rw [hs5, decode_charge, decode_allocW_roots, hrel4]
+    have hrt2L5 : s5.wlen "rt2" = L + e := by
+      rw [hs5, wlen_charge, wlen_allocW, if_neg (by decide : ("rt2" : String) ≠ "roots")]
+      exact hwl24
+    have hwa45 : ∀ j, s5.wa "rt2" j = s'.wa "rt2" j := by
+      intro j
+      rw [hs5, wa_charge, wa_allocW, if_neg (by decide : ("rt2" : String) ≠ "roots")]
+    have hcap5 : s5.cap = r.cap := by rw [hs5, cap_charge, cap_allocW]; exact hcap4
+    have hcost5 : s5.cost = s'.cost + (T + 1) := by rw [hs5, cost_charge, cost_allocW]
+    -- Phase 6: j := 0
+    have hl6 : evalW s5 (lit 0) = some 0 :=
+      evalW_lit_of (by rw [hs5, cap_charge, cap_allocW]; omega)
+    refine runs_seq (runs_wset hl6 ?_)
+    set s6 := (s5.setW "j" 0).charge 1 with hs6
+    have hj06 : s6.w "j" = 0 := by rw [hs6, w_charge, w_setW, if_pos (by simp)]
+    have hwt6 : s6.w "t" = T := by
+      rw [hs6, w_charge, w_setW, if_neg (by decide : ("t" : String) ≠ "j"), hs5, w_charge]
+      exact hwt4
+    have hwa06 : ∀ j, s6.wa "roots" j = 0 := by
+      intro j; rw [hs6, wa_charge, wa_setW, hs5, wa_charge, wa_allocW, if_pos (by simp)]
+    have hrt26 : ∀ j, s6.wa "rt2" j = s'.wa "rt2" j := by
+      intro j
+      rw [hs6, wa_charge, wa_setW, hs5, wa_charge, wa_allocW,
+        if_neg (by decide : ("rt2" : String) ≠ "roots")]
+    have hrt2L6 : s6.wlen "rt2" = L + e := by
+      rw [hs6, wlen_charge, wlen_setW, hs5, wlen_charge, wlen_allocW,
+        if_neg (by decide : ("rt2" : String) ≠ "roots")]
+      exact hwl24
+    have hR6 : Rel {st with roots := (List.range T).map (fun _ => (0 : ℕ))} s6 := by
+      show decode s6 = _
+      rw [hs6, decode_charge, decode_w_other _ (by decide : ("j" : String) ≠ "n")]
+      exact hR5
+    have hcap6 : 1 < s6.cap := by rw [hs6, cap_charge, cap_setW]; exact hcap4'
+    -- Phase 7: the copy-back loop
+    refine Runs.mono (h := copyLoop_runs (r := s6) (st := st) (rd := s'.wa "rt2") (t := T)
+      hR6 hj06 hwt6 hwa06 hcap6 hrl5 (by rw [hrt2L6]; exact hTle) hrt26
+      (by rw [hs6, cap_charge, cap_setW, hs5, cap_charge, cap_allocW]; rw [hcap4]; omega)) ?_
+    intro s7 hs7
+    obtain ⟨q1, q2, q3, q4, q5, q6⟩ := hs7
+    -- the refilled array IS the filtered source
+    have hlist : (List.range T).map (s'.wa "rt2") = flt st (r.wa "elog") L (L + e) := by
+      refine List.ext_getElem (by simp [hT]) (fun j hj1 hj2 => ?_)
+      rw [List.getElem_map, List.getElem_range, hwa4 j hj2, List.getD_eq_getElem?_getD,
+        List.getElem?_eq_some_iff.mpr ⟨hj2, rfl⟩]
+      simp
+    refine ⟨?_, ?_, ?_, ?_⟩
+    · rw [← hlist]; exact q4
+    · exact q3
+    · rw [q5, hs6, cap_charge, cap_setW, hs5, cap_charge, cap_allocW]; exact hcap4
+    · rw [hs6, cost_charge, cost_setW, hcost5] at q6
+      have hT := hTle
+      omega
+
 /-! ## Axiom probes -/
 
 #print axioms insertOp_runs
 #print axioms copyLoop_runs
-
-end Submission.FibHeapProg
+#print axioms stashLoop_runs
+#print axioms rootsCompact_runs
