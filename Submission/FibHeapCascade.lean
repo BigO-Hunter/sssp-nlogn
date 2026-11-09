@@ -682,18 +682,16 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
 @[simp] theorem kids_casOut (q : ℕ) : kids casOut q = if q = 1 then [5] else [] := by
   unfold kids casOut decreaseKeyPath cascadeRun cutState promoteState casPreSt
   by_cases h1 : q = 1
-  · subst h1; simp
+  · subst h1; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
   · by_cases h2 : q = 2
-    · subst h2; simp
+    · subst h2; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
     · by_cases h3 : q = 3
-      · subst h3; simp
+      · subst h3; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
       · by_cases h4 : q = 4
-        · subst h4; simp
+        · subst h4; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
         · by_cases h5 : q = 5
-          · subst h5; simp
-          · simp
-
-
+          · subst h5; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
+          · first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
 
 /-! ### The pre-state satisfies the bundle -/
 
@@ -710,18 +708,58 @@ theorem cas_ParSlot : ParSlot casPreSt := by
 
 theorem cas_ParOK : ParOK casPreSt := by
   intro q v hv
-  by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    rw [hv] at hv; simp [kids, casPreSt, hq1, hq2, hq3, hq4] at hv ⊢
+  unfold kids casPreSt at hv
+  by_cases hq1 : q = 1
+  · subst hq1
+    simp at hv
+    subst hv
+    simp
+  · by_cases hq2 : q = 2
+    · subst hq2
+      simp at hv
+      subst hv
+      simp
+    · by_cases hq3 : q = 3
+      · subst hq3
+        simp at hv
+        subst hv
+        simp
+      · by_cases hq4 : q = 4
+        · subst hq4
+          simp at hv
+          subst hv
+          simp
+        · simp at hv
 
 theorem cas_KidsNodup : ∀ q, KidsNodup casPreSt q := by
   intro q j k hjk hk
-  by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    simp [kids, casPreSt, hq1, hq2, hq3, hq4, hjk, hk] at hjk hk ⊢
+  unfold kids casPreSt at hjk hk ⊢
+  split at hk <;> simp at hjk hk ⊢ <;> omega
 
 theorem cas_SlotOK : SlotOK casPreSt := by
   intro q hq v hv
-  by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    rw [hv] at hv; simp [kids, casPreSt, hq1, hq2, hq3, hq4] at hv ⊢
+  unfold kids casPreSt at hv
+  by_cases hq1 : q = 1
+  · subst hq1
+    simp at hv
+    subst hv
+    simp
+  · by_cases hq2 : q = 2
+    · subst hq2
+      simp at hv
+      subst hv
+      simp
+    · by_cases hq3 : q = 3
+      · subst hq3
+        simp at hv
+        subst hv
+        simp
+      · by_cases hq4 : q = 4
+        · subst hq4
+          simp at hv
+          subst hv
+          simp
+        · simp at hv
 
 theorem cas_PosOK : PosOK casPreSt := by
   intro q j hj
@@ -801,16 +839,40 @@ theorem cas_NILLeaf : NILLeaf casPreSt := rfl
 
 theorem cas_NILNotChild : NILNotChild casPreSt := by
   intro q hv
-  by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    simp [kids, casPreSt, hq1, hq2, hq3, hq4, hv] at hv
+  unfold kids casPreSt at hv
+  by_cases hq1 : q = 1
+  · subst hq1
+    simp at hv
+  · by_cases hq2 : q = 2
+    · subst hq2
+      simp at hv
+    · by_cases hq3 : q = 3
+      · subst hq3
+        simp at hv
+      · by_cases hq4 : q = 4
+        · subst hq4
+          simp at hv
+        · simp at hv
 
 theorem cas_RootNotChild : RootNotChild casPreSt := by
   intro r hr q _ hv
   simp only [casPreSt] at hr
   simp at hr
   subst hr
-  by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    rw [hv] at hv; simp [kids, casPreSt, hq1, hq2, hq3, hq4] at hv ⊢
+  unfold kids casPreSt at hv
+  by_cases hq1 : q = 1
+  · subst hq1
+    simp at hv
+  · by_cases hq2 : q = 2
+    · subst hq2
+      simp at hv
+    · by_cases hq3 : q = 3
+      · subst hq3
+        simp at hv
+      · by_cases hq4 : q = 4
+        · subst hq4
+          simp at hv
+        · simp at hv
 
 theorem cas_RootsLive : RootsLive casPreSt := by
   intro r hr
