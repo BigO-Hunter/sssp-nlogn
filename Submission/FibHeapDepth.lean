@@ -243,4 +243,62 @@ theorem walkUp_len_le_size (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
   have hpos : 0 < (treeOf st st.n y).size := size_pos _
   omega
 
+/-! ## The LiveDistinct bridge: Reach climb, corollaries, assembly -/
+
+/-- **The Reach climb.**  Reaching `c` from `q` in `f` child-steps is
+exactly the parent-iterate: `par^[f] q = c` — par is a function, so the
+climb is unique. -/
+theorem reach_par (st : HState) (hpar : ParOK st) : ∀ (f c q : ℕ),
+    Reach st f c q → (st.par)^[f] q = c := by
+  intro f
+  induction f with
+  | zero => intro c q hr; simpa [Reach, hr.symm] using rfl
+  | succ f ih =>
+    intro c q hr
+    obtain ⟨d, hd, hrest⟩ := hr
+    have hq := ih d q hrest
+    rw [Function.iterate_succ_apply', hq, hpar c d hd]
+
+/-- **Branch disjointness.**  Two distinct children of one parent cannot
+share a descendant: both climbs land at their own child. -/
+theorem reach_unique (st : HState) (hpar : ParOK st) : ∀ (f c1 c2 q : ℕ),
+    Reach st f c1 q → Reach st f c2 q → c1 = c2 := by
+  intro f
+  induction f with
+  | zero =>
+    intro c1 c2 q h1 h2
+    simp only [Reach] at h1 h2
+    exact h1.trans h2.symm
+  | succ f ih =>
+    intro c1 c2 q h1 h2
+    obtain ⟨d1, hd1, hr1⟩ := h1
+    obtain ⟨d2, hd2, hr2⟩ := h2
+    have hdd := ih d1 d2 q hr1 hr2
+    subst hdd
+    exact (hpar c1 d1 hd1).symm.trans (hpar c2 d1 hd2)
+
+/-- **The self half.**  A node is not in its own child-subtree's id set:
+that would close a parent-cycle, and `Acyc` forces it to be NIL, whose
+child list is empty. -/
+theorem reach_self_absurd (st : HState) (hpar : ParOK st) (hac : Acyc st)
+    (hnl : NILLeaf st) {f c p : ℕ} (hc : c ∈ kids st p)
+    (hmem : Reach st f c p) : False := by
+  have hclimb : (st.par)^[f] p = c := reach_par st hpar f c p hmem
+  have hcycle : (st.par)^[f + 1] p = p := by
+    rw [Function.iterate_succ_apply', hclimb, hpar p c hc]
+  have hp0 : p = 0 := hac p (f + 1) (by omega) hcycle
+  have hnil : kids st p = [] := by rw [hp0]; exact kids_eq_nil hnl
+  rw [hnil] at hc
+  exact List.not_mem_nil hc
+
+/- The LiveDistinct bridge's remaining cell, precisely named: the
+fold-Nodup assembly.  `nodup_append`'s third component (cross-segment
+inequality) is not derivable from the pairwise-disjoint-segments form
+when two segments are equal as lists — the right route is
+`List.nodup_flatten` over the identity `l.foldr append [] = l.flatten`
+(verify both at this pin), consuming `reach_unique`-based segment
+disjointness as the `Disjoint`-form.  `reach_par`, `reach_unique`,
+`reach_self_absurd` (with `Acyc` + `NILLeaf` closing the self-cycle)
+are proved above; `mem_ids_reach` (ids-membership to Reach at the
+self-case) is its remaining inner cell. -/
 end Submission.FibHeapDepth
