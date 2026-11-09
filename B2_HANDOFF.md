@@ -106,19 +106,29 @@ The row is potential-level accounting, not yet the program-level
    ExtractMin header's "next module") is NOT yet machine-landed and is
    the biggest single build (the linking loop, its `InvOK`-analog
    preservation, the distinct-degrees table discipline);
-   **(a) LANDED 2026-11-09, the `DegOK` discipline leg (STEP 4):**
-   `merge_DegOK` (`FibHeapMerge` — the clause survives the meld *at
-   equal degree*; `MergePre`'s bare inequality provably cannot carry
-   it), the deg-aware cell premise `ExtractOkDeg` (`MergePre` +
-   `st.deg c = st.deg p` per cell) with projection
-   `extractOkDeg_imp_ok`, the fold climb `extractRun_DegOK`, and the
-   bridge `extractMin_DegOK` (splice leg `extract_DegOK` + fold leg).
-   Honest seam, unchanged in kind: the equal-degree cell premise is
-   caller discipline — the distinct-degrees table that *generates*
-   well-formed chains is still to land, and `DegOK` at the program
-   level remains the named clause (wound 2125609385); the fold does not
-   discharge the seam, it moves the clause across the one genuinely
-   inductive transition.  Still open in (a): the table discipline;
+   **(a) CLOSED 2026-11-09 (STEP 4 + STEP 5).**  STEP 4 landed the `DegOK`
+   discipline leg (`merge_DegOK`, `ExtractOkDeg` + `extractOkDeg_imp_ok`,
+   `extractRun_DegOK`, `extractMin_DegOK`).  STEP 5 landed the witness
+   generation — **`FibHeapConsolidate`**: `TableOK` (the degree-indexed
+   partial map on roots; `tableOK_inj` is the ≤1-root-per-slot reading),
+   `tableOf`/`tableOK_tableOf`/`tableOf_complete` bridging M2
+   (`consolidated_of_tableOK`), the static cell discipline `TableChain`,
+   the generator `tableChain`, consumption `tableChain_extractOkDeg`
+   (successor-disjointness carries the running-state premises through the
+   fold's own recursion), and the closer **`tableChain_generate_ok`**:
+   TableOK + arrivals in roots + pairwise-distinct arrival degrees ⟹ the
+   generated fold satisfies `ExtractOkDeg` + `ExtractOk`.  The named
+   risks resolved: **witness generation is now a theorem**; the roots-list
+   concern is untouched here (the table is an `ℕ → ℕ` map — the RAM array
+   encoding stays a sim-step concern in (b)).  Honest seams, stated in the
+   module docstring: **no carry** — the generator reads the static table,
+   each slot absorbs at most once, and the pairwise-distinct-degrees
+   premise is that restriction; the carry loop (re-slotted absorber meets
+   the next arrival) is downstream — iterate the pass against the re-keyed
+   table (`root_count_bound` caps iterations) or thread the re-keying.
+   **`DegOK` stays the named clause** (wound 2125609385): the module
+   *generates* the equal-degree cells the fold's climb rides; it does not
+   discharge the clause at the program level.
    (b) **the sim**
    — RAM program ⟹ `HState` step sequence (the `DijkstraSim` pattern
    extended with heap-op witnesses: each decrease-key must EVIDENCE its

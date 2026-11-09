@@ -19,6 +19,7 @@ import Submission.FibHeapAmortized
 import Submission.FibHeapDepth
 import Submission.FibHeapRow
 import Submission.FibHeapPop
+import Submission.FibHeapConsolidate
 
 /-!
 # The Fibonacci-heap program family
