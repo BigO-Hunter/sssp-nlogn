@@ -526,133 +526,165 @@ intact, the promoted ancestors `2`, `3` join it as roots with their marks cleare
 the stopping ancestor `4` is left marked. -/
 def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
 
-@[simp] theorem casOut_par (v : ℕ) :
-    casOut.par v = if v = 5 then 1 else 0 := by
+@[simp] theorem casOut_par (v : ℕ) : casOut.par v = if v = 5 then 1 else 0 := by
   by_cases h1 : v = 1
   · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      casPreSt]
   · by_cases h2 : v = 2
     · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        casPreSt]
     · by_cases h3 : v = 3
       · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          casPreSt]
       · by_cases h4 : v = 4
         · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+            casPreSt]
         · by_cases h5 : v = 5
           · subst h5
-            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-              casPreSt, h1, h2, h3, h4]
-@[simp] theorem casOut_mrk (v : ℕ) :
-    casOut.mrk v = if v = 4 then 1 else 0 := by
-  by_cases h1 : v = 1
-  · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-  · by_cases h2 : v = 2
-    · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-    · by_cases h3 : v = 3
-      · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-      · by_cases h4 : v = 4
-        · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-        · by_cases h5 : v = 5
-          · subst h5
-            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-              casPreSt, h1, h2, h3, h4]
-@[simp] theorem casOut_deg (v : ℕ) :
-    casOut.deg v = if v = 1 then 1 else 0 := by
-  by_cases h1 : v = 1
-  · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-  · by_cases h2 : v = 2
-    · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-    · by_cases h3 : v = 3
-      · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-      · by_cases h4 : v = 4
-        · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-        · by_cases h5 : v = 5
-          · subst h5
-            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-              casPreSt, h1, h2, h3, h4]
-@[simp] theorem casOut_chd (v : ℕ) :
-    casOut.chd v = if v = 1 then 5 else 0 := by
-  by_cases h1 : v = 1
-  · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-  · by_cases h2 : v = 2
-    · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-    · by_cases h3 : v = 3
-      · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-      · by_cases h4 : v = 4
-        · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-        · by_cases h5 : v = 5
-          · subst h5
-            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-              casPreSt, h1, h2, h3, h4]
-@[simp] theorem casOut_rgt (v : ℕ) :
-    casOut.rgt v = if v = 1 then 1 else if v = 5 then 5 else 0 := by
-  by_cases h1 : v = 1
-  · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-  · by_cases h2 : v = 2
-    · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-    · by_cases h3 : v = 3
-      · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-      · by_cases h4 : v = 4
-        · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-        · by_cases h5 : v = 5
-          · subst h5
-            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-              casPreSt, h1, h2, h3, h4]
-@[simp] theorem casOut_lft (v : ℕ) :
-    casOut.lft v = if v = 1 then 1 else if v = 5 then 5 else 0 := by
-  by_cases h1 : v = 1
-  · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-  · by_cases h2 : v = 2
-    · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-    · by_cases h3 : v = 3
-      · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-      · by_cases h4 : v = 4
-        · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-        · by_cases h5 : v = 5
-          · subst h5
-            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState, casPreSt]
-          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-              casPreSt, h1, h2, h3, h4]
-@[simp] theorem casOut_roots : casOut.roots = [3, 2, 1, 4] := by
-  simp only [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, markState, casPreSt]
-  simp
-@[simp] theorem casOut_n : casOut.n = 6 := rfl
-@[simp] theorem kids_casOut_one : kids casOut 1 = [5] := by
-  unfold kids
-  simp [casOut_deg, casOut_chd, casOut_rgt]
+            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt]
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt, h1, h2, h3, h4]
 
-@[simp] theorem kids_casOut_ne (q : ℕ) : q ≠ 1 → kids casOut q = [] := by
-  intro hq
-  unfold kids
-  rw [casOut_deg, if_neg hq]
-  rfl
+@[simp] theorem casOut_mrk (v : ℕ) : casOut.mrk v = if v = 4 then 1 else 0 := by
+  by_cases h1 : v = 1
+  · subst h1
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      casPreSt]
+  · by_cases h2 : v = 2
+    · subst h2
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        casPreSt]
+    · by_cases h3 : v = 3
+      · subst h3
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          casPreSt]
+      · by_cases h4 : v = 4
+        · subst h4
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+            casPreSt]
+        · by_cases h5 : v = 5
+          · subst h5
+            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt]
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt, h1, h2, h3, h4]
+
+@[simp] theorem casOut_deg (v : ℕ) : casOut.deg v = if v = 1 then 1 else 0 := by
+  by_cases h1 : v = 1
+  · subst h1
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      casPreSt]
+  · by_cases h2 : v = 2
+    · subst h2
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        casPreSt]
+    · by_cases h3 : v = 3
+      · subst h3
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          casPreSt]
+      · by_cases h4 : v = 4
+        · subst h4
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+            casPreSt]
+        · by_cases h5 : v = 5
+          · subst h5
+            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt]
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt, h1, h2, h3, h4]
+
+@[simp] theorem casOut_chd (v : ℕ) : casOut.chd v = if v = 1 then 5 else 0 := by
+  by_cases h1 : v = 1
+  · subst h1
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      casPreSt]
+  · by_cases h2 : v = 2
+    · subst h2
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        casPreSt]
+    · by_cases h3 : v = 3
+      · subst h3
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          casPreSt]
+      · by_cases h4 : v = 4
+        · subst h4
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+            casPreSt]
+        · by_cases h5 : v = 5
+          · subst h5
+            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt]
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt, h1, h2, h3, h4]
+
+@[simp] theorem casOut_rgt (v : ℕ) :
+    casOut.rgt v = if v = 1 then 1 else if v = 2 then 2 else if v = 3 then 3 else if v = 4 then 4 else if v = 5 then 5 else 0 := by
+  by_cases h1 : v = 1
+  · subst h1
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      casPreSt]
+  · by_cases h2 : v = 2
+    · subst h2
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        casPreSt]
+    · by_cases h3 : v = 3
+      · subst h3
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          casPreSt]
+      · by_cases h4 : v = 4
+        · subst h4
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+            casPreSt]
+        · by_cases h5 : v = 5
+          · subst h5
+            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt]
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt, h1, h2, h3, h4]
+
+@[simp] theorem casOut_lft (v : ℕ) :
+    casOut.lft v = if v = 1 then 1 else if v = 2 then 2 else if v = 3 then 3 else if v = 4 then 4 else if v = 5 then 5 else 0 := by
+  by_cases h1 : v = 1
+  · subst h1
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      casPreSt]
+  · by_cases h2 : v = 2
+    · subst h2
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        casPreSt]
+    · by_cases h3 : v = 3
+      · subst h3
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          casPreSt]
+      · by_cases h4 : v = 4
+        · subst h4
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+            casPreSt]
+        · by_cases h5 : v = 5
+          · subst h5
+            simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt]
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
+              promoteState, casPreSt, h1, h2, h3, h4]
+
+@[simp] theorem kids_casOut (q : ℕ) : kids casOut q = if q = 1 then [5] else [] := by
+  unfold kids casOut decreaseKeyPath cascadeRun cutState promoteState casPreSt
+  by_cases h1 : q = 1
+  · subst h1; rfl
+  · by_cases h2 : q = 2
+    · subst h2; rfl
+    · by_cases h3 : q = 3
+      · subst h3; rfl
+      · by_cases h4 : q = 4
+        · subst h4; rfl
+        · by_cases h5 : q = 5
+          · subst h5; rfl
+          · rfl
 
 /-! ### The pre-state satisfies the bundle -/
 
@@ -686,7 +718,7 @@ theorem cas_PosOK : PosOK casPreSt := by
   intro q j hj
   have hq : q = 1 ∨ q = 2 ∨ q = 3 ∨ q = 4 := by
     by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-      simp
+      simp_all
   rcases hq with rfl | rfl | rfl | rfl
   · unfold kids at hj
     simp [casPreSt] at hj
