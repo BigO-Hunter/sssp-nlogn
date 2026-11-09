@@ -244,13 +244,14 @@ output) then one extract-min with its consolidation walk: the potential rise
 is `m · 5` — constant per op, the `n log` decrease-key half — plus the
 extract seam with BOTH walk terms at the rank cap: the splice
 (`(kids r).length`, the machine rank cap at the run's final state) and the
-consolidation walk (`hchain`, the recount's output shape — discharged by
-`recount_len_le_rankCap` over the extract-state bundle; the extract-state
-`PosOK` piece of that discharge is the named `extract_PosOK` follow-up).
-FT-1987: bound theirs, formalization ours.  The CLRS/transfer seam is the
-stated accounting boundary (the transfer run keeps its
-`count * (st.n + 5)` form; the honest 6K charge note lives in
-`DkRunClear.potential_scaled_ft`). -/
+consolidation walk (`recount_len_le_rankCap` discharged internally over the
+extract-state bundle — `extract_PosOK` supplies its `PosOK` piece;
+`hy0` is the program fact that the cascade starts at the cut node's
+parent, which retains a child, so the recount's non-leaf premise holds).
+`hmono` is the named `deg_lt_of_kids` seam (wound 2125609385).  FT-1987:
+bound theirs, formalization ours.  The CLRS/transfer seam is the stated
+accounting boundary (the transfer run keeps its `count * (st.n + 5)` form;
+the honest 6K charge note lives in `DkRunClear.potential_scaled_ft`). -/
 theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) st)
     (r : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ)
     (hmc : MarkChain (extractState s.last r) (extractState s.last r).n chain)
@@ -258,7 +259,12 @@ theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) 
     (hpar : ParOK s.last) (hslot : SlotOK s.last) (hps : ParSlot s.last)
     (hs : NILSelf s.last) (hac : Acyc s.last) (hnl : NILLeaf s.last)
     (hm : MarkOK s.last) (hpos : PosOK s.last) (hnd : ∀ q, KidsNodup s.last q)
-    (hchain : chain.length ≤ FibHeapAccounting.rankCap st.n) :
+    (hnc : NILNotChild s.last) (hrnc : RootNotChild s.last)
+    {y : ℕ} (hW : WalkUp (extractState s.last r) y chain)
+    (hyw : y < (extractState s.last r).n)
+    (hy0 : 0 < (extractState s.last r).deg y)
+    (hmono : ∀ a b : ℕ, a ∈ kids (extractState s.last r) b →
+      (extractState s.last r).deg a < (extractState s.last r).deg b) :
     machinePotential (cascadeRun (extractState s.last r) chain stop)
       ≤ machinePotential st + s.count * 5
         + (2 * FibHeapAccounting.rankCap st.n + 2) := by
@@ -276,6 +282,21 @@ theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) 
   rw [hlastn] at hcap
   have hkids : (kids s.last r).length ≤ FibHeapAccounting.rankCap st.n := by
     rw [kids_length]; exact hcap
+  -- the consolidation walk at the cap: the recount over the extract-state bundle
+  have hpar' := extract_ParOK s.last r hpar
+  have hslot' := extract_SlotOK s.last r hpre hrl hslot
+  have hps' := extract_ParSlot s.last r hps
+  have hs' := extract_NILSelf s.last r hs hnc
+  have hac' := extract_Acyc s.last r hpre hnc hs hac
+  have hnl' := extract_NILLeaf s.last r hpre hnl hnn
+  have hnd' := extract_KidsNodup s.last r hnd
+  have hm' := extract_MarkOK s.last r hm
+  have hpos' := extract_PosOK s.last r hpre hpar hrnc hnl hpos
+  have hchain : chain.length ≤ FibHeapAccounting.rankCap st.n := by
+    have h := recount_len_le_rankCap hmono hpar' hslot' hps' hs' hac' hnl' hm' hpos'
+      hnd' hW hyw hy0
+    rw [extractState_n, hlastn] at h
+    exact h
   simp only [machinePotential] at *
   omega
 
