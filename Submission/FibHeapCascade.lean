@@ -805,21 +805,21 @@ theorem cas_Acyc : Acyc casPreSt := by
       subst hj1
       rw [Function.iterate_zero] at heq
       omega
-    · exact absurd heq (hne j h0)
+    · exact absurd heq (hne j (by omega))
   · have hx0 : casPreSt.par x = 0 := by
       by_cases hx1 : x = 1 <;> by_cases hx2 : x = 2 <;> by_cases hx3 : x = 3 <;> by_cases hx4 : x = 4 <;>
         simp [casPreSt, hx5, hx1, hx2, hx3, hx4]
+    have hstep : ∀ m : ℕ, (casPreSt.par)^[m + 1] x = 0 := by
+      intro m
+      induction m with
+      | zero => exact hx0
+      | succ m ih =>
+        rw [Function.iterate_succ_apply']
+        simp [ih, casPreSt]
     cases j with
     | zero => omega
     | succ k =>
-      have hall : ∀ m : ℕ, (casPreSt.par)^[m + 1] x = 0 := by
-        intro m
-        induction m with
-        | zero => exact hx0
-        | succ m ih =>
-          rw [Function.iterate_succ_apply']
-          simp [ih, casPreSt]
-      rw [hall k] at heq
+      rw [hstep k] at heq
       exact heq.symm
 
 theorem cas_NILRoots : NILRoots casPreSt := by

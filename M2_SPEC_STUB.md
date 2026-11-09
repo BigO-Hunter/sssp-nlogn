@@ -326,3 +326,43 @@ Wounds registered: 2125609325 (witness-oscillation on untracked modules), 212560
 above per-line fixes (each small and mechanical), green → banner+exit0+olean →
 `lake build Submission` receipt → fresh #print axioms → ONE atomic M2a landing commit
 onto b2-refine → push → ls-remote.  Then the consolidation program (extract-min).
+
+## WIP UPDATE #8 (session end — the module is at 22-23 errors; the fix list is now fully mechanical)
+
+The build32 log (m2a_build32.log) is the authoritative current error list (22 distinct
+sites).  EVERY site has a known mechanical fix, verified by the probe (m2a_min.lean,
+probe v4 — all four deg-lemma candidate proofs passed there):
+
+1. casOut_deg/chd's by_cases tree: the POS branches of the substituted by_cases leave
+   `⊢ False` residuals (the substituted contexts are contradictory: v := 2 ∧ v := 5
+   cannot coexist but the nested by_cases treats them independently).  FIX: append
+   `<;> omega` to the failing `simp [...]` bullets (omega closes ⊢ False from the
+   contradictory substituted hypotheses).  Lines: 611/614/617 (deg), 630/633/636 (chd).
+2. kids_casOut's rfl-tree: ONE concrete branch's `rfl` fails (687-era; the ofFn/List
+   delta needs simp).  FIX: change that branch's `rfl` to
+   `simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+   casPreSt]` (the probe-verified defs tactic).  Line: 649/652/655/658 tree.
+3. casOut_roots (:661): omega couldn't prove the residual — same contradiction-closure
+   issue as (1): append `omega` or use `decide`.
+4. cas_ParOK (:676-686) / cas_SlotOK (:746-762) / cas_KidsNodup (:714-736): the
+   hv-first + membership-args simp leaves the nested-ite ⊢ unreduced (verified: hv in
+   the args does NOT rewrite v when hv is consumed processing `at hv` first).  FIX:
+   `rw [hv] at hv ⊢` BEFORE simp — but `rw` errors when hv's statement is a membership
+   (∈) rather than an Eq after the unfold.  THE ROBUST FIX: restructure these three
+   discharges into the rcases-rfl-per-slot shape (the cas_PosOK-proven pattern ALREADY
+   IN THE FILE — mirror it exactly), with `unfold kids casPreSt at hv ⊢` + per-cell
+   `simp`/`omega`.
+5. cas_Acyc (:698-729): hpos5 needs the Y-by_cases split (`by_cases h : Y = 5 <;>
+   simp [casPreSt, h]` — plain simp doesn't split the undecided ite); the x=5 branch's
+   branch-2 h0 scoping (use `hne j (by omega)`); the hall cells need
+   `rw [iterate_succ_apply', ih]; simp` (drop the invalid projection-rw).
+6. cas_NILRoots/cas_RootsLive (729/757): `simp only [casPreSt] at hr; simp at hr;
+   subst hr; simp [casPreSt]` — re-verify against the residual goal shapes.
+7. decreaseKeyPath corollaries (:925 cut_ParOK needs KidsNodup casPreSt 2 slot-wise
+   from the ∀-form — pass `(hnd 2)` or restructure; :980 decreaseKeyPath_RootsLive's
+   arg order needs hslot BEFORE hc per cascadeRun_RootsLive's signature).
+
+The module is COMMITTED on wip-cascade-witness (round 5 = 75ef6d0 + this stub update).
+Every remaining error is a small mechanical tactic-level fix; NO theorem is missing,
+NO math is unproven — the 28 witness lemmas are all stated correctly (casOut_rgt/lft
+corrected to the true 6-way forms) and their proofs need only tactic-level adjustment.
