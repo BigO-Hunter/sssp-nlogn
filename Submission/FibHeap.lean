@@ -13,6 +13,7 @@ import Submission.FibHeapPromote
 import Submission.FibHeapCascade
 import Submission.FibHeapExtractMin
 import Submission.FibHeapWitness
+import Submission.FibHeapMeasure
 
 /-!
 # The Fibonacci-heap program family
