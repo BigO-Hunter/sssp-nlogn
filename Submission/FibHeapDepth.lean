@@ -21,10 +21,12 @@ consumes).  It is named here, not claimed.
 import Submission.FibHeapCascade
 import Submission.FibHeapRefine
 import Submission.FibHeapForest
+import Submission.FibHeapAcyclic
 
 namespace Submission.FibHeapDepth
 
 open Submission.FibHeapCascade Submission.FibHeapRefine Submission.FibHeapForest
+open Submission.FibHeapAcyclic
 
 /-- A connected cascade walk starting at `y`: each cell `(a, b)` has
 `a ∈ kids st b` (so `par a = b` under `ParOK`) and the rest of the walk
@@ -104,5 +106,51 @@ theorem treeOf_fuel_mono (st : HState) : ∀ (f p : ℕ),
     have h := sizeSum_map_fuel_mono st f (kids st p) fun c _hc => ih c
     simp only [treeOf] at h
     omega
+
+/-- **Saturation.**  Under faithfulness the abstraction stops growing:
+`treeOf st f p = treeOf st (f+1) p`.  Faithful st 0 p says `deg p = 0`
+(no children to add at the next level) and the step recurses through the
+children's faithfulness — the pointwise map congruence closes the node. -/
+theorem treeOf_saturation {st : HState} : ∀ (f p : ℕ), Faithful st f p →
+    treeOf st f p = treeOf st (f + 1) p := by
+  intro f
+  induction f with
+  | zero =>
+    intro p hf
+    have hnil : kids st p = [] := kids_eq_nil hf
+    simp [treeOf, hnil]
+  | succ f ih =>
+    intro p hf
+    have hmap : (kids st p).map (fun c => Child.mk (treeOf st f c) (ldeg st c) (st.mrk c))
+      = (kids st p).map (fun c => Child.mk (treeOf st (f + 1) c) (ldeg st c) (st.mrk c)) :=
+      List.map_congr_left fun c hc => by rw [ih c (hf c hc)]
+    have h1 : treeOf st (f + 1) p
+        = FibHeapForest.Tree.node p ((kids st p).map (fun c => Child.mk (treeOf st f c) (ldeg st c) (st.mrk c))) := rfl
+    have h2 : treeOf st (f + 2) p
+        = FibHeapForest.Tree.node p ((kids st p).map (fun c => Child.mk (treeOf st (f + 1) c) (ldeg st c) (st.mrk c))) := rfl
+    rw [h1, h2, hmap]
+
+/-- **Machine-level size strictness.**  At the saturated fuel `st.n` the
+parent's tree strictly contains the child's: `size(child) ≤ sizeSum <
+1 + sizeSum = size(parent)`.  Premises are `faithful_of_acyc`'s (for the
+saturation instance) plus liveness of `z`; `z ≠ 0` excludes the NIL
+parent slot. -/
+theorem size_mono_machine (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
+    (hps : ParSlot st) (hs : NILSelf st) (hac : Acyc st) (hnl : NILLeaf st)
+    {y z : ℕ} (hk : y ∈ kids st z) (hp : z < st.n) (hz0 : z ≠ 0) :
+    (treeOf st st.n y).size < (treeOf st st.n z).size := by
+  have hfz : Faithful st st.n z := faithful_of_acyc st hpar hslot hps hs hac hnl hp hz0
+  have hsat := treeOf_saturation st.n z hfz
+  have hmem : Child.mk (treeOf st st.n y) (ldeg st y) (st.mrk y)
+      ∈ (kids st z).map (fun c => Child.mk (treeOf st st.n c) (ldeg st c) (st.mrk c)) :=
+    List.mem_map_of_mem hk
+  have h1 : (treeOf st st.n y).size
+      ≤ sizeSum ((kids st z).map (fun c => Child.mk (treeOf st st.n c) (ldeg st c) (st.mrk c))) :=
+    size_le_sizeSum hmem
+  have h2 : (treeOf st (st.n + 1) z).size
+      = 1 + sizeSum ((kids st z).map (fun c => Child.mk (treeOf st st.n c) (ldeg st c) (st.mrk c))) :=
+    size_node z ((kids st z).map (fun c => Child.mk (treeOf st st.n c) (ldeg st c) (st.mrk c)))
+  rw [← hsat] at h2
+  omega
 
 end Submission.FibHeapDepth
