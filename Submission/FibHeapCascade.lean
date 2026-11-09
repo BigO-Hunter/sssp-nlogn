@@ -530,7 +530,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
   by_cases h1 : v = 1
   · subst h1
     simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-      casPreSt]
+      casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
       simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -538,7 +538,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
     · by_cases h3 : v = 3
       · subst h3
         simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-          casPreSt]
+          casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
           simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -546,7 +546,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt]
+              promoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
               promoteState, casPreSt, h1, h2, h3, h4]
 
@@ -554,7 +554,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
   by_cases h1 : v = 1
   · subst h1
     simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-      casPreSt]
+      casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
       simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -562,7 +562,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
     · by_cases h3 : v = 3
       · subst h3
         simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-          casPreSt]
+          casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
           simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -570,7 +570,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt]
+              promoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
               promoteState, casPreSt, h1, h2, h3, h4]
 
@@ -578,7 +578,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
   by_cases h1 : v = 1
   · subst h1
     simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-      casPreSt]
+      casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
       simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -586,7 +586,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
     · by_cases h3 : v = 3
       · subst h3
         simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-          casPreSt]
+          casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
           simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -594,7 +594,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt]
+              promoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
               promoteState, casPreSt, h1, h2, h3, h4]
 
@@ -602,7 +602,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
   by_cases h1 : v = 1
   · subst h1
     simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-      casPreSt]
+      casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
       simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -610,7 +610,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
     · by_cases h3 : v = 3
       · subst h3
         simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-          casPreSt]
+          casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
           simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -618,7 +618,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt]
+              promoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
               promoteState, casPreSt, h1, h2, h3, h4]
 
@@ -627,7 +627,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
   by_cases h1 : v = 1
   · subst h1
     simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-      casPreSt]
+      casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
       simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -635,7 +635,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
     · by_cases h3 : v = 3
       · subst h3
         simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-          casPreSt]
+          casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
           simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -643,7 +643,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt]
+              promoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
               promoteState, casPreSt, h1, h2, h3, h4]
 
@@ -652,7 +652,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
   by_cases h1 : v = 1
   · subst h1
     simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-      casPreSt]
+      casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
       simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -660,7 +660,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
     · by_cases h3 : v = 3
       · subst h3
         simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
-          casPreSt]
+          casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
           simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
@@ -668,7 +668,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt]
+              promoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
               promoteState, casPreSt, h1, h2, h3, h4]
 
