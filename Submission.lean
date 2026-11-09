@@ -1,5 +1,6 @@
 import Submission.SsspStatement
 import Submission.DijkstraRow
+import Submission.FibHeap
 
 /-!
 The `n·log n ; n·log² n` row for the Big O Speedrun directed shortest paths race: one uniform
