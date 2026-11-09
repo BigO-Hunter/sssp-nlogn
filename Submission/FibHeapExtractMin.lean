@@ -374,4 +374,425 @@ theorem extract_RingOK (st : HState) (r : ℕ) (hrk : RingOK st) :
       rw [h1, h2, h3, h4]
       exact hring
 
+/-! ## The consolidation fold -/
+
+/-- The consolidation pass: each head pair `(c, p)` melds the promoted child `c`
+under the root `p` (the merge splice), until the caller-supplied pairing is
+exhausted.  The fold runs on the *running* state, exactly as `cascadeRun` does. -/
+def extractRun (st : HState) : List (ℕ × ℕ) → HState
+  | [] => st
+  | (c, p) :: rest => extractRun (mergeState st c p) rest
+
+/-- One cell's premises: the merge's own preconditions on the state that cell
+actually runs in, and the rest of the chain on the state *after* that merge. -/
+def ExtractOk (st : HState) : List (ℕ × ℕ) → Prop
+  | [] => True
+  | (c, p) :: rest => MergePre st c p ∧ ExtractOk (mergeState st c p) rest
+
+/-- **The extract-min program**: promote the minimum root's children to the root
+list, then consolidate. -/
+def extractMin (st : HState) (r : ℕ) (chain : List (ℕ × ℕ)) : HState :=
+  extractRun (extractState st r) chain
+
+/-! ## The fold lemmas: the bundle climbs the consolidation pass -/
+
+theorem extractRun_MarkOK (st : HState) (chain : List (ℕ × ℕ))
+    (hm : MarkOK st) (hok : ExtractOk st chain) : MarkOK (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hm
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_markOK st c p hm) hrest
+
+theorem extractRun_ParSlot (st : HState) (chain : List (ℕ × ℕ))
+    (hps : ParSlot st) (hrl : RootsLive st) (hok : ExtractOk st chain) :
+    ParSlot (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hps
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_parSlot st c p hpre hps hrl)
+      (merge_RootsLive st c p hpre hrl) hrest
+
+theorem extractRun_ParOK (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hac : Acyc st)
+    (hns : NILSelf st) (hok : ExtractOk st chain) :
+    ParOK (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hpar
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns) hrest
+
+theorem extractRun_KidsNodup (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st) (hnr : NILNotRoot st)
+    (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st) (hac : Acyc st)
+    (hns : NILSelf st) (hnd : ∀ q, KidsNodup st q) (hok : ExtractOk st chain) :
+    ∀ q, KidsNodup (extractRun st chain) q := by
+  induction chain generalizing st with
+  | nil => exact hnd
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns)
+      (merge_kidsNodup st c p hpar hrnc hnr hrk hpre hnl hnd) hrest
+
+theorem extractRun_PosOK (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st) (hnr : NILNotRoot st)
+    (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st) (hac : Acyc st)
+    (hns : NILSelf st) (hpos : PosOK st) (hok : ExtractOk st chain) :
+    PosOK (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hpos
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns)
+      (merge_posOK st c p hpar hrnc hnr hrk hpre hnl hpos) hrest
+
+theorem extractRun_SlotOK (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st) (hnr : NILNotRoot st)
+    (hnrs : NILRoots st) (hrk : RingOK st) (hrl : RootsLive st) (hnl : NILLeaf st)
+    (hac : Acyc st) (hns : NILSelf st) (hslot : SlotOK st) (hok : ExtractOk st chain) :
+    SlotOK (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hslot
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_RootsLive st c p hpre hrl)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns)
+      (merge_slotOK st c p hpar hrnc hnr hrk hpre hrl hnl hslot) hrest
+
+theorem extractRun_Acyc (st : HState) (chain : List (ℕ × ℕ))
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hns : NILSelf st) (hac : Acyc st)
+    (hok : ExtractOk st chain) : Acyc (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hac
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs) (merge_NILSelf st c p hpre hnr hns)
+      (merge_acyc st c p hnr hpre hnrs hns hac) hrest
+
+theorem extractRun_NILRoots (st : HState) (chain : List (ℕ × ℕ))
+    (hnrs : NILRoots st) (hok : ExtractOk st chain) :
+    NILRoots (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hnrs
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_NILRoots st c p hnrs) hrest
+
+theorem extractRun_NILSelf (st : HState) (chain : List (ℕ × ℕ))
+    (hnr : NILNotRoot st) (hns : NILSelf st) (hok : ExtractOk st chain) :
+    NILSelf (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hns
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_NILNotRoot st c p hnr)
+      (merge_NILSelf st c p hpre hnr hns) hrest
+
+theorem extractRun_NILNotRoot (st : HState) (chain : List (ℕ × ℕ))
+    (hnn : NILNotRoot st) (hok : ExtractOk st chain) :
+    NILNotRoot (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hnn
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_NILNotRoot st c p hnn) hrest
+
+theorem extractRun_NILLeaf (st : HState) (chain : List (ℕ × ℕ))
+    (hnr : NILNotRoot st) (hnl : NILLeaf st) (hok : ExtractOk st chain) :
+    NILLeaf (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hnl
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_NILNotRoot st c p hnr)
+      (merge_NILLeaf st c p hpre hnr hnl) hrest
+
+theorem extractRun_NILNotChild (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st) (hnr : NILNotRoot st)
+    (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st) (hac : Acyc st)
+    (hns : NILSelf st) (hnc : NILNotChild st) (hok : ExtractOk st chain) :
+    NILNotChild (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hnc
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns)
+      (merge_NILNotChild st c p hpar hrnc hnr hrk hpre hnl hnc) hrest
+
+theorem extractRun_RootNotChild (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st) (hnr : NILNotRoot st)
+    (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st) (hac : Acyc st)
+    (hns : NILSelf st) (hok : ExtractOk st chain) :
+    RootNotChild (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hrnc
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns) hrest
+
+theorem extractRun_RootsLive (st : HState) (chain : List (ℕ × ℕ))
+    (hrl : RootsLive st) (hok : ExtractOk st chain) :
+    RootsLive (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hrl
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p) (merge_RootsLive st c p hpre hrl) hrest
+
+theorem extractRun_RingOK (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st) (hnr : NILNotRoot st)
+    (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st) (hac : Acyc st)
+    (hns : NILSelf st)
+    (hok : ExtractOk st chain) : RingOK (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hrk
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns) hrest
+
+/-! ## The program bridges: the bundle survives the whole extract-min -/
+
+/-- Every premise the fold needs on the running state is produced by the extract
+bundle; the bridges assemble them once. -/
+
+theorem extractMin_MarkOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hm : MarkOK st) (hok : ExtractOk (extractState st r) chain) :
+    MarkOK (extractMin st r chain) :=
+  extractRun_MarkOK _ _ (extract_MarkOK st r hm) hok
+
+theorem extractMin_ParSlot (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hps : ParSlot st) (hrl : RootsLive st)
+    (hslot : SlotOK st) (hok : ExtractOk (extractState st r) chain) :
+    ParSlot (extractMin st r chain) :=
+  extractRun_ParSlot _ _ (extract_ParSlot st r hps)
+    (extract_RootsLive st r hpre hrl hslot) hok
+
+theorem extractMin_ParOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hok : ExtractOk (extractState st r) chain) :
+    ParOK (extractMin st r chain) :=
+  extractRun_ParOK _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc) hok
+
+theorem extractMin_KidsNodup (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hnd : ∀ q, KidsNodup st q) (hok : ExtractOk (extractState st r) chain) :
+    ∀ q, KidsNodup (extractMin st r chain) q :=
+  extractRun_KidsNodup _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc)
+    (extract_KidsNodup st r hnd) hok
+
+theorem extractMin_PosOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st) (hpos : PosOK st)
+    (hok : ExtractOk (extractState st r) chain) :
+    PosOK (extractMin st r chain) :=
+  extractRun_PosOK _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc)
+    (extract_PosOK st r hpre hpar hrnc hnl hpos) hok
+
+theorem extractMin_SlotOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hrl : RootsLive st)
+    (hnl : NILLeaf st) (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hslot : SlotOK st) (hok : ExtractOk (extractState st r) chain) :
+    SlotOK (extractMin st r chain) :=
+  extractRun_SlotOK _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_RootsLive st r hpre hrl hslot)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc)
+    (extract_SlotOK st r hpre hrl hslot) hok
+
+theorem extractMin_Acyc (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hnr : NILNotRoot st) (hnrs : NILRoots st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hok : ExtractOk (extractState st r) chain) :
+    Acyc (extractMin st r chain) :=
+  extractRun_Acyc _ _ (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_NILSelf st r hns hnc)
+    (extract_Acyc st r hpre hnc hns hac) hok
+
+theorem extractMin_NILRoots (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hnrs : NILRoots st) (hnr : NILNotRoot st)
+    (hpar : ParOK st) (hok : ExtractOk (extractState st r) chain) :
+    NILRoots (extractMin st r chain) :=
+  extractRun_NILRoots _ _ (extract_NILRoots st r hpre hnrs hnr hpar) hok
+
+theorem extractMin_NILSelf (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hnn : NILNotRoot st) (hnc : NILNotChild st) (hns : NILSelf st)
+    (hok : ExtractOk (extractState st r) chain) :
+    NILSelf (extractMin st r chain) :=
+  extractRun_NILSelf _ _ (extract_NILNotRoot st r hnn hnc)
+    (extract_NILSelf st r hns hnc) hok
+
+theorem extractMin_NILNotRoot (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hnn : NILNotRoot st) (hnc : NILNotChild st)
+    (hok : ExtractOk (extractState st r) chain) :
+    NILNotRoot (extractMin st r chain) :=
+  extractRun_NILNotRoot _ _ (extract_NILNotRoot st r hnn hnc) hok
+
+theorem extractMin_NILLeaf (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hnl : NILLeaf st) (hnr : NILNotRoot st)
+    (hnc : NILNotChild st) (hok : ExtractOk (extractState st r) chain) :
+    NILLeaf (extractMin st r chain) :=
+  extractRun_NILLeaf _ _ (extract_NILNotRoot st r hnr hnc)
+    (extract_NILLeaf st r hpre hnl hnr) hok
+
+theorem extractMin_NILNotChild (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hok : ExtractOk (extractState st r) chain) :
+    NILNotChild (extractMin st r chain) :=
+  extractRun_NILNotChild _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc)
+    (extract_NILNotChild st r hnc) hok
+
+theorem extractMin_RootNotChild (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hok : ExtractOk (extractState st r) chain) :
+    RootNotChild (extractMin st r chain) :=
+  extractRun_RootNotChild _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc) hok
+
+theorem extractMin_RootsLive (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hrl : RootsLive st) (hslot : SlotOK st)
+    (hok : ExtractOk (extractState st r) chain) :
+    RootsLive (extractMin st r chain) :=
+  extractRun_RootsLive _ _ (extract_RootsLive st r hpre hrl hslot) hok
+
+theorem extractMin_RingOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hok : ExtractOk (extractState st r) chain) :
+    RingOK (extractMin st r chain) :=
+  extractRun_RingOK _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc) hok
+
 end Submission.FibHeapExtractMin
