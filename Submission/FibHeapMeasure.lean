@@ -62,12 +62,13 @@ theorem mem_markSet {st : HState} {i : ℕ} :
 @[simp] theorem markSet_cutState (st : HState) (x y : ℕ) (hy : y < st.n) :
     markSet (cutState st x y) = insert y (markSet st) := by
   ext i
-  simp only [markSet, cutState_n, cutState_mrk, Finset.mem_filter, Finset.mem_range]
+  rw [mem_markSet, cutState_n, cutState_mrk, Finset.mem_insert, mem_markSet]
   by_cases h' : i = y
   · subst h'
-    simp [hy]
-  · simp only [if_neg h']
-    exact ⟨h', rfl⟩
+    rw [if_pos rfl]
+    exact ⟨hy, rfl⟩
+  · rw [if_neg h']
+    exact ⟨fun h => Or.inr h, fun h => (h.resolve_left h').elim⟩
 
 @[simp] theorem markSet_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
     (hzn : z < st.n) (hy : st.mrk y = 1) (hz : st.mrk z = 0) :
@@ -75,12 +76,11 @@ theorem mem_markSet {st : HState} {i : ℕ} :
   ext i
   simp only [markSet, promoteState_n, promoteState_mrk, Finset.mem_filter, Finset.mem_range]
   by_cases hiy : i = y
-  · by_cases hiz : i = z
-    · subst hiy
-      subst hiz
+  · subst hiy
+    by_cases hiz : i = z
+    · subst hiz
       simp [hzn, hy]
-    · subst hiy
-      simp [hz, hy, hyn]
+    · simp [hz, hy, hyn, hiz]
   · by_cases hiz : i = z
     · subst hiz
       simp [hyn, hy]
@@ -89,9 +89,10 @@ theorem mem_markSet {st : HState} {i : ℕ} :
 @[simp] theorem markSet_markState (st : HState) (y : ℕ) (hy : y < st.n) :
     markSet (markState st y) = insert y (markSet st) := by
   ext i
+  rw [mem_markSet, markState_n, markState_mrk, Finset.mem_insert, mem_markSet]
   by_cases h' : i = y
   · subst h'
-    simp [markState_mrk, markState_n, markSet, Finset.mem_filter, Finset.mem_range, hy]
+    simp [markState_n, markState_mrk, markSet, hy]
   · simp [markSet, markState, markState_mrk, Finset.mem_filter, Finset.mem_range, h', hy]
 
 /-- The cut banks one fresh mark: the mark count goes up by exactly one. -/
@@ -106,18 +107,21 @@ theorem machineMarks_markState_le (st : HState) (y : ℕ) :
   simp only [machineMarks]
   by_cases hy : y < st.n
   · by_cases hyin : y ∈ markSet st
-    · rw [markSet_markState st y hy, Finset.insert_eq_of_mem hyin]
+    · rw [markSet_markState st y hy, Finset.insert_eq_of_mem hyin]; omega
     · rw [markSet_markState st y hy,
         Finset.card_insert_of_notMem (by simpa [mem_markSet] using hyin)]
+      omega
   · have hsame : markSet (markState st y) = markSet st := by
       ext i
-      simp only [markSet, markState_n, markState_mrk, Finset.mem_filter, Finset.mem_range]
+      rw [mem_markSet, markState_n, markState_mrk, mem_markSet]
       by_cases h' : i = y
       · subst h'
+        rw [if_pos rfl]
         simp [hy]
-      · simp only [if_neg h']
+      · rw [if_neg h']
         exact ⟨rfl, by simp [h']⟩
     rw [hsame]
+    omega
     omega
 
 /-- The promote's mark count is unchanged: the promoted node's mark (one banked
@@ -130,6 +134,7 @@ theorem machineMarks_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n) (hz
   · subst hyz
     have h : markSet (promoteState st y y) = markSet st := by
       ext i
+      rw [mem_markSet, promoteState_n, promoteState_mrk, Finset.mem_insert, mem_markSet]
       by_cases hiy : i = y
       · subst hiy
         simp only [promoteState_n, promoteState_mrk, Finset.mem_filter, Finset.mem_range]
@@ -178,7 +183,7 @@ theorem chainOk_markChain (st : HState) (chain : List (ℕ × ℕ)) (N : ℕ)
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hrest⟩ := hchain
     refine ⟨Nat.lt_of_lt_of_eq (hslot st hst z hpre.2.1 y hpre.1) hst,
-      hpre.2.1.trans hst, hpre.2.2.1, hpre.2.2.2.1,
+      Nat.lt_of_lt_of_eq hpre.2.1 hst, hpre.2.2.1, hpre.2.2.2.1,
       ih (promoteState st y z) (by rw [promoteState_n]; exact hst) hrest⟩
 
 /-! ## The amortization's machine form: the decrease-key path's potential -/
@@ -248,8 +253,7 @@ theorem root_count_bound (st : HState) (hnd : st.roots.Nodup) (hc : Consolidated
     intro d hd
     obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hd
     exact List.mem_range.mpr (Nat.lt_succ_of_le (hB r hr))
-  have hsubperm : st.roots.map st.deg <+~ List.range (B + 1) :=
-    List.subperm_of_subset hmapnod hmem
+  have hsubperm := List.subperm_of_subset hmapnod hmem
   have hlen := hsubperm.length_le
   rwa [List.length_map, List.length_range] at hlen
 
