@@ -149,6 +149,16 @@ def clearCascadeRun (st : HState) : List (ℕ × ℕ) → ℕ → HState
   | [], stop => markState st stop
   | (y, z) :: rest, stop => clearCascadeRun (clearPromoteState st y z) rest stop
 
+/-- The mark-bit flags of the clearing cascade: per cell, the consumed banked
+mark at `y` (`true`) and — when the ancestor was already marked — the consumed
+old mark at `z` (`true`); an unmarked ancestor's stop-mark is `false`.  The
+mark state threads through the clearing splice. -/
+def clearFlags (s : HState) : List (ℕ × ℕ) → List Bool
+  | [] => []
+  | (y, z) :: rest =>
+      true :: (if s.mrk z = 1 then true :: clearFlags (clearPromoteState s y z) rest
+        else false :: clearFlags (clearPromoteState s y z) rest)
+
 /-- **The clearing chain witness.**  `MarkChain`'s state-threading with the
 CLRS mark pattern: each cell's `y` carries the banked mark (`mrk y = 1`),
 `y ≠ z` (the splice consumes distinct marks), and the rest threads through
