@@ -59,6 +59,19 @@ def DkRun.count {L : ℕ} {st : HState} : DkRun L st → ℕ
   | .nil _ => 0
   | .cons _ _ _ _ _ _ _ _ _ rest => DkRun.count rest + 1
 
+/-- The live size is untouched along a run: cut, mark, promote, and the cascade
+fold all keep `n`. -/
+theorem DkRun.last_n {L : ℕ} {st : HState} : ∀ (s : DkRun L st), s.last.n = st.n := by
+  intro s
+  induction s with
+  | nil => rfl
+  | cons st x y chain stop hyn hy0 hmc hlen rest ih =>
+    simp only [DkRun.last] at ih ⊢
+    rw [ih]
+    have h : (decreaseKeyPath st x y chain stop).n = st.n := by
+      simp only [decreaseKeyPath, cascadeRun_n, cutState_n]
+    exact h
+
 /-- **The aggregate (unscaled).**  A capped run raises the machine
 potential by at most `count * (L + 5)` — the per-op bounds telescope,
 the intermediate potentials cancel. -/

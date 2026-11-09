@@ -29,6 +29,7 @@ namespace Submission.FibHeapDepth
 open Submission.FibHeapCascade Submission.FibHeapRefine Submission.FibHeapForest
 open Submission.FibHeapAcyclic
 open Submission.FibHeapSupport
+open Submission.FibHeapPromote Submission.FibHeapLink
 
 /-- A connected cascade walk starting at `y`: each cell `(a, b)` has
 `a ∈ kids st b` (so `par a = b` under `ParOK`) and the rest of the walk
@@ -554,6 +555,93 @@ theorem walkUp_len_le_n (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
   have hm := main chain y hW hy
   have hpos : 0 < (treeOf st st.n y).size := size_pos _
   omega
+
+/-- **The connected cascade witness.**  `ChainOk` threads the running state
+but not the walk connectivity; a consolidation cascade is also connected —
+each cell starts where the previous ended (the next marked ancestor is the
+previous cell's parent).  `Cascade` is `ChainOk` plus that thread, so its
+cells assemble into a `WalkUp`.  The state index is the running state; the
+fixed original enters only through the lift hypothesis. -/
+inductive Cascade : HState → ℕ → List (ℕ × ℕ) → Prop where
+  | nil (s : HState) (y : ℕ) : Cascade s y []
+  | cons {s : HState} {y z : ℕ} {rest : List (ℕ × ℕ)}
+      (hpre : PromotePre s y z)
+      (hrest : Cascade (promoteState s y z) z rest) : Cascade s y ((y, z) :: rest)
+
+/-- A cascade witness is a `ChainOk` witness: the cells carry the full
+`PromotePre` bundle. -/
+theorem cascade_chainOk : ∀ (chain : List (ℕ × ℕ)) (s : HState) (y : ℕ),
+    Cascade s y chain → ChainOk s chain := by
+  intro chain
+  induction chain with
+  | nil => intro _ _ _; exact True.intro
+  | cons cell rest ih =>
+    intro s y hC
+    cases hC with
+    | @cons _ _ z _ hpre hrest => exact ⟨hpre, ih (promoteState s y z) z hrest⟩
+
+/-- The cascade's nonempty start is live: the first cell's `y ∈ kids z`
+with `z < s.n` puts it under `SlotOK`. -/
+theorem cascade_start_lt {s : HState} (hslot : SlotOK s) {y : ℕ}
+    {chain : List (ℕ × ℕ)} (hC : Cascade s y chain) (hne : chain ≠ []) : y < s.n := by
+  cases hC with
+  | nil => exact absurd rfl hne
+  | cons hpre _ => exact hslot _ hpre.2.1 _ hpre.1
+
+/-- **The walk lift.**  Cut and promote only remove edges, so every cell's
+membership lifts to a fixed original state's `kids`: at the promoted parent
+the splice is an erase (`kids_promote`, `List.mem_of_mem_eraseIdx`), every
+other child list is untouched (`kids_promote_unchanged`).  The running
+state's `ParOK`/`RingOK`/`NILLeaf`/`KidsNodup` ride the per-step promotion
+lemmas. -/
+theorem cascade_walkUp : ∀ (chain : List (ℕ × ℕ)) (st : HState) (s : HState) (y : ℕ),
+    ParOK s → RingOK s → NILLeaf s → (∀ q, KidsNodup s q) →
+    Cascade s y chain →
+    (∀ a b : ℕ, a ∈ kids s b → a ∈ kids st b) →
+    WalkUp st y chain := by
+  intro chain
+  induction chain with
+  | nil => intro _ s y _ _ _ _ hC _; cases hC with | nil => exact WalkUp.nil y
+  | cons cell rest ih =>
+    intro st s y hpar hrk hnl hnd hC hlift
+    obtain ⟨y₂, z⟩ := cell
+    cases hC with
+    | cons hpre hrest =>
+      have hmem : y ∈ kids st z := hlift y z hpre.1
+      have hpar' : ParOK (promoteState s y z) :=
+        promote_ParOK s y z hpar hrk hpre (hnd z)
+      have hrk' : RingOK (promoteState s y z) := promote_RingOK s y z hrk hpar hpre hnl
+      have hnl' : NILLeaf (promoteState s y z) := promote_NILLeaf s y z hpre hnl
+      have hnd' : ∀ q, KidsNodup (promoteState s y z) q :=
+        promote_KidsNodup s y z hrk hpar hpre hnd
+      have hlift' : ∀ a b : ℕ, a ∈ kids (promoteState s y z) b → a ∈ kids st b := by
+        intro a b hab
+        by_cases hbz : b = z
+        · obtain ⟨k, -, -, heq⟩ := kids_promote s y z hrk hpre
+          rw [hbz]
+          rw [hbz] at hab
+          rw [heq] at hab
+          exact hlift a z (List.mem_of_mem_eraseIdx hab)
+        · rw [kids_promote_unchanged s y z b hpar hpre hbz] at hab
+          exact hlift a b hab
+      exact WalkUp.cons hmem (ih st (promoteState s y z) z hpar' hrk' hnl' hnd' hrest hlift')
+
+/-- **The cascade's length cap, machine-derived.**  A cascade witness over a
+state with the machine invariant bundle lifts to a `WalkUp` over that same
+state (the membership lift is the identity), and the walk bound at
+`B := s.n = st.n` caps its length by the live size. -/
+theorem cascade_len_le_n (st : HState) {s : HState} (hsn : s.n = st.n)
+    (hpar : ParOK s) (hrk : RingOK s) (hslot : SlotOK s) (hps : ParSlot s)
+    (hs : NILSelf s) (hac : Acyc s) (hnl : NILLeaf s) (hnd : ∀ q, KidsNodup s q)
+    {y : ℕ} {chain : List (ℕ × ℕ)} (hC : Cascade s y chain) :
+    chain.length ≤ st.n := by
+  by_cases hnil : chain = []
+  · rw [hnil]; simp
+  · have hw : WalkUp s y chain :=
+      cascade_walkUp chain s s y hpar hrk hnl hnd hC fun _ _ h => h
+    have hy : y < s.n := cascade_start_lt hslot hC hnil
+    have h1 := walkUp_len_le_n s hpar hslot hps hs hac hnl hnd hw hy
+    omega
 
 end LiveDistinctBridge
 

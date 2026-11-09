@@ -129,6 +129,17 @@ def cascadeRun (st : HState) : List (ℕ × ℕ) → ℕ → HState
   | [], stop => markState st stop
   | (y, z) :: rest, stop => cascadeRun (promoteState st y z) rest stop
 
+/-- The live size is untouched by the cascade fold: `promoteState` and `markState`
+keep `n`. -/
+theorem cascadeRun_n (st : HState) (chain : List (ℕ × ℕ)) (stop : ℕ) :
+    (cascadeRun st chain stop).n = st.n := by
+  induction chain generalizing st with
+  | nil => simp only [cascadeRun, markState_n]
+  | cons head tail ih =>
+    obtain ⟨y, z⟩ := head
+    simp only [cascadeRun]
+    rw [ih (promoteState st y z), promoteState_n]
+
 /-- One cell's premises: the promote's own preconditions — on the state that cell
 actually runs in — and the rest of the chain on the state *after* that promote.
 `promote_bridge` is how original-state facts produce the running-state premises. -/
