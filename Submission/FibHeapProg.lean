@@ -61,14 +61,43 @@ restriction is the stated remainder.
    compaction boundary), `wlen "roots"` = the live count, cost `≤ 14·(L+e) + 7`
    (arithmetic: `(k+1) + 2 + (8k+1) + (T+1) + 1 + (4T+1)` with `T ≤ k`).
 
+## Landed, second leg (the p2c session): the window + the two op texts
+
+3. **The pending-log window** — `logOf`/`RelLog` (`decode r = stW ∧ logOf r =
+   pending`, the relation shape the design demands: the log appends do not
+   disturb the decode), the join `win`, the append step (`RelLog.bump`, the
+   landed `insertOp` re-wired: `insertOp_RelLog`), and the compaction
+   boundary's closure (`flt_eq_filter_append`: the landed filter's source is
+   exactly `stW.roots ++ pending`).
+4. **The decrease-key op text** (`dkCut` + `dkCascade` + `dkOp`) and the
+   extract-min op text (`kidLoop` + `absorbMin` + `extractOp`), with the pure
+   store-sequence congruences `decode_cutSplice` / `decode_extractSplice` —
+   the decode lands exactly at the window frames `cutPend` /
+   `extractStateAbs` (`cutState`/`extractState` with the roots change
+   deferred to the pending log; the extract's slot absorbed off-tree at
+   `absorbVal`).
+
 ## Named remainder (next landing)
 
-- The decrease-key and extract-min program texts, and the per-step lemmas wiring
-  `SimOK` + `merge_SimOK` + `DkEvidence` across `Runs` (the pending-log window needs
-  its own relation shape: `decode r = st ∧ log r = pending`).
-- The charge (potential deltas as time: `row_nlog`'s `m·5 + 2·rankCap + 2`, scaled
-  `D0+6K+D1`) and the arithmetic climb (`log_ge`/`cap_one_one`/`sparse_one_one`/
-  `arith_clause*` at `Time 1 1 0`) toward `Bound 1 1 1 1 0`.
+- The `Runs` receipts for `dkCut`/`dkOp`/`extractOp`: now mechanical — eval
+  facts + the `cutSplice`/`extractSplice` bridges + `insertOp_RelLog` for the
+  appends — but not yet written.  Then the per-step `SimOK` +
+  `merge_SimOK` + `DkEvidence` wiring across `Runs` at the window relation.
+- **The order seam (named):** the abstract splices prepend to `roots`
+  (`x :: st.roots`); the log appends land at the window's tail.  `SimOK` and
+  `machinePotential` are roots-order-insensitive, so the seam is a
+  roots-permutation transfer family (`SimOK_perm`, `DkEvidence_perm`) —
+  bounded, not yet written.
+- **The cascade discipline (named):** `ClearChain`'s cells each need their
+  `y` marked in the cell's own running state, and the clearing promote
+  clears the parent `z` too — so consecutive overlapping cells are
+  impossible in the model while the CLRS walk text promotes consecutively.
+  The walk text is the algorithm; the chain-witness reconciliation (the
+  `hcc` generation risk `DkEvidence` already names) is the open wiring seam.
+- The charge (potential deltas as time: `row_nlog`'s `m·5 + 2·rankCap + 2`,
+  scaled `D0+6K+D1`) and the arithmetic climb (`log_ge`/`cap_one_one`/
+  `sparse_one_one`/`arith_clause*` at `Time 1 1 0`) toward
+  `Bound 1 1 1 1 0` — blocked behind the sim receipts.
 
 Credit: Fredman–Tarjan 1987, *Fibonacci heaps and their uses in improved network
 optimization algorithms* (STOC '87; JACM 34(3)) — the construction and the bound
@@ -1009,9 +1038,426 @@ theorem rootsCompact_runs (r : State ℝ≥0) (st : HState) (L e : ℕ)
       have hT := hTle
       omega
 
+/-! ## The pending-log window
+
+Between compactions the machine's roots appends ride the promotion log `"elog"`
+(register `"e"` = logical count): the decode (`Rel`) stays exact, and the pending
+window is the log's contents.  `RelLog stW pending r` — the decode equals the
+window frame `stW` and the log reads `pending` — is the relation shape the design
+demands: the log appends must not disturb the decode, and they do not (every
+append is an `"elog"` store plus a non-`"n"` register write, both decode-foreign).
+The abstract state the algorithm sees between compactions is the join `win stW
+pending`; the compaction boundary closes it (`flt_eq_filter_append`).  Order
+convention: the log is read in cell order, so an append lands at the window's
+TAIL — the abstract splices prepend to `roots`; that prepend↔append order seam
+is a roots-permutation transfer family, named in the module docstring. -/
+
+/-- The pending window: the promotion log's logical contents — cells
+`0 … "e" − 1` of `"elog"`, in cell order. -/
+def logOf (r : State V) : List ℕ := (List.range (r.w "e")).map (r.wa "elog")
+
+/-- **The pending-log window relation**: the decode equals the window frame
+`stW` (exact — the appends do not disturb it) and the log reads `pending`. -/
+def RelLog (stW : HState) (pending : List ℕ) (r : State V) : Prop :=
+  Rel stW r ∧ logOf r = pending
+
+/-- The window join: the frame's roots with the pending appends at the tail. -/
+def win (stW : HState) (pending : List ℕ) : HState :=
+  {stW with roots := stW.roots ++ pending}
+
+/-- `getD`-at-zero over the range reads the list back. -/
+theorem map_range_getD (l : List ℕ) : (List.range l.length).map (l.getD · 0) = l := by
+  refine List.ext_getElem (by simp) (fun j h1 _ => ?_)
+  rw [List.getElem_map, List.getElem_range, List.getD_eq_getElem?_getD,
+    List.getElem?_eq_some_iff.mpr ⟨by simpa using h1, rfl⟩]
+  simp
+
+/-- The window grows by one cell at an append: the new log cell lands at the
+tail. -/
+theorem logOf_append (r : State V) (v e : ℕ) (he : r.w "e" = e)
+    (hs : State V) (hse : hs.w "e" = e + 1)
+    (h0 : ∀ j, j < e → hs.wa "elog" j = r.wa "elog" j) (he0 : hs.wa "elog" e = v) :
+    logOf hs = logOf r ++ [v] := by
+  unfold logOf
+  rw [he, hse, List.range_succ, List.map_append, List.map_singleton,
+    map_range_congr (fun j hj => h0 j (by simpa using hj)), he0]
+
+/-- A store outside `"elog"` leaves the window verbatim. -/
+theorem logOf_storeW {r : State V} {b : String} (hb : b ≠ "elog") (j v : ℕ) :
+    logOf (r.storeW b j v) = logOf r := by
+  unfold logOf
+  simp [State.storeW, Ne.symm hb]
+
+/-- A register write outside `"e"` leaves the window verbatim. -/
+theorem logOf_setW {r : State V} {x : String} (hx : x ≠ "e") (v : ℕ) :
+    logOf (r.setW x v) = logOf r := by
+  unfold logOf
+  simp [State.setW, Ne.symm hx]
+
+theorem logOf_charge (r : State V) (k : ℕ) : logOf (r.charge k) = logOf r := rfl
+
+/-- The window survives a store to a foreign array (outside the layout and
+outside the log). -/
+theorem RelLog.storeW {stW : HState} {pending : List ℕ} {r : State V}
+    (h : RelLog stW pending r) {b : String}
+    (hb : b ≠ "par" ∧ b ≠ "mrk" ∧ b ≠ "deg" ∧ b ≠ "chd" ∧ b ≠ "rgt" ∧ b ≠ "lft" ∧
+      b ≠ "roots" ∧ b ≠ "elog") (j v : ℕ) :
+    RelLog stW pending (r.storeW b j v) := by
+  refine ⟨Rel.storeW_foreign h.1 ⟨hb.1, hb.2.1, hb.2.2.1, hb.2.2.2.1, hb.2.2.2.2.1,
+    hb.2.2.2.2.2.1, hb.2.2.2.2.2.2.1⟩ j v,
+    (logOf_storeW (r := r) hb.2.2.2.2.2.2.2 j v).trans h.2⟩
+
+/-- The window survives a register write outside `"e"` and `"n"`. -/
+theorem RelLog.w_other {stW : HState} {pending : List ℕ} {r : State V}
+    (h : RelLog stW pending r) {x : String} (hx : x ≠ "e" ∧ x ≠ "n") (v : ℕ) :
+    RelLog stW pending (r.setW x v) :=
+  ⟨Rel.w_other h.1 hx.2 v, (logOf_setW hx.1 v).trans h.2⟩
+
+/-- The window grows by one cell at the append step: the `"elog"` store at
+`"e"` plus the count bump; the decode is untouched. -/
+theorem RelLog.bump {stW : HState} {pending : List ℕ} {r : State V}
+    (h : RelLog stW pending r) (v e : ℕ) (he : r.w "e" = e)
+    (hcap : e + 1 < r.cap) (hwl : e < r.wlen "elog") :
+    RelLog stW (pending ++ [v])
+      (((r.storeW "elog" e v).charge 1).setW "e" (e + 1)) := by
+  refine ⟨?_, ?_⟩
+  · show decode (((r.storeW "elog" e v).charge 1).setW "e" (e + 1)) = stW
+    rw [decode_w_other _ (by decide : ("e" : String) ≠ "n"), decode_charge,
+      decode_storeW_foreign r (by decide) e v]
+    exact h.1
+  · rw [← h.2]
+    refine logOf_append r v e he _ ?_ ?_ ?_
+    · rw [w_setW, if_pos (by simp)]
+    · intro j hj
+      rw [wa_setW, wa_charge, wa_storeW,
+        if_neg (by simp [show j ≠ e from by omega])]
+    · rw [wa_setW, wa_charge, wa_storeW, if_pos (by simp)]
+
+/-- The pending append as a statement: one `"elog"` store + the count bump.
+`insertOp` is `logPush "x"`. -/
+def logPush (reg : String) : Stmt :=
+  .seq (wstore "elog" (var "e") (var reg)) (wset "e" (add (var "e") (lit 1)))
+
+theorem insertOp_eq : insertOp = logPush "x" := rfl
+
+/-- **The insert op's window receipt** — the landed `insertOp_runs` re-wired:
+the window grows by the one pending cell and the op costs exactly `2`. -/
+theorem insertOp_RelLog (stW : HState) (pending : List ℕ) (r : State ℝ≥0) (e : ℕ)
+    (hR : RelLog stW pending r) (hcap0 : 1 < r.cap) (hcapE : e + 1 < r.cap)
+    (he : r.w "e" = e) (hb : e < r.wlen "elog") :
+    Runs realOps insertOp r (fun r' =>
+      RelLog stW (pending ++ [r.w "x"]) r' ∧ r'.cost = r.cost + 2) := by
+  refine Runs.mono (insertOp_runs stW r e hR.1 hcap0 hcapE he hb) ?_
+  rintro r' ⟨hrel, he', hxe, ho, hcst⟩
+  refine ⟨⟨hrel, ?_⟩, hcst⟩
+  rw [← hR.2]
+  exact logOf_append r (r.w "x") e he r' he' (fun j hj => ho j (by omega)) hxe
+
+/-- The compaction filter's source is the frame's roots plus the log, in
+order — the pure list fact behind the boundary closure. -/
+theorem flt_filter_append (stW : HState) (elogR : ℕ → ℕ) (L e : ℕ)
+    (hL : L = stW.roots.length) :
+    flt stW elogR L (L + e) = (stW.roots ++ (List.range e).map elogR).filter (isLive stW) := by
+  induction e generalizing L with
+  | zero =>
+    have hmap : (List.range L).map
+        (fun j => if j < L then stW.roots.getD j 0 else elogR (j - L)) = stW.roots := by
+      refine (map_range_congr (fun j hj => if_pos (by simpa using hj))).trans ?_
+      rw [hL]
+      exact map_range_getD stW.roots
+    unfold flt
+    rw [Nat.add_zero, List.range_zero, List.map_nil, List.append_nil, hmap]
+  | succ e ih =>
+    have hstep := flt_step stW elogR L (L + e)
+    have hcell : (if L + e < L then stW.roots.getD (L + e) 0 else elogR (L + e - L))
+        = elogR e := by
+      rw [if_neg (show ¬(L + e < L) from by omega), Nat.add_sub_cancel_left]
+    rw [← Nat.add_assoc, hstep, hcell, List.range_succ, List.map_append, List.map_singleton,
+      ← List.append_assoc, List.filter_append, List.filter_singleton, ih L hL]
+    cases hb : isLive stW (elogR e) <;> simp [hb]
+
+/-- **The compaction boundary closes the window**: the landed filter's source
+is exactly the joined list. -/
+theorem flt_eq_filter_append (stW : HState) (r : State V) (pending : List ℕ)
+    (L e : ℕ) (hR : Rel stW r) (hrl : r.wlen "roots" = L) (he : r.w "e" = e)
+    (hlog : logOf r = pending) :
+    flt stW (r.wa "elog") L (L + e) = (stW.roots ++ pending).filter (isLive stW) := by
+  rw [flt_filter_append stW (r.wa "elog") L e (by rw [← hR, decode_roots, hrl,
+    List.length_map, List.length_range]), ← hlog]
+  unfold logOf
+  rw [he]
+
+
+/-! ## The decrease-key op
+
+The abstract cut (`cutState`, FibHeapCut) is seven conditional stores; the machine
+text `dkCut` runs them over the decoded frame — every branch test reads a
+pre-store cell (`load "deg" y` before the decrement; the relink indices
+`lft x`/`rgt x` are pre-state values) — and the roots prepend rides the pending
+log (`logPush "x"`, the landed `insertOp`).  The text's data content is the pure
+store sequence `cutSplice` (branches resolved against the pre-state decode);
+`decode_cutSplice` is the step congruence: the decode lands exactly at the
+window frame `cutPend` — `cutState` with the prepend deferred to the window.
+The `Runs` receipt reduces to eval facts + this bridge + `insertOp_RelLog`;
+it is the named remainder's first slice. -/
+
+theorem wa_mrk_of_rel {st : HState} {r : State V} (h : Rel st r) (j : ℕ) :
+    r.wa "mrk" j = st.mrk j := by
+  have := congrFun (congrArg HState.mrk h) j
+  simpa [decode_mrk] using this
+
+theorem wa_deg_of_rel {st : HState} {r : State V} (h : Rel st r) (j : ℕ) :
+    r.wa "deg" j = st.deg j := by
+  have := congrFun (congrArg HState.deg h) j
+  simpa [decode_deg] using this
+
+theorem wa_chd_of_rel {st : HState} {r : State V} (h : Rel st r) (j : ℕ) :
+    r.wa "chd" j = st.chd j := by
+  have := congrFun (congrArg HState.chd h) j
+  simpa [decode_chd] using this
+
+theorem wa_rgt_of_rel {st : HState} {r : State V} (h : Rel st r) (j : ℕ) :
+    r.wa "rgt" j = st.rgt j := by
+  have := congrFun (congrArg HState.rgt h) j
+  simpa [decode_rgt] using this
+
+theorem wa_lft_of_rel {st : HState} {r : State V} (h : Rel st r) (j : ℕ) :
+    r.wa "lft" j = st.lft j := by
+  have := congrFun (congrArg HState.lft h) j
+  simpa [decode_lft] using this
+
+open Submission.FibHeapCut Submission.FibHeapExtractMin
+
+/-- `cutState` with the roots-prepend deferred to the pending log: the window
+frame one machine cut produces. -/
+def cutPend (st : HState) (x y : ℕ) : HState :=
+  {cutState st x y with roots := st.roots}
+
+/-- The cut's store sequence as one pure state function: `dkCut`'s control
+flow, with every branch test resolved against the pre-state decode. -/
+def cutSplice (r : State V) (x y : ℕ) : State V :=
+  let s₀ := (r.storeW "par" x 0).storeW "mrk" y 1
+  let s₁ := if (decode r).deg y = 1 then s₀.storeW "chd" y 0
+    else (((if (decode r).chd y = x then s₀.storeW "chd" y (r.wa "rgt" x) else s₀)
+      |>.storeW "rgt" (r.wa "lft" x) (r.wa "rgt" x))
+      |>.storeW "lft" (r.wa "rgt" x) (r.wa "lft" x))
+  s₁.storeW "deg" y ((decode r).deg y - 1)
+
+/-- The deg-update's two shapes agree: the pre-read value `g y - 1` and the
+bound-var form `g i - 1` are the same function. -/
+theorem degUpd_eq (g : ℕ → ℕ) (y : ℕ) :
+    (fun i => if i = y then g y - 1 else g i) = (fun i => if i = y then g i - 1 else g i) := by
+  funext i
+  by_cases h : i = y <;> simp [h]
+
+/-- **The cut's step congruence.**  The decode lands exactly at `cutPend` —
+`cutState`'s stores, with the roots prepend deferred to the pending log. -/
+theorem decode_cutSplice (r : State V) (x y : ℕ) :
+    decode (cutSplice r x y) = cutPend (decode r) x y := by
+  by_cases h1 : (decode r).deg y = 1
+  · simp only [cutSplice, cutPend, cutState, if_pos h1]
+    simp [h1, decode, State.storeW, HState.mk.injEq, degUpd_eq]
+  · simp only [cutSplice, cutPend, cutState, if_neg h1]
+    by_cases h2 : (decode r).chd y = x
+    · simp only [if_pos h2]
+      simp [h1, h2, decode, State.storeW, HState.mk.injEq, degUpd_eq]
+      all_goals first
+        | rfl
+        | exact ⟨rfl, rfl⟩
+    · simp only [if_neg h2]
+      simp [h1, h2, decode, State.storeW, HState.mk.injEq, degUpd_eq]
+      all_goals first
+        | rfl
+        | exact ⟨rfl, rfl⟩
+
+/-- One clearing-promote cell of the cascade walk: `s` (the marked child) out
+of `z` (its parent) — `promoteState`'s stores over the decoded frame, the
+branch tests reading pre-store cells, then the pending append of `s`. -/
+def promoteCell : Stmt :=
+  .seq (wstore "par" (var "s") (lit 0))
+    (.seq (wstore "mrk" (var "s") (lit 0))
+      (.seq (wstore "mrk" (var "z") (lit 0))
+        (.seq (.ite (eq (load "deg" (var "z")) (lit 1))
+                 (wstore "chd" (var "z") (lit 0))
+                 (.seq (.ite (eq (load "chd" (var "z")) (var "s"))
+                          (wstore "chd" (var "z") (load "rgt" (var "s")))
+                          skip)
+                   (.seq (wstore "rgt" (load "lft" (var "s")) (load "rgt" (var "s")))
+                         (wstore "lft" (load "rgt" (var "s")) (load "lft" (var "s"))))))
+          (.seq (wstore "deg" (var "z") (sub (load "deg" (var "z")) (lit 1)))
+                (logPush "s")))))
+
+/-- **The cut op's machine text.**  The cut splice (`cutSplice`'s control
+flow) plus the pending append of the cut child. -/
+def dkCut : Stmt :=
+  .seq (wstore "par" (var "x") (lit 0))
+    (.seq (wstore "mrk" (var "y") (lit 1))
+      (.seq (.ite (eq (load "deg" (var "y")) (lit 1))
+                (wstore "chd" (var "y") (lit 0))
+                (.seq (.ite (eq (load "chd" (var "y")) (var "x"))
+                          (wstore "chd" (var "y") (load "rgt" (var "x")))
+                          skip)
+                    (.seq (wstore "rgt" (load "lft" (var "x")) (load "rgt" (var "x")))
+                          (wstore "lft" (load "rgt" (var "x")) (load "lft" (var "x"))))))
+        (.seq (wstore "deg" (var "y") (sub (load "deg" (var "y")) (lit 1)))
+              (logPush "x"))))
+
+/-- The cascade walk: from the cut's freshly marked `y`, walk `z := par s` up
+while the parent is marked and non-NIL (the product test `0 < mrk z · z`),
+each cell `promoteCell`, then mark the stopping ancestor (`markState`'s one
+store).  **The chain-discipline seam is named in the module docstring**: the
+model's `ClearChain` cells need each cell's `y` marked in the cell's own
+running state while the clearing promote clears the parent `z` too, so the
+walk's exact stop discipline is the `hcc` witness-generation question. -/
+def dkCascade : Stmt :=
+  .seq (wset "s" (var "y"))
+    (.seq (wset "z" (load "par" (var "y")))
+      (.while (lt (lit 0) (mul (load "mrk" (var "z")) (var "z")))
+        (.seq promoteCell
+          (.seq (wset "s" (var "z"))
+                (wset "z" (load "par" (var "z")))))))
+
+def dkOp : Stmt :=
+  .seq dkCut (.seq dkCascade (wstore "mrk" (var "s") (lit 1)))
+
+/-! ## The extract-min op text
+
+The abstract extract (`extractState`, FibHeapExtractMin) clears `par`/`mrk`
+on `r`'s children, empties `r`'s degree and child head, and rebuilds the root
+list (`r` filtered out, the children appended).  The machine text:
+`kidLoop` re-roots each child of the ring walk (`deg r` steps of `rgt` from
+`chd r` — the list `kids` names) and appends it to the pending log;
+`absorbMin` empties `r` and absorbs its slot **off-tree** at the sentinel
+`absorbVal r` (`par r ≠ 0` is the compaction's live test — the extracted slot
+is consumed exactly like a meld-consumed root; the side condition `3 ≤ n`
+keeps the sentinel in range).  The compaction then drops `r` and absorbs the
+log.  The text's data content is `extractSplice`; `decode_extractSplice` is
+the step congruence onto the window frame `extractStateAbs`. -/
+
+/-- The machine absorb sentinel for a consumed slot: off-tree, non-NIL
+(`par ≠ 0` is the compaction's live test), never the slot itself.  A freed
+slot keeps its index (the layout arrays are length `n`), so it needs a `par`
+value; `1` — or `2` when the slot IS 1 — is the honest tombstone.  Side
+condition: `3 ≤ n` (the race's `N ≥ 16`). -/
+def absorbVal (rr : ℕ) : ℕ := if rr = 1 then 2 else 1
+
+/-- `extractState` with the roots change deferred to the pending log and the
+extracted slot absorbed off-tree at sentinel `a`: the window frame one
+machine extract produces. -/
+def extractStateAbs (st : HState) (rr a : ℕ) : HState :=
+  {extractState st rr with
+    par := fun i => if i = rr then a else (extractState st rr).par i
+    roots := st.roots}
+
+/-- The extract's store sequence as one pure state function: the child-clearing
+fold over `kids` (each visited cell `par c := 0`, `mrk c := 0`), the deg/chd
+empties, and the absorb's branch (the machine register's value). -/
+def extractSplice (r : State V) (rr : ℕ) : State V :=
+  let s₁ := (kids (decode r) rr).foldl
+      (fun s c => (s.storeW "par" c 0).storeW "mrk" c 0) r
+  let s₂ := (s₁.storeW "deg" rr 0).storeW "chd" rr 0
+  if r.w "r" = 1 then s₂.storeW "par" rr 2 else s₂.storeW "par" rr 1
+
+/-- Two clear stores (`par c := 0`, `mrk c := 0`) as one decode splice. -/
+theorem decode_twoStore_clear (r : State V) (c : ℕ) :
+    decode ((r.storeW "par" c 0).storeW "mrk" c 0)
+      = {decode r with par := fun i => if i = c then 0 else (decode r).par i,
+                       mrk := fun i => if i = c then 0 else (decode r).mrk i} := by
+  rw [decode_storeW_mrk, decode_storeW_par, HState.mk.injEq]
+  refine ⟨rfl, rfl, rfl, rfl, rfl, ?_, rfl, rfl⟩
+  funext i
+  simp
+
+/-- The child-clearing fold's decode: the visited cells get `par`/`mrk` 0. -/
+theorem decode_foldl_clear (r : State V) : ∀ ks : List ℕ,
+    decode (ks.foldl (fun s c => (s.storeW "par" c 0).storeW "mrk" c 0) r)
+      = {decode r with par := fun i => if i ∈ ks then 0 else (decode r).par i,
+                       mrk := fun i => if i ∈ ks then 0 else (decode r).mrk i} := by
+  intro ks
+  induction ks generalizing r with
+  | nil => simp [decode]
+  | cons c ks ih =>
+    show decode (List.foldl _ ((r.storeW "par" c 0).storeW "mrk" c 0) ks) = _
+    rw [ih ((r.storeW "par" c 0).storeW "mrk" c 0), decode_twoStore_clear,
+      HState.mk.injEq]
+    have hsplit : ∀ (g : ℕ → ℕ) (i : ℕ),
+        (if i ∈ ks then (0:ℕ) else (if i = c then 0 else g i))
+          = (if i ∈ c :: ks then 0 else g i) := by
+      intro g i
+      by_cases hic : i = c
+      · subst hic
+        by_cases hik : i ∈ ks <;> simp [hik]
+      · by_cases hik : i ∈ ks <;> simp [hic, hik]
+    refine ⟨?_, rfl, rfl, rfl, rfl, ?_, rfl, rfl⟩
+    · funext i
+      dsimp only
+      rw [hsplit (decode r).par i]
+    · funext i
+      dsimp only
+      rw [hsplit (decode r).mrk i]
+
+/-- **The extract's step congruence.**  The decode lands exactly at
+`extractStateAbs` — `extractState`'s stores, with the roots change deferred
+to the pending log and the slot absorbed at the register's sentinel. -/
+theorem decode_extractSplice (r : State V) (rr : ℕ) :
+    decode (extractSplice r rr)
+      = extractStateAbs (decode r) rr (if r.w "r" = 1 then 2 else 1) := by
+  unfold extractSplice extractStateAbs
+  by_cases h : r.w "r" = 1
+  · rw [if_pos h, decode_storeW_par, decode_storeW_chd, decode_storeW_deg,
+      decode_foldl_clear, HState.mk.injEq]
+    all_goals first
+      | simp [h, decode, State.storeW, extractState]
+      | (funext i; simp [h, decode, State.storeW, extractState])
+  · rw [if_neg h, decode_storeW_par, decode_storeW_chd, decode_storeW_deg,
+      decode_foldl_clear, HState.mk.injEq]
+    all_goals first
+      | simp [h, decode, State.storeW, extractState]
+      | (funext i; simp [h, decode, State.storeW, extractState])
+
+/-- One child-visiting step of the extract's promotion loop: re-root `c`
+(`extractState` clears both `par` and `mrk`), append it to the pending log,
+advance the ring walk. -/
+def kidStep : Stmt :=
+  .seq (wstore "par" (var "c") (lit 0))
+    (.seq (wstore "mrk" (var "c") (lit 0))
+      (.seq (logPush "c")
+        (.seq (wset "j" (add (var "j") (lit 1)))
+              (wset "c" (load "rgt" (var "c"))))))
+
+/-- The child-promotion loop: `deg r` ring steps from `chd r` — the visited
+list is exactly `kids st r` (the congruence's `ks`). -/
+def kidLoop : Stmt :=
+  .seq (wset "c" (load "chd" (var "r")))
+    (.while (lt (var "j") (load "deg" (var "r"))) kidStep)
+
+/-- The extracted min leaves the heap: its slot absorbed off-tree
+(`absorbVal` — the branch on the register's value), its degree and child head
+emptied (`extractState`'s `deg r := 0`, `chd r := 0`). -/
+def absorbMin : Stmt :=
+  .seq (.ite (eq (var "r") (lit 1)) (wstore "par" (var "r") (lit 2))
+                               (wstore "par" (var "r") (lit 1)))
+    (.seq (wstore "deg" (var "r") (lit 0)) (wstore "chd" (var "r") (lit 0)))
+
+/-- **The extract-min op text**: promote `r`'s children to the pending log,
+absorb `r`, then the compaction absorbs the log and drops `r` (its `par` is
+the absorb sentinel — the live test `par x = 0` fails).  The compaction's
+scan register `"r"` clobbers the (by then dead) min id — `absorbMin` runs
+first. -/
+def extractOp : Stmt :=
+  .seq (wset "j" (lit 0))
+    (.seq kidLoop (.seq absorbMin rootsCompact))
+
 /-! ## Axiom probes -/
 
 #print axioms insertOp_runs
 #print axioms copyLoop_runs
 #print axioms stashLoop_runs
 #print axioms rootsCompact_runs
+#print axioms insertOp_RelLog
+#print axioms decode_cutSplice
+#print axioms decode_twoStore_clear
+#print axioms decode_foldl_clear
+#print axioms decode_extractSplice
+#print axioms flt_filter_append
+#print axioms flt_eq_filter_append
