@@ -277,3 +277,27 @@ Round-3 findings (build29):
 - Round-3 file state = committed d8.. (round 3 commit).  Error list: 685-694
   (kids_casOut six branches — revert-first), 714 ×4 (rw [hv] idiom — revert-first),
   then the previously-listed ParOK/KidsNodup/SlotOK/PosOK/Acyc/Support sites.
+
+
+## WIP UPDATE #6 (round 4 — 22 errors; THE DIAGNOSED ROOT CAUSE + THE PROVEN SHAPE)
+
+Round-4 finding: per-cell `simp at hv` makes NO PROGRESS whenever q stays SYMBOLIC
+(the else-cells of the q-by_cases) — the unfolded composite's ite chain cannot reduce
+without the ne-hypotheses being applied, and `simp` at a symbolic term bails.
+
+THE PROVEN WORKING SHAPE (already in the file and compiling: cas_PosOK, and the
+x≠5 branch of cas_Acyc):
+  have hq : q = 1 ∨ q = 2 ∨ q = 3 ∨ q = 4 := by
+    by_cases hq1 : q = 1 <;> ... <;> simp_all
+  rcases hq with rfl | rfl | rfl | rfl    ← substitutes q := 1/2/3/4 CONCRETE
+  · unfold kids casPreSt at hj ⊢          ← now every ite is concrete
+    simp / omega / Nat.zero_le ...
+APPLY THIS SHAPE to cas_ParOK, cas_KidsNodup, cas_SlotOK, cas_NILNotChild,
+cas_RootNotChild (replace their by_cases-chains with the rcases-rfl-per-slot +
+concrete simp/omega).  Also cas_Acyc's x=5 branch: rcases Nat.lt_or_ge j 1 works,
+but h0 is scoped to branch 1 — branch 2 must use `hne j (by omega)` (j ≥ 1 → 0 < j),
+NOT h0.  kids_casOut: the rfl-tree fails in exactly one concrete branch — change that
+branch's `rfl` to `simp` (probe-verified defs tactic).
+Round-4 state committed; error lines in build r7 (m2a_r7.log): 694 (kids last-branch),
+716-731 (cas_ParOK cells), 736 (KidsNodup unfold), 746-756 (SlotOK cells),
+761-772 (cas_Acyc h0), plus the output-corollary cascade behind them.
