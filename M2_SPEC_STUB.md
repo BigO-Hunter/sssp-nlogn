@@ -225,3 +225,30 @@ hq4 : q = 4
 hv : v = 5
 ⊢ (if v = 1 then 2 else if v = 2 then 3 else if v = 3 then 4 else if v = 5 then 1 else 0) = 1
 
+
+
+## WIP UPDATE #4 (round 2 committed — 23 errors, ALL in the witness section)
+
+Everything outside the witness section now compiles CLEAN: markState+15, cascadeRun,
+ChainOk, promote_bridge, all 15 cascadeRun_* theorems, decreaseKeyPath + 15
+corollaries, casPreSt defs, the 6 casOut_* pointwise lemmas (unfold-first +
+exhaustive by_cases+subst+rfl tree — casOut_par/mrk/deg/chd/rgt/lft), casOut_roots/n,
+cas_MarkOK/ParSlot/NILRoots/NILSelf/NILNotRoot/NILLeaf.
+
+The 23 remaining (build r4):
+- kids_casOut rfl-tree: ONE branch's rfl fails (:687 — the q=4-true branch;
+  `kids composite 4` needs deg 4 = 0 — the promote (3,4) write makes deg 4 = 0 ✓
+  but the rfl-reduction may need simp — replace that single branch's `rfl` with
+  `simp` or `rfl <;> simp`).
+- cas_ParOK (:702/714/717): hv must be IN the simp args (verify it survived the
+  re-append; the compact by_cases chain form needs `simp [kids, casPreSt, hq1..hq4,
+  hv] at hv ⊢`).
+- cas_KidsNodup (:719): same — hjk/hk in args + per-slot explicit pattern.
+- cas_SlotOK: same — hv in args.
+- cas_Acyc (:761/762/772): the x=5 branch's `rcases Nat.lt_or_ge j 1 with h0 | h1`
+  — h0 : j < 1 used by omega inside; :761 unknown h0 means the rcases binding
+  names shifted — re-check the exact text; the hpos5/hne structure is CORRECT.
+- casOut_Support/capstone (:837+): may be cascade-effects from kids_casOut.
+THE PROBE (verified): flat by_cases+subst+simp [casOut, decreaseKeyPath, cascadeRun,
+markState, cutState, promoteState, casPreSt(+ne-hyps)] WORKS for deg at v=5/v∉{1..4}
+and deg 1.  Reuse that exact tactic block for kids_casOut's failing branch.
