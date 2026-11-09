@@ -90,7 +90,8 @@ theorem walk_link_pos (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNo
   induction j with
   | zero =>
     intro _
-    rw [show (0 : ℕ) ≠ st.deg p from by omega, if_neg (by omega)]
+    have h0 : (0 : ℕ) ≠ st.deg p := by omega
+    rw [if_neg h0]
     rfl
   | succ j ih =>
     intro hj
@@ -102,15 +103,19 @@ theorem walk_link_pos (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNo
       have hxt : (st.rgt)^[j] (st.chd p) = st.lft (st.chd p) := by
         rw [hje]
         exact ((hrk p).resolve_left hdeg).2.2.symm
-      rw [if_neg (by omega : ¬ j = st.deg p), if_pos (by omega : j + 1 = st.deg p),
-        hxt, rgt_link_tail st p c hdeg (Ne.symm hct)]
+      have htail : (linkState st p c).rgt ((st.rgt)^[j] (st.chd p)) = c := by
+        rw [hxt]
+        exact rgt_link_tail st p c hdeg (Ne.symm hct)
+      rw [if_neg (show ¬(j : ℕ) = st.deg p from by omega),
+        if_pos (show (j : ℕ) + 1 = st.deg p from hlast), htail]
     · have hxt : (st.rgt)^[j] (st.chd p) ≠ st.lft (st.chd p) := by
         intro hc
         rw [((hrk p).resolve_left hdeg).2.2] at hc
         have hrep := ((hrk p).resolve_left hdeg).2.1 j (st.deg p - 1) (by omega) (by omega) hc
         omega
-      rw [if_neg (by omega : ¬ j = st.deg p), if_neg (by omega : ¬ j + 1 = st.deg p),
-        rgt_link_other st p c _ hdeg hx hxt, Function.iterate_succ_apply]
+      rw [if_neg (show ¬(j : ℕ) = st.deg p from by omega),
+        if_neg (show ¬((j : ℕ) + 1) = st.deg p from by omega),
+        Function.iterate_succ_apply', rgt_link_other st p c _ hdeg hx hxt]
 
 /-- **The walk lemma, positive-degree branch, as a list equation.** -/
 theorem kids_link_pos (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNotChild st)
@@ -155,8 +160,10 @@ theorem kids_link (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNotChi
 theorem kids_unchanged (st : HState) (p c q : ℕ) (hpar : ParOK st) (hrnc : RootNotChild st)
     (hrk : RingOK st) (hpre : LinkPre st p c) (hq : q ≠ p) (hq0 : q ≠ 0) :
     kids (linkState st p c) q = kids st q := by
-  have hcnot : ∀ x ∈ kids st q, x ≠ c := fun x _ _ =>
-    root_notin_kids st hrnc hpre.2.1 hq0
+  have hcnot : ∀ x ∈ kids st q, x ≠ c := by
+    intro x hx hc
+    subst hc
+    exact absurd hx (root_notin_kids st hrnc hpre.2.1 hq0)
   have h1 : (linkState st p c).deg q = st.deg q := by
     rw [linkState_deg, if_neg (by omega : ¬ q = p)]
   have h2 : (linkState st p c).chd q = st.chd q := by
