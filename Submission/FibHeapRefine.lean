@@ -151,6 +151,24 @@ def MarkOK (st : HState) : Prop := ∀ p, st.mrk p ≤ 1
 def PosOK (st : HState) : Prop :=
   ∀ p, ∀ j, j < (kids st p).length → j ≤ ldeg st ((kids st p).getD j 0)
 
+/-- **The link-time clause (the machine `InvOK` carry), wound 2125609385.**  Every child's
+degree is strictly below its parent's — the static form of the link-time discipline: children
+are linked only at equal degree (`deg parent = deg child + 1` at the link, `linkState`'s
+precondition), and a linked child's degree is frozen until the child itself is cut free.
+
+**Honesty boundary (the named-premise style, per the row's convention).**  This clause is a
+*modeled discipline constraint*, not a theorem of the reachable states.  A parent that loses
+two children through separate cascades decrements past a high frozen-degree child: link `c`
+(degree `k`) under `z` (`deg z → k+1`), let `z` lose two children through cascades — `deg z = k-1 < k = deg c` while `c` remains a child.  The `ldeg` variant fails the same way at
+equality (a marked child with `deg y = deg z` gives `ldeg y = deg z + 1 > ldeg z` when `z` is
+unmarked), so no one-loss-rule measure recovers pointwise strictness — the strictness is the
+link-time clause itself, exactly as `FibHeapDynamic.InvOK` is the *static form* of the same
+discipline on the abstract forest (its `lost` accounting does not imply parent-strictness
+either: `zLosses ≤ c.lost` is not guaranteed).  `PosOK` is the lower-bound sibling; the two
+together are the machine's `InvOK`.  Consumers: `recount_len_le` (the walk climb) — supplied
+at the extract state via `extract_DegOK`, at the run's final state by the caller. -/
+def DegOK (st : HState) : Prop := ∀ y z, y ∈ kids st z → st.deg y < st.deg z
+
 /-- The `rgt`/`chd` walk and the `par` array agree: every child read out of a child list records
 that parent.  This is the tie between the two halves of the encoding, and the premise of every
 uniqueness statement below. -/

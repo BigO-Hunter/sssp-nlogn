@@ -62,11 +62,27 @@ the machine's FT unit `D0 + 6K + D1` (the fold segment `D0 + 3K + D1` via
 `decrease_amortized_of_clearCascadeRun` plus the cut's own `+3K` rise).
 Its honesty note is Residual 2 below.
 
-## Residual 1 — `deg_lt_of_kids` (wound 2125609385), VERBATIM
+## Residual 1 — `deg_lt_of_kids` (wound 2125609385), VERBATIM + STATUS 2026-11-09
 
 > FibHeapDepth.lean (lines 17, 74) names deg_lt_of_kids (y in kids st z -> st.deg y < st.deg z) as the single missing lemma. walkUp_len_le_deg takes degree-strictness (hmono) as a hypothesis, so the cascade-walk length bound chain.length <= rankCap st.n (the decrease-key half log cap, the L := rankCap n instantiation) is blocked on it. PosOK cannot supply it: PosOK lower-bounds a child degree by its kid-list position (ldeg ordering), it gives no parent-strictness. The lemma needs the link-time discipline carried on the machine state (children linked only at equal degree, so deg parent = deg child + 1 at link; cuts/promotes only decrement) -- a machine InvOK carry in the FibHeapDynamic lineage. Until it lands, the recount composes with hmono as an explicit seam hypothesis.
 
-Scope: the log-class recount's strictness.  Register status: **open**.
+**STATUS (this session): the carry is LANDED as the named machine clause `DegOK`
+(`FibHeapRefine`), with the honest boundary stated in its docstring.  Pointwise strictness
+is NOT a theorem of the reachable states — a parent that loses two children through
+separate cascades decrements past a high frozen-degree child (the `ldeg` variant fails at
+equality the same way) — so the clause is the modeled link-time discipline, exactly as
+`FibHeapDynamic.InvOK` is the *static form* of the same discipline on the abstract forest
+(whose `lost` accounting likewise does not imply parent-strictness).  What IS proved: the
+link is genuinely inductive (`link_DegOK`, equal-degree precondition — the consolidation
+step), the extract splice preserves it *unconditionally* (`extract_DegOK` — the splice
+deletes edges only), and `row_nlog` now takes the clause as `hdeg : DegOK s.last` with the
+extract-state strictness derived INSIDE the row (the anonymous `hmono` hypothesis over the
+extract state is gone).  The seam is one named machine invariant at the run's final state,
+no longer a hand-supplied per-call fact.
+
+Scope: the log-class recount's strictness.  Register status: **open** (the pointwise
+lemma is not discharged as a reachable-state theorem — the named clause is the landing;
+closures of 2125609385 should cite this boundary).
 
 ## Residual 2 — the honest-6K charge (fresh-parent run model), VERBATIM
 

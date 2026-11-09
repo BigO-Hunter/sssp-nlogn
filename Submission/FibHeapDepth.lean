@@ -68,10 +68,13 @@ theorem walkUp_len_le_of_pos {st : HState} {μ : ℕ → ℕ} {B : ℕ}
   omega
 
 /-- The measure instantiation the lane owes: degree strictly increases
-toward the parent.  With `deg_lt_of_kids` and the `rankCap` degree bound
-(`degree_le_rankCap_treeOf`'s class), `walkUp_len_le_of_pos` closes
-`DkRun`'s cap as `chain.length ≤ rankCap n`-class.  Not yet claimed —
-`deg_lt_of_kids` is the single missing lemma. -/
+toward the parent.  With the link-time clause `DegOK`
+(`FibHeapRefine`, wound 2125609385 — the machine `InvOK` carry; a modeled
+discipline constraint, since cuts/promotes decrement degrees) and the
+`rankCap` degree bound (`degree_le_rankCap_treeOf`'s class),
+`walkUp_len_le_of_pos` closes `DkRun`'s cap as `chain.length ≤ rankCap n`
+-class; `row_nlog` consumes the clause at the extract state via the
+unconditional `extract_DegOK`. -/
 theorem walkUp_len_le_deg {st : HState} {B : ℕ}
     (hmono : ∀ a b, a ∈ kids st b → st.deg a < st.deg b) (hb : ∀ p, st.deg p ≤ B)
     {y : ℕ} {chain : List (ℕ × ℕ)} (h : WalkUp st y chain) (hy0 : 0 < st.deg y) :

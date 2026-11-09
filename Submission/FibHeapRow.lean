@@ -15,8 +15,9 @@ alongside as the seam's other side.  The transfer lane's `CascadeMarks`
 ledger remains the accounting boundary between them.  The extract-min
 half runs at the rank-cap class (the splice + the consolidation walk
 both `rankCap st.n`-bounded — the recount below; the machine
-degree-strictness `deg_lt_of_kids` is the named seam, wound
-2125609385).
+degree-strictness is the named link-time clause `DegOK`
+(`FibHeapRefine`, wound 2125609385), pushed to the extract state by the
+unconditional `extract_DegOK`).
 -/
 import Submission.FibHeapAmortized
 import Submission.FibHeapMeasure
@@ -175,11 +176,12 @@ transfer seam above is the stated accounting boundary. -/
 rank-cap bundle is rankCap-bounded: the walk climbs (degree-strict edges),
 so its length plus the start's degree fits under the cap — per-node
 `degree_le_rankCap_of_machine` (Support via `support_of_machine`; NIL slot
-0's degree is zero, `NILLeaf`).  `hmono` — the machine degree-strictness
-`deg_lt_of_kids` — is the named seam (wound 2125609385: PosOK's ldeg
+0's degree is zero, `NILLeaf`).  `hmono` is the walk climb, supplied from
+the machine's link-time clause `DegOK` (wound 2125609385: PosOK's ldeg
 ordering lower-bounds child degrees by position and gives no
-parent-strictness; the strictness is the link-time discipline, a machine
-`InvOK` carry). -/
+parent-strictness; the strictness is the link-time clause itself, the
+machine `InvOK` carry — a modeled discipline constraint, named in
+`FibHeapRefine.DegOK`, not a reachable-state theorem). -/
 theorem recount_len_le {st : HState} {y : ℕ} {chain : List (ℕ × ℕ)}
     (hmono : ∀ a b : ℕ, a ∈ kids st b → st.deg a < st.deg b)
     (hpar : ParOK st) (hslot : SlotOK st) (hps : ParSlot st) (hs : NILSelf st)
@@ -248,10 +250,16 @@ consolidation walk (`recount_len_le_rankCap` discharged internally over the
 extract-state bundle — `extract_PosOK` supplies its `PosOK` piece;
 `hy0` is the program fact that the cascade starts at the cut node's
 parent, which retains a child, so the recount's non-leaf premise holds).
-`hmono` is the named `deg_lt_of_kids` seam (wound 2125609385).  FT-1987:
-bound theirs, formalization ours.  The CLRS/transfer seam is the stated
-accounting boundary (the transfer run keeps its `count * (st.n + 5)` form;
-the honest 6K charge note lives in `DkRunClear.potential_scaled_ft`). -/
+The walk climb enters as `hdeg : DegOK s.last` — the machine's named
+link-time clause (wound 2125609385), pushed to the extract state by
+`extract_DegOK` *inside the row* (unconditional: the splice deletes edges
+only).  The clause is a modeled discipline constraint named in
+`FibHeapRefine.DegOK`, the static form of the link-time discipline exactly
+as `FibHeapDynamic.InvOK` is on the abstract forest; its inductive step is
+the link (`link_DegOK`), its documented break is the two-loss cascade.
+FT-1987: bound theirs, formalization ours.  The CLRS/transfer seam is the
+stated accounting boundary (the transfer run keeps its `count * (st.n + 5)`
+form; the honest 6K charge note lives in `DkRunClear.potential_scaled_ft`). -/
 theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) st)
     (r : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ)
     (hmc : MarkChain (extractState s.last r) (extractState s.last r).n chain)
@@ -263,8 +271,7 @@ theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) 
     {y : ℕ} (hW : WalkUp (extractState s.last r) y chain)
     (hyw : y < (extractState s.last r).n)
     (hy0 : 0 < (extractState s.last r).deg y)
-    (hmono : ∀ a b : ℕ, a ∈ kids (extractState s.last r) b →
-      (extractState s.last r).deg a < (extractState s.last r).deg b) :
+    (hdeg : DegOK s.last) :
     machinePotential (cascadeRun (extractState s.last r) chain stop)
       ≤ machinePotential st + s.count * 5
         + (2 * FibHeapAccounting.rankCap st.n + 2) := by
@@ -292,6 +299,7 @@ theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) 
   have hnd' := extract_KidsNodup s.last r hnd
   have hm' := extract_MarkOK s.last r hm
   have hpos' := extract_PosOK s.last r hpre hpar hrnc hnl hpos
+  have hmono := extract_DegOK s.last r hdeg
   have hchain : chain.length ≤ FibHeapAccounting.rankCap st.n := by
     have h := recount_len_le_rankCap hmono hpar' hslot' hps' hs' hac' hnl' hm' hpos'
       hnd' hW hyw hy0

@@ -218,6 +218,50 @@ The walk lemma's consumers: `link_parOK`, `link_kidsNodup`, `link_posOK`, `link_
 `q ≠ p` child list goes through `kids_unchanged` (with the `q = 0` case closed separately by
 `NILLeaf`: slot 0's child list is untouched by the link and is empty anyway). -/
 
+/-- **The link-time clause (`DegOK`) survives the link.**  The only child list that grows
+is `p`'s (`kids_link`): old children keep their strictness against the incremented degree,
+and the appended `c` is strict by the equal-degree precondition itself
+(`deg c = deg p < deg p + 1`).  Every other list is untouched (`kids_unchanged`; the
+`q = 0` case is empty by `NILLeaf`).  This is the one transition where `DegOK` is genuinely
+inductive — cuts and promotes decrement degrees and are exactly where pointwise strictness
+breaks (the two-loss scenario in `DegOK`'s docstring). -/
+theorem link_DegOK (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hrk : RingOK st) (hpre : LinkPre st p c) (hnl : NILLeaf st)
+    (h : DegOK st) : DegOK (linkState st p c) := by
+  have hp0 : p ≠ 0 := fun hc => hnr (hc ▸ hpre.1)
+  intro y z hmem
+  by_cases hzp : p = z
+  · subst hzp
+    rw [kids_link st p c hpar hrnc hnr hrk hpre] at hmem
+    rcases List.mem_append.mp hmem with hm | hm
+    · have hyp : y ≠ p := by
+        intro hc
+        exact absurd (hc ▸ hm) (root_notin_kids st hrnc hpre.1 hp0)
+      show (linkState st p c).deg y < (linkState st p c).deg p
+      rw [linkState_deg, if_neg hyp, linkState_deg, if_pos rfl]
+      have hlt := h y p hm
+      omega
+    · have hyc : y = c := List.mem_singleton.mp hm
+      rw [hyc] at hmem ⊢
+      show (linkState st p c).deg c < (linkState st p c).deg p
+      rw [linkState_deg, if_neg (fun hc => hpre.2.2.1 hc.symm),
+        linkState_deg, if_pos rfl]
+      have hdeg' := hpre.2.2.2
+      omega
+  · by_cases hz0 : z = 0
+    · subst hz0
+      have hd0 : (linkState st p c).deg 0 = 0 := by
+        rw [linkState_deg, if_neg (fun hc => hp0 hc.symm), hnl]
+      rw [kids_eq_nil hd0] at hmem
+      simp at hmem
+    · rw [kids_unchanged st p c z hpar hrnc hrk hpre (fun hc => hzp hc.symm) hz0] at hmem
+      have hyp : y ≠ p := by
+        intro hc
+        exact absurd (hc ▸ hmem) (root_notin_kids st hrnc hpre.1 hz0)
+      show (linkState st p c).deg y < (linkState st p c).deg z
+      rw [linkState_deg, if_neg hyp, linkState_deg, if_neg (fun hc => hzp hc.symm)]
+      exact h y z hmem
+
 /-- `ParOK` survives the link. -/
 theorem link_parOK (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNotChild st)
     (hnr : NILNotRoot st) (hrk : RingOK st) (hpre : LinkPre st p c) (hnl : NILLeaf st) :

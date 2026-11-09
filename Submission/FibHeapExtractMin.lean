@@ -200,6 +200,32 @@ theorem extract_PosOK (st : HState) (r : ℕ) (hpre : ExtractPre st r) (hpar : P
     rw [extractState_deg, if_neg hyr, extractState_mrk, if_neg hv2]
     exact hpos q j hj
 
+/-- **The link-time clause survives the extract — unconditionally.**  The splice only
+deletes edges (`r`'s children are promoted, `r`'s own list empties), so a strict child
+edge is either untouched (strictness carried verbatim) or is `(r, z)` and vanishes from
+the emptied list.  The one new degree read is the promoted child's own: `deg r := 0`,
+strictly below any parent whose list still holds it (`deg z > 0` — the list is
+nonempty).  This is the leg that discharges the row's `hmono` seam from a `DegOK`
+premise at the run's final state (`row_nlog`), with no premises beyond the splice's
+pointwise equations. -/
+theorem extract_DegOK (st : HState) (r : ℕ) (h : DegOK st) : DegOK (extractState st r) := by
+  intro y z hmem
+  by_cases hzr : z = r
+  · subst hzr
+    rw [kids_extract_r] at hmem
+    simp at hmem
+  · rw [kids_extract_of_ne st r z hzr] at hmem
+    by_cases hyr : y = r
+    · have hpos : 0 < st.deg z := by
+        have hl : 0 < (kids st z).length := List.length_pos_of_mem hmem
+        rwa [kids_length] at hl
+      show (extractState st r).deg y < (extractState st r).deg z
+      rw [hyr, extractState_deg, if_pos rfl, extractState_deg, if_neg hzr]
+      exact hpos
+    · show (extractState st r).deg y < (extractState st r).deg z
+      rw [extractState_deg, if_neg hyr, extractState_deg, if_neg hzr]
+      exact h y z hmem
+
 /-- `SlotOK` survives: promoted children were `r`'s children, hence live. -/
 theorem extract_SlotOK (st : HState) (r : ℕ) (hpre : ExtractPre st r)
     (hrl : RootsLive st) (hslot : SlotOK st) : SlotOK (extractState st r) := by

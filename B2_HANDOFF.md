@@ -67,8 +67,17 @@ exact statement):
 The row is potential-level accounting, not yet the program-level
 `Bound`.  Remaining, in order:
 
-1. `deg_lt_of_kids` (wound 2125609385) — discharges `hmono` from the
-   machine state (link-time discipline carry).
+1. `deg_lt_of_kids` (wound 2125609385) — **partially closed 2026-11-09**:
+   the carry landed as the named machine clause `DegOK`
+   (`FibHeapRefine`) — the link-time discipline's static form, honestly
+   documented as a modeled constraint (pointwise strictness is not a
+   reachable-state theorem; the two-loss cascade is the counterexample,
+   stated in the docstring).  What is proved: `link_DegOK` (the clause is
+   inductive at the equal-degree link), `extract_DegOK` (unconditional —
+   the extract splice deletes edges only), and `row_nlog` now consumes
+   `hdeg : DegOK s.last` with the extract-state strictness derived
+   internally.  The anonymous per-call `hmono` over the extract state is
+   gone; the clause sits where the row's other bundle pieces sit.
 2. **The def-swap session** (named separate session): the clearing/
    transfer semantics swap so the machine `CascadeMarks` ledger lands on
    the row's discipline.  Not a bound risk (both units are
