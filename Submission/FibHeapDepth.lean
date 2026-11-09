@@ -169,4 +169,55 @@ noncomputable def treeDepth (t : Tree) : ℕ := treeDepthF t.size t
 theorem foldr_max_le_sum : ∀ (l : List Child),
     (∀ c ∈ l, treeDepthF 0 c.tree ≤ c.size) → True := fun _ _ => True.intro
 
+/-- **The foldr-add/sizeSum bridge** — plain list induction. -/
+theorem hmap_aux : ∀ (f : ℕ) (l : List Child),
+    (∀ c ∈ l, treeDepthF f c.tree ≤ c.size) →
+    l.foldr (fun c acc => c.size + acc) 0 = sizeSum l := by
+  intro f l
+  induction l with
+  | nil => intro _; simp [sizeSum]
+  | cons a cs jh =>
+    intro hpt
+    have hcs : sizeSum (a :: cs) = Child.size a + sizeSum cs := rfl
+    simp only [Child.size] at hcs
+    have hj := jh fun c hc => hpt c (List.mem_cons_of_mem _ hc)
+    show a.size + cs.foldr (fun c acc => c.size + acc) 0 = sizeSum (a :: cs)
+    rw [hcs]
+    simp only [Child.size] at hj ⊢
+    omega
+
+/-- **Structural size-depth pair** (fuel-generic). -/
+theorem treeDepthF_le_size : ∀ (f : ℕ) (t : Tree), treeDepthF f t ≤ t.size := by
+  intro f
+  induction f with
+  | zero => intro t; simp [treeDepthF]
+  | succ f ih =>
+    intro t
+    cases t with
+    | node id children =>
+      have hsize := size_node id children
+      have hpt : ∀ c ∈ children, treeDepthF f c.tree ≤ c.size := by
+        intro c hc
+        have hub := ih c.tree
+        simpa [Child.size] using hub
+      show 1 + children.foldr (fun (c : Child) acc => max (treeDepthF f c.tree) acc) 0
+          ≤ (FibHeapForest.Tree.node id children).size
+      have hkey : children.foldr (fun (c : Child) acc => max (treeDepthF f c.tree) acc) 0
+          ≤ children.foldr (fun c acc => c.size + acc) 0 := by
+        induction children with
+        | nil => simp
+        | cons a cs jh =>
+          have hja := hpt a List.mem_cons_self
+          have hj := jh (size_node id cs) fun c hc => hpt c (List.mem_cons_of_mem _ hc)
+          show max (treeDepthF f a.tree) (cs.foldr _ _) ≤ a.size + cs.foldr _ _
+          rcases Nat.le_total (treeDepthF f a.tree)
+              (cs.foldr (fun c acc => max (treeDepthF f c.tree) acc) 0) with hle | hge
+          · rw [Nat.max_eq_right hle]; omega
+          · rw [Nat.max_eq_left hge]; omega
+      have hmap := hmap_aux f children hpt
+      calc 1 + children.foldr (fun (c : Child) acc => max (treeDepthF f c.tree) acc) 0
+          ≤ 1 + children.foldr (fun c acc => c.size + acc) 0 := by omega
+        _ = 1 + sizeSum children := by rw [hmap]
+        _ = (FibHeapForest.Tree.node id children).size := hsize.symm
+
 end Submission.FibHeapDepth
