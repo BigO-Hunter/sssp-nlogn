@@ -15,6 +15,7 @@ import Submission.FibHeapExtractMin
 import Submission.FibHeapWitness
 import Submission.FibHeapMeasure
 import Submission.FibHeapScaled
+import Submission.FibHeapAmortized
 
 /-!
 # The Fibonacci-heap program family
