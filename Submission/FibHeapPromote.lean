@@ -1283,5 +1283,62 @@ theorem promoted_capstone : promoted.deg 2 ≤ FibHeapAccounting.rankCap promote
     promoted_KidsNodup promoted_Acyc promoted_NILSelf promoted_NILLeaf promoted_NILNotChild
     promoted_MarkOK promoted_PosOK (by simp) (by simp) hsup
 
+/-! ## The clearing variant: CLRS mark writes (Route A's anchors)
+
+The transfer `promoteState` banks-or-moves one mark (`y → 0`, `z → 1`).
+`clearPromoteState` is the same splice with the CLRS clearing writes: BOTH
+`y` and `z` are cleared (`y → 0`, `z → 0`).  On an intermediate cell (both
+marked) that consumes two marks; on the terminal cell (only `y` marked) it
+consumes one and the stop's `markState` re-banks — the `CascadeMarks`
+ledger's `k` clears plus one fresh mark.  It is a separate constructor by
+design: the transfer suite stays green while the clearing surface re-runs;
+the def-swap into `promoteState` is the surface's last step. -/
+
+def clearPromoteState (st : HState) (y z : ℕ) : HState :=
+  if st.deg z = 1 then
+    { st with
+      par := (fun i => if i = y then 0 else st.par i)
+      mrk := (fun i => if i = y then 0 else if i = z then 0 else st.mrk i)
+      deg := (fun i => if i = z then st.deg i - 1 else st.deg i)
+      chd := (fun i => if i = z then 0 else st.chd i)
+      roots := y :: st.roots }
+  else
+    { st with
+      par := (fun i => if i = y then 0 else st.par i)
+      mrk := (fun i => if i = y then 0 else if i = z then 0 else st.mrk i)
+      deg := (fun i => if i = z then st.deg i - 1 else st.deg i)
+      chd := (fun i => if i = z then if st.chd z = y then st.rgt y else st.chd i else st.chd i)
+      rgt := (fun i => if i = st.lft y then st.rgt y else st.rgt i)
+      lft := (fun i => if i = st.rgt y then st.lft y else st.lft i)
+      roots := y :: st.roots }
+
+theorem clearPromoteState_mrk (st : HState) (y z q : ℕ) :
+    (clearPromoteState st y z).mrk q =
+      if q = y then 0 else if q = z then 0 else st.mrk q := by
+  unfold clearPromoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h]
+  · rw [if_neg h]
+
+theorem clearPromoteState_n (st : HState) (y z : ℕ) :
+    (clearPromoteState st y z).n = st.n := by
+  unfold clearPromoteState
+  by_cases h : st.deg z = 1
+  · rw [if_pos h]
+  · rw [if_neg h]
+
+/-- **Anchor one.**  `MarkOK` survives the clearing writes trivially: they
+only write zeros. -/
+theorem promoteClear_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
+    MarkOK (clearPromoteState st y z) := by
+  intro q
+  rw [clearPromoteState_mrk]
+  by_cases hqy : q = y
+  · simp [hqy]
+  by_cases hqz : q = z
+  · simp [hqz]
+  · rw [if_neg hqy, if_neg hqz]
+    exact hm q
+
 end Submission.FibHeapPromote
 
