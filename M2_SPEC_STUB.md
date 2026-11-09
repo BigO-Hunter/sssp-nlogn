@@ -366,3 +366,26 @@ The module is COMMITTED on wip-cascade-witness (round 5 = 75ef6d0 + this stub up
 Every remaining error is a small mechanical tactic-level fix; NO theorem is missing,
 NO math is unproven — the 28 witness lemmas are all stated correctly (casOut_rgt/lft
 corrected to the true 6-way forms) and their proofs need only tactic-level adjustment.
+
+
+## WIP UPDATE #9 (round 6 — final for this session; 22 errors unchanged in position)
+
+Round 6's omega-tails landed on the WRONG lemma tails (deg/chd/lft/rgt by_cases chains
+were already compiling; the failing 694 is kids_casOut's all-false branch and 716-731/
+746-762 are the pre-state ParOK/SlotOK membership chains — their failing tactic is the
+by_cases-chain + `simp [...] at hv ⊢` whose hv-consumption leaves the nested-ite ⊢
+unreduced, and whose "simp made no progress" branches are the q∉cell symbolic composites).
+
+THE PRECISION FIX FOR THE NEXT SESSION (per-cell, no compact chains, no hv-consumption):
+for cas_ParOK/cas_SlotOK/cas_NILNotChild/cas_RootNotChild and kids_casOut — replace the
+by_cases-chain + simp-at forms with:
+  unfold kids casPreSt at hv ⊢
+  rcases hq1 : q with rfl | hq1     ← substitutes q := 1 CONCRETE (rfl on q = 1 works
+  · simp                              when q is a local var; the numeral-side elimination
+  ...                                 fails — use `rcases hq1 : q with rfl | hq1` NOT
+                                      `subst` — and the ∃-unfolds reduce per concrete q)
+The rcases-conversion was ATTEMPTED in round 5 and produced ∃-unfolds of the composite
+fields that plain simp didn't finish — the missing piece is
+`List.mem_ofFn`/`List.ofFn`-level simp lemmas or `Fin.cases`-style concrete handling.
+The residuals are FULLY CONCRETE per cell (visible in m2a_r8.log's dumped contexts) —
+`decide`-level closure is available once the ofFn/mem unfolds are driven explicitly.
