@@ -1,4 +1,5 @@
 import Submission.FibHeapMeasure
+import Submission.FibHeapAmortized
 
 /-!
 # M4b: the consolidation table — the fold's witness generation
@@ -56,7 +57,8 @@ Credit: Fredman–Tarjan 1987 construction; formalization ours.
 namespace Submission.FibHeapConsolidate
 
 open Submission.FibHeapRefine Submission.FibHeapMeasure Submission.FibHeapMerge
-  Submission.FibHeapExtractMin
+  Submission.FibHeapExtractMin Submission.FibHeapLink Submission.FibHeapSupport
+  Submission.FibHeapCascade Submission.FibHeapAmortized Submission.FibHeapCut
 
 /-! ## The table: a degree-indexed partial map on roots -/
 
@@ -311,5 +313,82 @@ theorem tableChain_generate_ok (st : HState) (tbl : ℕ → ℕ) (arr : List ℕ
   obtain ⟨hnodes, hch⟩ := tableChain_generate tbl st hT arr hmem hnd
   exact tableChain_extractOkDeg tbl st st (tableChain tbl st arr) hnr hnodes
     (fun _ _ _ => rfl) hch
+
+/-! ## (b) opening slice: the sim-side state relation and one step's evidence
+
+The RAM simulation (the Fib-heap program `p2`, not yet written) will carry `SimOK` as
+its invariant and discharge, per machine step, that step's own evidence.  This section
+lands the `HState`-side half of the relation — everything that does not presume `p2`'s
+memory layout:
+
+- `SimOK`: the sixteen-clause bundle every machine lemma consumes, as one conjunction —
+  the sim carries ONE invariant instead of sixteen.
+- `merge_SimOK`: one consolidation cell's evidence — the bundle survives the meld at the
+  cell's equal-degree premise.  The step evidence `hde` is exactly the caller-discipline
+  seam (wound 2125609385): the relation carries the clause, it does not discharge it.
+- `DkEvidence` / `DkRunClear.cons_of_evidence`: the decode contract for one simulated
+  decrease-key — the RAM step supplies `x, y, chain, stop` with `y` live and unmarked,
+  the cascade-chain witness `hcc` (the sim's own witness-generation risk), and the
+  length cap; the carried `MarkOK` completes `DkRunClear.cons`.
+
+The `p2`-layout half of the relation (which RAM arrays decode to `par / mrk / deg / chd
+/ rgt / lft / roots`, the roots-list-as-RAM-array encoding) is the next leg — it is
+deliberately NOT presumed here. -/
+
+/-- The sim-side invariant bundle: everything the machine's array-level lemmas consume,
+as one conjunction.  The RAM simulation carries this across every step; each step's
+preservation lemma assembles the step's own discharge suite. -/
+def SimOK (st : HState) : Prop :=
+  MarkOK st ∧ ParOK st ∧ RootNotChild st ∧ NILNotRoot st ∧ NILRoots st ∧ RingOK st ∧
+  NILLeaf st ∧ NILNotChild st ∧ NILSelf st ∧ Acyc st ∧ PosOK st ∧ SlotOK st ∧
+  RootsLive st ∧ ParSlot st ∧ (∀ q, KidsNodup st q) ∧ DegOK st
+
+/-- **One consolidation cell's evidence.**  The bundle survives the meld at the cell's
+equal-degree premise: `MergePre` + `deg r = deg p` (the discipline `ExtractOkDeg` names;
+`merge_DegOK` is the one discharge that needs it).  Every other component rides the
+merge's own suite.  This is the one-step preservation the consolidation fold composes. -/
+theorem merge_SimOK (st : HState) (r p : ℕ) (hpre : MergePre st r p)
+    (hde : st.deg r = st.deg p) (h : SimOK st) : SimOK (mergeState st r p) := by
+  obtain ⟨hm, hpar, hrnc, hnr, hnrs, hrk, hnl, hnc, hns, hac, hpos, hslot, hrl, hps,
+    hnd, hdeg⟩ := h
+  exact ⟨merge_markOK st r p hm,
+    merge_parOK st r p hpar hrnc hnr hrk hpre hnl,
+    merge_RootNotChild st r p hpar hrnc hnr hrk hpre hnl,
+    merge_NILNotRoot st r p hnr,
+    merge_NILRoots st r p hnrs,
+    merge_RingOK st r p hpar hrnc hnr hnrs hrk hpre hnl hac,
+    merge_NILLeaf st r p hpre hnr hnl,
+    merge_NILNotChild st r p hpar hrnc hnr hrk hpre hnl hnc,
+    merge_NILSelf st r p hpre hnr hns,
+    merge_acyc st r p hnr hpre hnrs hns hac,
+    merge_posOK st r p hpar hrnc hnr hrk hpre hnl hpos,
+    merge_slotOK st r p hpar hrnc hnr hrk hpre hrl hnl hslot,
+    merge_RootsLive st r p hpre hrl,
+    merge_parSlot st r p hpre hps hrl,
+    merge_kidsNodup st r p hpar hrnc hnr hrk hpre hnl hnd,
+    merge_DegOK st r p hpar hrnc hnr hrk hpre hnl hde hdeg⟩
+
+/-- One simulated decrease-key step's evidence: the data the RAM decode must supply for
+`DkRunClear.cons` to fire.  `hcc` — the cascade-chain witness, from `y` up to the first
+unmarked ancestor — is the sim's own witness-generation risk; `hlen` is the per-step
+cascade cap the amortized accounting consumes. -/
+structure DkEvidence (st : HState) (L : ℕ) : Type where
+  x : ℕ
+  y : ℕ
+  chain : List (ℕ × ℕ)
+  stop : ℕ
+  hyn : y < st.n
+  hy0 : st.mrk y = 0
+  hcc : ClearChain (cutState st x y) st.n chain
+  hlen : chain.length ≤ L
+
+/-- **One step's evidence, assembled.**  The decode package plus the carried `MarkOK`
+is exactly `DkRunClear.cons`' premise tuple — the sim's per-step discharge is this
+constructor call. -/
+def DkRunClear.cons_of_evidence {st : HState} {L : ℕ} (hm : MarkOK st)
+    (e : DkEvidence st L)
+    (rest : DkRunClear L (decreaseKeyPathClear st e.x e.y e.chain e.stop)) :
+    DkRunClear L st :=
+  .cons st e.x e.y e.chain e.stop e.hyn e.hy0 hm e.hcc e.hlen rest
 
 end Submission.FibHeapConsolidate

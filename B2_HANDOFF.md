@@ -129,10 +129,21 @@ The row is potential-level accounting, not yet the program-level
    **`DegOK` stays the named clause** (wound 2125609385): the module
    *generates* the equal-degree cells the fold's climb rides; it does not
    discharge the clause at the program level.
-   (b) **the sim**
-   — RAM program ⟹ `HState` step sequence (the `DijkstraSim` pattern
+   (b) **the sim** — RAM program ⟹ `HState` step sequence (the `DijkstraSim` pattern
    extended with heap-op witnesses: each decrease-key must EVIDENCE its
-   `DkRunClear` premises — `hyn/hy0/hm/hcc/hlen` per step); (c) **the
+   `DkRunClear` premises — `hyn/hy0/hm/hcc/hlen` per step);
+   **(b) OPENED 2026-11-09, STEP 6 (the `HState`-side relation, `p2`-agnostic):**
+   in `FibHeapConsolidate` — `SimOK` (the sixteen-clause bundle the machine
+   lemmas consume, as one conjunction the sim will carry), `merge_SimOK`
+   (one consolidation cell's step evidence: the bundle survives the meld at
+   the cell's equal-degree premise — the wound-2125609385 caller discipline
+   sits exactly there), and `DkEvidence`/`DkRunClear.cons_of_evidence` (the
+   decode contract for one simulated decrease-key: `x, y, chain, stop`,
+   `y` live + unmarked, the cascade-chain witness `hcc` — the sim's own
+   witness-generation risk — and the length cap; the carried `MarkOK`
+   completes `DkRunClear.cons`).  Next in (b): the `p2`-layout half of the
+   relation (the RAM array decode of `par/mrk/deg/chd/rgt/lft/roots` — the
+   roots-as-RAM-array risk lives there), then the program `p2` itself; (c) **the
    charge** — per-op RAM cost constants (cut/promote/link O(1)-splices,
    extract O(deg r) + the walk), with the potential ledger (`row_nlog`'s
    `m·5 + 2·rankCap + 2`, scaled lane `D0+6K+D1`) as the amortized
