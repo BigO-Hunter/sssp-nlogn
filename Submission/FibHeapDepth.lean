@@ -643,6 +643,28 @@ theorem cascade_len_le_n (st : HState) {s : HState} (hsn : s.n = st.n)
     have h1 := walkUp_len_le_n s hpar hslot hps hs hac hnl hnd hw hy
     omega
 
+/-- **The machine Support.**  The abstraction at fuel `st.n + 1` fits the live
+slots: the id set is the witness, its cardinality the size (`live_card` under
+`liveDistinct_treeOf`), its members live slots (`mem_ids_lt`).  This is the
+last analytic premise of `degree_le_rankCap_of_machine`, now machine-derived. -/
+theorem support_of_machine (st : HState) (hpar : ParOK st) (hac : Acyc st) (hnl : NILLeaf st)
+    (hnd : ∀ q, KidsNodup st q) (hslot : SlotOK st) {p : ℕ} (hp : p < st.n) :
+    Support st (st.n + 1) p := by
+  refine ⟨(ids (treeOf st (st.n + 1) p)).toFinset,
+    live_card (liveDistinct_treeOf st hpar hac hnl hnd _ p), fun x hx => ?_⟩
+  simpa [Finset.mem_range] using mem_ids_lt hslot hp (by simpa using hx)
+
+/-- **The rank cap for a machine node's child count.**  `kids_length` turns the
+count into the degree; `degree_le_rankCap_of_machine` with the machine-built
+`Support` finishes. -/
+theorem kids_le_rankCap_of_machine (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
+    (hps : ParSlot st) (hs : NILSelf st) (hac : Acyc st) (hnl : NILLeaf st) (hm : MarkOK st)
+    (hpos : PosOK st) (hnd : ∀ q, KidsNodup st q) {r : ℕ} (hr : r < st.n) (hr0 : r ≠ 0) :
+    (kids st r).length ≤ FibHeapAccounting.rankCap st.n := by
+  rw [kids_length]
+  exact degree_le_rankCap_of_machine st hpar hslot hps hs hac hnl hm hpos hr hr0
+    (support_of_machine st hpar hac hnl hnd hslot hr)
+
 end LiveDistinctBridge
 
 /- The bridge's remaining cells, precisely named: (1) the `ChainOk → WalkUp`

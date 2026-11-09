@@ -99,6 +99,59 @@ theorem row_sequential_capped {st : HState} (s : DkRun st.n st) (r : ℕ)
   simp only [machinePotential] at *
   omega
 
+/-- **The rank-cap plug.**  `degree_le_rankCap_of_machine` instantiated at the
+run's final state — where `r` still carries its children — bounds the splice
+by the log form: its `Support` premise is `support_of_machine` (the
+LiveDistinct bridge), the live-size premise rides `DkRun.last_n`, and the
+extract-state bundle in `row_sequential_rankCap` is this same machine bundle
+pushed through the `extract_*` preservation suite. -/
+theorem extract_kids_le_rankCap {st : HState} (s : DkRun st.n st) (r : ℕ)
+    (hpre : ExtractPre s.last r) (hrl : RootsLive s.last) (hnn : NILNotRoot s.last)
+    (hpar : ParOK s.last) (hslot : SlotOK s.last) (hps : ParSlot s.last)
+    (hs : NILSelf s.last) (hac : Acyc s.last) (hnl : NILLeaf s.last) (hm : MarkOK s.last)
+    (hpos : PosOK s.last) (hnd : ∀ q, KidsNodup s.last q) :
+    (kids s.last r).length ≤ FibHeapAccounting.rankCap st.n := by
+  have hrn : r < s.last.n := hrl r hpre
+  have hr0 : r ≠ 0 := fun hc => hnn (by rw [← hc]; exact hpre)
+  have hcap := FibHeapAcyclic.degree_le_rankCap_of_machine s.last hpar hslot hps hs hac hnl hm
+    hpos hrn hr0 (support_of_machine s.last hpar hac hnl hnd hslot hrn)
+  rw [DkRun.last_n] at hcap
+  rwa [kids_length]
+
+/-- **The row's sequential total at the log-splice form.**  The seam's splice
+term is the rank cap (`extract_kids_le_rankCap`): the CLRS log bound on the
+extracted root's child count, machine-derived end to end.  The extract-state
+bundle is the `s.last` bundle pushed through `extract_*`. -/
+theorem row_sequential_rankCap {st : HState} (s : DkRun st.n st) (r : ℕ)
+    (chain : List (ℕ × ℕ)) (stop : ℕ)
+    (hmc : MarkChain (extractState s.last r) (extractState s.last r).n chain)
+    {y : ℕ} (hC : Cascade (extractState s.last r) y chain)
+    (hpar : ParOK s.last) (hrk : RingOK s.last) (hslot : SlotOK s.last)
+    (hps : ParSlot s.last) (hs : NILSelf s.last) (hac : Acyc s.last) (hnl : NILLeaf s.last)
+    (hm : MarkOK s.last) (hpos : PosOK s.last) (hnd : ∀ q, KidsNodup s.last q)
+    (hnc : NILNotChild s.last) (hrnc : RootNotChild s.last)
+    (hrl : RootsLive s.last) (hnn : NILNotRoot s.last)
+    (hpre : ExtractPre s.last r) :
+    machinePotential (cascadeRun (extractState s.last r) chain stop)
+      ≤ machinePotential st + s.count * (st.n + 5)
+        + (FibHeapAccounting.rankCap st.n + st.n + 2) := by
+  have hsn : (extractState s.last r).n = st.n := by rw [extractState_n, DkRun.last_n]
+  have hr0 : r ≠ 0 := fun hc => hnn (by rw [← hc]; exact hpre)
+  have hcap := extract_kids_le_rankCap s r hpre hrl hnn hpar hslot hps hs hac hnl hm hpos hnd
+  -- the extract-state bundle
+  have hpar' := extract_ParOK s.last r hpar
+  have hrk' := extract_RingOK s.last r hrk
+  have hslot' := extract_SlotOK s.last r hpre hrl hslot
+  have hps' := extract_ParSlot s.last r hps
+  have hs' := extract_NILSelf s.last r hs hnc
+  have hac' := extract_Acyc s.last r hpre hnc hs hac
+  have hnl' := extract_NILLeaf s.last r hpre hnl hnn
+  have hnd' := extract_KidsNodup s.last r hnd
+  have h1 := row_sequential s r chain stop hmc
+  have h2 := cascade_len_le_n st hsn hpar' hrk' hslot' hps' hs' hac' hnl' hnd' hC
+  simp only [machinePotential] at *
+  omega
+
 /- Fredman–Tarjan 1987.  Bound theirs; formalization ours.  The CLRS /
 transfer seam above is the stated accounting boundary. -/
 
