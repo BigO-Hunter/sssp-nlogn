@@ -100,7 +100,8 @@ theorem walk_link_pos (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNo
     by_cases hlast : j + 1 = st.deg p
     · have hje : j = st.deg p - 1 := by omega
       have hxt : (st.rgt)^[j] (st.chd p) = st.lft (st.chd p) := by
-        rw [hje, ((hrk p).resolve_left hdeg).2.2]
+        rw [hje]
+        exact ((hrk p).resolve_left hdeg).2.2.symm
       rw [if_neg (by omega : ¬ j = st.deg p), if_pos (by omega : j + 1 = st.deg p),
         hxt, rgt_link_tail st p c hdeg (Ne.symm hct)]
     · have hxt : (st.rgt)^[j] (st.chd p) ≠ st.lft (st.chd p) := by
@@ -117,21 +118,18 @@ theorem kids_link_pos (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNo
     kids (linkState st p c) p = kids st p ++ [c] := by
   have hwalk := walk_link_pos st p c hpar hrnc hnr hrk hpre hdeg
   unfold kids
-  rw [deg_link_pos st p c hdeg, chd_link_pos st p c hdeg, List.ofFn_succ']
+  rw [deg_link_pos st p c hdeg, chd_link_pos st p c hdeg, List.ofFn_succ]
   have hfun : (fun i : Fin (st.deg p) =>
-        (linkState st p c).rgt^[(Fin.castSucc i).val] (st.chd p))
-      = (fun i : Fin (st.deg p) => (st.rgt)^[(Fin.castSucc i).val] (st.chd p)) := by
+        (linkState st p c).rgt^[(Fin.succ i).val] (st.chd p))
+      = (fun i : Fin (st.deg p) => (st.rgt)^[i.val + 1] (st.chd p)) := by
     funext i
-    have hi : (Fin.castSucc i).val ≤ st.deg p := by simpa using i.isLt
-    have hne : (Fin.castSucc i).val ≠ st.deg p := by
-      have hlt : (Fin.castSucc i).val < st.deg p := by simpa using i.isLt
-      omega
-    rw [hwalk (Fin.castSucc i).val hi, if_neg hne]
+    have hlt : (i : ℕ) < st.deg p := i.isLt
+    have hi : (i : ℕ) + 1 ≤ st.deg p := by omega
+    have hne : (i : ℕ) + 1 ≠ st.deg p := by omega
+    have hsucc : Nat.succ i.val = i.val + 1 := rfl
+    rw [hsucc, hwalk ((i : ℕ) + 1) hi, if_neg hne]
   rw [hfun]
-  have hlast : (linkState st p c).rgt^[(Fin.last (st.deg p)).val] (st.chd p) = c := by
-    rw [show (Fin.last (st.deg p)).val = st.deg p from rfl]
-    rw [hwalk (st.deg p) (Nat.le_refl _), if_pos rfl]
-  rw [List.concat_eq_append, hlast]
+  simp
 
 /-- **The walk lemma, empty branch.** -/
 theorem kids_link_zero (st : HState) (p c : ℕ) (h : st.deg p = 0) :
@@ -155,12 +153,10 @@ theorem kids_link (st : HState) (p c : ℕ) (hpar : ParOK st) (hrnc : RootNotChi
 
 /-- **Every other child list is untouched.** -/
 theorem kids_unchanged (st : HState) (p c q : ℕ) (hpar : ParOK st) (hrnc : RootNotChild st)
-    (hrk : RingOK st) (hpre : LinkPre st p c) (hq : q ≠ p) :
+    (hrk : RingOK st) (hpre : LinkPre st p c) (hq : q ≠ p) (hq0 : q ≠ 0) :
     kids (linkState st p c) q = kids st q := by
-  have hcnot : ∀ x ∈ kids st q, x ≠ c := by
-    intro x hx hc
-    subst hc
-    exact absurd hx (root_notin_kids st hrnc hpre.2.1 (Ne.symm hq).trans hpre.2.2.1.ne)
+  have hcnot : ∀ x ∈ kids st q, x ≠ c := fun x _ _ =>
+    root_notin_kids st hrnc hpre.2.1 hq0
   have h1 : (linkState st p c).deg q = st.deg q := by
     rw [linkState_deg, if_neg (by omega : ¬ q = p)]
   have h2 : (linkState st p c).chd q = st.chd q := by
@@ -172,7 +168,7 @@ theorem kids_unchanged (st : HState) (p c q : ℕ) (hpar : ParOK st) (hrnc : Roo
     intro x hx hsplit
     by_cases h : st.deg p = 0
     · simp [linkState, h, hx]
-    · simp [linkState, h, hx, hsplit.resolve_right h]
+    · simp [linkState, h, hx, hsplit.resolve_left h]
   have hmem : ∀ j, j < st.deg q → (st.rgt)^[j] (st.chd q) ∈ kids st q := by
     intro j hj
     rw [kids]
@@ -204,3 +200,4 @@ theorem kids_unchanged (st : HState) (p c q : ℕ) (hpar : ParOK st) (hrnc : Roo
   rw [hfun]
 
 end Submission.FibHeapLinkWalk
+
