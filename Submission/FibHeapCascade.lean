@@ -509,15 +509,17 @@ theorem decreaseKeyPath_RingOK (st : HState) (x y : ℕ) (chain : List (ℕ × �
 
 /-! ## The decrease-key path's output witness -/
 
-/-- The path witness's pre-state: NIL at slot 0; the root slot 4 holds marked child 3,
-which holds child 2, which holds the cut child 1, which holds its own child 5. -/
+/-- The path witness's pre-state: NIL at slot 0; the root slot 4 holds child 3, which
+holds child 2, which holds the cut child 1, which holds its own child 5.  No slot is
+marked yet: the cut marks 2, each promote marks the ancestor that lost a child, and the
+fold marks the stopping ancestor 4. -/
 def casPreSt : HState where
   par := fun i => if i = 1 then 2 else if i = 2 then 3 else if i = 3 then 4 else if i = 5 then 1 else 0
   chd := fun i => if i = 1 then 5 else if i = 2 then 1 else if i = 3 then 2 else if i = 4 then 3 else 0
   rgt := fun i => if i = 1 then 1 else if i = 2 then 2 else if i = 3 then 3 else if i = 4 then 4 else if i = 5 then 5 else 0
   lft := fun i => if i = 1 then 1 else if i = 2 then 2 else if i = 3 then 3 else if i = 4 then 4 else if i = 5 then 5 else 0
   deg := fun i => if i = 1 then 1 else if i = 2 then 1 else if i = 3 then 1 else if i = 4 then 1 else 0
-  mrk := fun i => if i = 3 then 1 else 0
+  mrk := fun _ => 0
   roots := [4]
   n := 6
 
@@ -682,16 +684,17 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
 @[simp] theorem kids_casOut (q : ℕ) : kids casOut q = if q = 1 then [5] else [] := by
   unfold kids casOut decreaseKeyPath cascadeRun cutState promoteState casPreSt
   by_cases h1 : q = 1
-  · subst h1; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
+  · subst h1; rfl
   · by_cases h2 : q = 2
-    · subst h2; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
+    · subst h2; rfl
     · by_cases h3 : q = 3
-      · subst h3; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
+      · subst h3; rfl
       · by_cases h4 : q = 4
-        · subst h4; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
+        · subst h4; rfl
         · by_cases h5 : q = 5
-          · subst h5; first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
-          · first | rfl | simp [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, casPreSt]
+          · subst h5; rfl
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+              casPreSt, h1, h2, h3, h4, h5]
 
 /-! ### The pre-state satisfies the bundle -/
 
@@ -713,28 +716,28 @@ theorem cas_ParOK : ParOK casPreSt := by
   · subst hq1
     simp at hv
     subst hv
-    simp
+    simp [casPreSt]
   · by_cases hq2 : q = 2
     · subst hq2
       simp at hv
       subst hv
-      simp
+      simp [casPreSt]
     · by_cases hq3 : q = 3
       · subst hq3
         simp at hv
         subst hv
-        simp
+        simp [casPreSt]
       · by_cases hq4 : q = 4
         · subst hq4
           simp at hv
           subst hv
-          simp
-        · simp at hv
+          simp [casPreSt]
+        · simp [casPreSt, hq1, hq2, hq3, hq4] at hv
 
 theorem cas_KidsNodup : ∀ q, KidsNodup casPreSt q := by
   intro q j k hjk hk
-  unfold kids casPreSt at hjk hk ⊢
-  split at hk <;> simp at hjk hk ⊢ <;> omega
+  by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
+    simp [casPreSt, hq1, hq2, hq3, hq4] at hk <;> exact absurd hk (by omega)
 
 theorem cas_SlotOK : SlotOK casPreSt := by
   intro q hq v hv
@@ -743,29 +746,39 @@ theorem cas_SlotOK : SlotOK casPreSt := by
   · subst hq1
     simp at hv
     subst hv
-    simp
+    simp [casPreSt]
   · by_cases hq2 : q = 2
     · subst hq2
       simp at hv
       subst hv
-      simp
+      simp [casPreSt]
     · by_cases hq3 : q = 3
       · subst hq3
         simp at hv
         subst hv
-        simp
+        simp [casPreSt]
       · by_cases hq4 : q = 4
         · subst hq4
           simp at hv
           subst hv
-          simp
-        · simp at hv
+          simp [casPreSt]
+        · simp [casPreSt, hq1, hq2, hq3, hq4] at hv
 
 theorem cas_PosOK : PosOK casPreSt := by
   intro q j hj
   have hq : q = 1 ∨ q = 2 ∨ q = 3 ∨ q = 4 := by
-    by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-      simp_all
+    have hdeg : 0 < casPreSt.deg q := by
+      have hkl := kids_length casPreSt q
+      omega
+    by_cases hq1 : q = 1
+    · exact Or.inl hq1
+    · by_cases hq2 : q = 2
+      · exact Or.inr (Or.inl hq2)
+      · by_cases hq3 : q = 3
+        · exact Or.inr (Or.inr (Or.inl hq3))
+        · by_cases hq4 : q = 4
+          · exact Or.inr (Or.inr (Or.inr hq4))
+          · exact absurd hdeg (by simp [casPreSt, hq1, hq2, hq3, hq4])
   rcases hq with rfl | rfl | rfl | rfl
   · unfold kids at hj
     simp [casPreSt] at hj
@@ -790,7 +803,10 @@ theorem cas_PosOK : PosOK casPreSt := by
 
 theorem cas_Acyc : Acyc casPreSt := by
   intro x j hj heq
-  have hpos5 : ∀ Y : ℕ, casPreSt.par Y ≠ 5 := fun Y => by simp [casPreSt]
+  have hpos5 : ∀ Y : ℕ, casPreSt.par Y ≠ 5 := by
+    intro Y
+    by_cases hY1 : Y = 1 <;> by_cases hY2 : Y = 2 <;> by_cases hY3 : Y = 3 <;> by_cases hY5 : Y = 5 <;>
+      simp [casPreSt, hY1, hY2, hY3, hY5] <;> omega
   have hne : ∀ k : ℕ, 0 < k → (casPreSt.par)^[k] 5 ≠ 5 := by
     intro k hk
     induction k with
@@ -798,6 +814,51 @@ theorem cas_Acyc : Acyc casPreSt := by
     | succ k ih =>
       rw [Function.iterate_succ_apply']
       exact hpos5 _
+  -- A non-NIL slot at distance ≤ 4 from NIL either dies at NIL or climbs past itself
+  -- without leaving the tree: its orbit is `v, v+1, …, 4, 0, 0, …`, never revisiting `v`.
+  have hesc : ∀ (v k : ℕ), 0 < v → v ≤ 4 → 0 < k →
+      (casPreSt.par)^[k] v = 0 ∨ ((casPreSt.par)^[k] v ≥ v + 1 ∧ (casPreSt.par)^[k] v ≤ 4) := by
+    intro v k hv hv4 hk
+    induction k with
+    | zero => omega
+    | succ k ih =>
+      rcases Nat.lt_or_ge k 1 with hk0 | hkpos
+      · have hk0' : k = 0 := by omega
+        subst hk0'
+        rw [Function.iterate_succ_apply', Function.iterate_zero_apply]
+        rcases Nat.lt_or_ge v 4 with hv3 | hv4eq
+        · right
+          have hpv : casPreSt.par v = v + 1 := by
+            by_cases hv1 : v = 1
+            · subst hv1; simp [casPreSt]
+            · by_cases hv2 : v = 2
+              · subst hv2; simp [casPreSt]
+              · have hv3' : v = 3 := by omega
+                subst hv3'; simp [casPreSt]
+          omega
+        · have hv4' : v = 4 := by omega
+          subst hv4'
+          left
+          simp [casPreSt]
+      · rcases ih hkpos with h0 | hesc'
+        · left
+          rw [Function.iterate_succ_apply', h0]
+          exact rfl
+        · obtain ⟨hge, hle⟩ := hesc'
+          rw [Function.iterate_succ_apply']
+          -- the running value sits in {2, 3, 4}: rewrite it to a numeral BEFORE simp
+          -- unfolds `casPreSt` (otherwise the hypothesis no longer matches)
+          rcases Nat.lt_or_ge ((casPreSt.par)^[k] v) 4 with hylt | hyeq4
+          · rcases Nat.lt_or_ge ((casPreSt.par)^[k] v) 3 with hylt3 | hyeq3
+            · have hy2 : (casPreSt.par)^[k] v = 2 := by omega
+              rw [hy2]
+              simp [casPreSt] <;> omega
+            · have hy3 : (casPreSt.par)^[k] v = 3 := by omega
+              rw [hy3]
+              simp [casPreSt] <;> omega
+          · have hy4 : (casPreSt.par)^[k] v = 4 := by omega
+            rw [hy4]
+            simp [casPreSt] <;> omega
   by_cases hx5 : x = 5
   · subst hx5
     rcases Nat.lt_or_ge j 1 with h0 | h1
@@ -806,21 +867,31 @@ theorem cas_Acyc : Acyc casPreSt := by
       rw [Function.iterate_zero] at heq
       omega
     · exact absurd heq (hne j (by omega))
-  · have hx0 : casPreSt.par x = 0 := by
-      by_cases hx1 : x = 1 <;> by_cases hx2 : x = 2 <;> by_cases hx3 : x = 3 <;> by_cases hx4 : x = 4 <;>
-        simp [casPreSt, hx5, hx1, hx2, hx3, hx4]
-    have hstep : ∀ m : ℕ, (casPreSt.par)^[m + 1] x = 0 := by
-      intro m
-      induction m with
-      | zero => exact hx0
-      | succ m ih =>
-        rw [Function.iterate_succ_apply']
-        simp [ih, casPreSt]
-    cases j with
-    | zero => omega
-    | succ k =>
-      rw [hstep k] at heq
-      exact heq.symm
+  · rcases Nat.lt_or_ge x 5 with hx4 | hx6
+    · by_cases hxz : x = 0
+      · exact hxz
+      · rcases hesc x j (by omega) (by omega) (by omega) with h0 | hesc2
+        · rw [h0] at heq
+          exact heq.symm
+        · omega
+    · have hx0 : casPreSt.par x = 0 := by
+        have h1 : x ≠ 1 := by omega
+        have h2 : x ≠ 2 := by omega
+        have h3 : x ≠ 3 := by omega
+        have h4 : x ≠ 4 := by omega
+        simp [casPreSt, h1, h2, h3, h4, hx5]
+      have hstep : ∀ m : ℕ, (casPreSt.par)^[m + 1] x = 0 := by
+        intro m
+        induction m with
+        | zero => exact hx0
+        | succ m ih =>
+          rw [Function.iterate_succ_apply', ih]
+          exact rfl
+      cases j with
+      | zero => omega
+      | succ k =>
+        rw [hstep k] at heq
+        exact heq.symm
 
 theorem cas_NILRoots : NILRoots casPreSt := by
   intro r hr
@@ -852,7 +923,7 @@ theorem cas_NILNotChild : NILNotChild casPreSt := by
       · by_cases hq4 : q = 4
         · subst hq4
           simp at hv
-        · simp at hv
+        · simp [casPreSt, hq1, hq2, hq3, hq4] at hv
 
 theorem cas_RootNotChild : RootNotChild casPreSt := by
   intro r hr q _ hv
@@ -872,7 +943,7 @@ theorem cas_RootNotChild : RootNotChild casPreSt := by
       · by_cases hq4 : q = 4
         · subst hq4
           simp at hv
-        · simp at hv
+        · simp [casPreSt, hq1, hq2, hq3, hq4] at hv
 
 theorem cas_RootsLive : RootsLive casPreSt := by
   intro r hr
@@ -910,20 +981,22 @@ theorem cas_chainOk : ChainOk (cutState casPreSt 1 2) [(2, 3), (3, 4)] := by
     · simp [cutState, casPreSt]
     · intro h
       exact absurd h (by simp [cutState, casPreSt])
-  have hpre34 : PromotePre (cutState casPreSt 1 2) 3 4 := by
+  have hpre34 : PromotePre (promoteState (cutState casPreSt 1 2) 2 3) 3 4 := by
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · unfold kids
+      simp [promoteState, cutState, casPreSt]
+    · rw [promoteState_n]
       simp [cutState, casPreSt]
-    · simp [cutState, casPreSt]
-    · rw [cutState_mrk_ne casPreSt 1 2 3 (by decide)]
+    · exact promoteState_mrk_z (cutState casPreSt 1 2) 2 3
+    · rw [promoteState_mrk_ne (cutState casPreSt 1 2) 2 3 4 (by decide) (by decide),
+        cutState_mrk_ne casPreSt 1 2 4 (by decide)]
       simp [casPreSt]
-    · simp [cutState, casPreSt]
-    · simp [cutState, casPreSt]
+    · simp [promoteState, cutState, casPreSt]
     · intro h
-      exact absurd h (by simp [cutState, casPreSt])
+      exact absurd h (by simp [promoteState_deg, cutState, casPreSt])
   have hpar : ParOK (cutState casPreSt 1 2) :=
-    cut_ParOK casPreSt 1 2 cas_ParOK cas_RingOK cas_CutPre cas_NILLeaf
-  refine ⟨hpre23, ⟨hpre34, trivial⟩⟩
+    cut_ParOK casPreSt 1 2 cas_ParOK cas_RingOK cas_CutPre (cas_KidsNodup 2)
+  exact ⟨hpre23, ⟨hpre34, trivial⟩⟩
 
 /-! ### The output state satisfies the bundle -/
 
@@ -977,7 +1050,7 @@ theorem casOut_RootNotChild : RootNotChild casOut :=
 
 theorem casOut_RootsLive : RootsLive casOut :=
   decreaseKeyPath_RootsLive casPreSt 1 2 [(2, 3), (3, 4)] 4 cas_RootsLive cas_ParOK
-    cas_RingOK cas_KidsNodup cas_NILLeaf cas_CutPre cas_chainOk
+    cas_RingOK cas_KidsNodup cas_NILLeaf cas_SlotOK cas_CutPre cas_chainOk
 
 theorem casOut_RingOK : RingOK casOut :=
   decreaseKeyPath_RingOK casPreSt 1 2 [(2, 3), (3, 4)] 4 cas_RingOK cas_ParOK cas_KidsNodup
