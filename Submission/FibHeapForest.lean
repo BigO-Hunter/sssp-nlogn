@@ -343,7 +343,7 @@ mark (`false`) — landing `μ' = μ - k + 1` exactly, so the CLRS premise holds
 **with no slack**: `μ' + (k+1) = μ + 2` whenever the mark supply covers the
 cascade (`k ≤ μ`).  This is the Route-A viability witness: the clearing
 writes discharge `decrease_amortized_clrs`'s `hmarks` for every cascade
-length, as a per-cell equality (mirroring `machineMarks_promoteState`'s
+length, as a per-cell equality (mirroring `machineMarks_transferPromoteState`'s
 shape, minus the mark). -/
 theorem clrs_cell_premise (μ k : ℕ) (hk : k ≤ μ) :
     ∃ μ' : ℕ, CascadeMarks (List.replicate k true ++ [false]) μ μ' k

@@ -15,9 +15,9 @@ decrease-key path.  This module is the RAM-level program layer:
    `[(y₀, z₀), (z₀, z₁), …]`: each head pair promotes the marked child out of its
    parent, and the fold ends in `markState` at the stopping ancestor.
 3. `ChainOk` — one cell's `PromotePre` on the state that cell actually runs in, with the
-   rest of the chain on the state *after* that promote.  `promote_bridge` is how
+   rest of the chain on the state *after* that promote.  `transfer_bridge` is how
    original-state facts produce the running-state premises: the next cell's `mrk y = 1`
-   is exactly the current promote's `mrk z := 1` write (`promoteState_mrk_z`), `b`'s
+   is exactly the current promote's `mrk z := 1` write (`transferPromoteState_mrk_z`), `b`'s
    unmarkedness survives, `z ∈ kids b` survives, and `z`'s neighbour pointers survive the
    splice by the linkage.
 4. The fifteen bundle theorems for `cascadeRun` (structural induction composing the
@@ -25,7 +25,7 @@ decrease-key path.  This module is the RAM-level program layer:
    `cascadeRun (cutState st x y) chain stop` — with its own bundle corollaries.
 
 The output witness (`casOut`: a three-level decrease-key path — cut the child, promote
-twice, mark the stop) exercises `promote_bridge` and the fold, and the capstone applies
+twice, mark the stop) exercises `transfer_bridge` and the fold, and the capstone applies
 to the path's output: the decrease-key program keeps the machine inside the invariant
 set, so the row's `n log` half rests on proven transitions end to end.
 
@@ -127,9 +127,9 @@ theorem mark_RingOK (st : HState) (y : ℕ) (hrk : RingOK st) : RingOK (markStat
 marked child `y` out of `z`; the fold ends by marking the stopping ancestor. -/
 def cascadeRun (st : HState) : List (ℕ × ℕ) → ℕ → HState
   | [], stop => markState st stop
-  | (y, z) :: rest, stop => cascadeRun (promoteState st y z) rest stop
+  | (y, z) :: rest, stop => cascadeRun (transferPromoteState st y z) rest stop
 
-/-- The live size is untouched by the cascade fold: `promoteState` and `markState`
+/-- The live size is untouched by the cascade fold: `transferPromoteState` and `markState`
 keep `n`. -/
 theorem cascadeRun_n (st : HState) (chain : List (ℕ × ℕ)) (stop : ℕ) :
     (cascadeRun st chain stop).n = st.n := by
@@ -138,16 +138,16 @@ theorem cascadeRun_n (st : HState) (chain : List (ℕ × ℕ)) (stop : ℕ) :
   | cons head tail ih =>
     obtain ⟨y, z⟩ := head
     simp only [cascadeRun]
-    rw [ih (promoteState st y z), promoteState_n]
+    rw [ih (transferPromoteState st y z), transferPromoteState_n]
 
 /-! ## The clearing cascade: the CLRS write semantics (Route A) -/
 
 /-- The clearing cascade fold: identical shape to `cascadeRun`, each cell
-runs the CLRS-clearing splice (`clearPromoteState` clears both the banked
+runs the CLRS-clearing splice (`promoteState` clears both the banked
 mark at `y` and the old mark at `z`). -/
 def clearCascadeRun (st : HState) : List (ℕ × ℕ) → ℕ → HState
   | [], stop => markState st stop
-  | (y, z) :: rest, stop => clearCascadeRun (clearPromoteState st y z) rest stop
+  | (y, z) :: rest, stop => clearCascadeRun (promoteState st y z) rest stop
 
 /-- The mark-bit flags of the clearing cascade: per cell, the consumed banked
 mark at `y` (`true`) and — when the ancestor was already marked — the consumed
@@ -156,8 +156,8 @@ mark state threads through the clearing splice. -/
 def clearFlags (s : HState) : List (ℕ × ℕ) → List Bool
   | [] => []
   | (y, z) :: rest =>
-      true :: (if s.mrk z = 1 then true :: clearFlags (clearPromoteState s y z) rest
-        else false :: clearFlags (clearPromoteState s y z) rest)
+      true :: (if s.mrk z = 1 then true :: clearFlags (promoteState s y z) rest
+        else false :: clearFlags (promoteState s y z) rest)
 
 /-- **The clearing chain witness.**  `MarkChain`'s state-threading with the
 CLRS mark pattern: each cell's `y` carries the banked mark (`mrk y = 1`),
@@ -168,7 +168,7 @@ def ClearChain (st : HState) (N : ℕ) : List (ℕ × ℕ) → Prop
   | [] => True
   | (y, z) :: rest =>
       y < N ∧ z < N ∧ st.mrk y = 1 ∧ y ≠ z
-        ∧ ClearChain (clearPromoteState st y z) N rest
+        ∧ ClearChain (promoteState st y z) N rest
 
 /-- The live size survives the clearing fold. -/
 theorem clearCascadeRun_n (st : HState) (chain : List (ℕ × ℕ)) (stop : ℕ) :
@@ -178,14 +178,14 @@ theorem clearCascadeRun_n (st : HState) (chain : List (ℕ × ℕ)) (stop : ℕ)
   | cons head tail ih =>
     obtain ⟨y, z⟩ := head
     simp only [clearCascadeRun]
-    rw [ih (clearPromoteState st y z), clearPromoteState_n]
+    rw [ih (promoteState st y z), promoteState_n]
 
 /-- One cell's premises: the promote's own preconditions — on the state that cell
 actually runs in — and the rest of the chain on the state *after* that promote.
-`promote_bridge` is how original-state facts produce the running-state premises. -/
+`transfer_bridge` is how original-state facts produce the running-state premises. -/
 def ChainOk (st : HState) : List (ℕ × ℕ) → Prop
   | [] => True
-  | (y, z) :: rest => PromotePre st y z ∧ ChainOk (promoteState st y z) rest
+  | (y, z) :: rest => PromotePre st y z ∧ ChainOk (transferPromoteState st y z) rest
 
 /-! ## The premise bridge -/
 
@@ -193,11 +193,11 @@ def ChainOk (st : HState) : List (ℕ × ℕ) → Prop
 cell's premises are already stated where they are consumed; the bridge only has to note
 that `z ∈ kids b` survives the splice (`kids_promote_unchanged` — `b ≠ z`) and that `n`
 is untouched.  The original-state-to-running-state lifting that callers need is exactly
-`promoteState_mrk_z` (the hand-off), `promoteState_mrk_ne`, `promoteState_lft_ne` /
-`promoteState_rgt_ne`, and `kids_promote_unchanged`, applied per component. -/
-theorem promote_bridge (st : HState) (y z b : ℕ) (hpar : ParOK st)
-    (hpre : PromotePre st y z) (hnext : PromotePre (promoteState st y z) z b)
-    (hnoz : b ≠ z) : PromotePre (promoteState st y z) z b := by
+`transferPromoteState_mrk_z` (the hand-off), `transferPromoteState_mrk_ne`, `transferPromoteState_lft_ne` /
+`transferPromoteState_rgt_ne`, and `kids_promote_unchanged`, applied per component. -/
+theorem transfer_bridge (st : HState) (y z b : ℕ) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hnext : PromotePre (transferPromoteState st y z) z b)
+    (hnoz : b ≠ z) : PromotePre (transferPromoteState st y z) z b := by
   refine ⟨hnext.1, hnext.2.1, hnext.2.2.1, hnext.2.2.2.1, hnext.2.2.2.2.1,
     hnext.2.2.2.2.2⟩
 
@@ -210,7 +210,7 @@ theorem cascadeRun_MarkOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ))
     intro hm hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    exact ih (promoteState st y z) (promote_MarkOK st y z hm) hchain'
+    exact ih (transferPromoteState st y z) (transfer_MarkOK st y z hm) hchain'
 /-- `cascadeRun_ParSlot`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_ParSlot (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     ParSlot st → ChainOk st chain → ParSlot (cascadeRun st chain stop) := by
@@ -220,7 +220,7 @@ theorem cascadeRun_ParSlot (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)
     intro hps hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    exact ih (promoteState st y z) (promote_ParSlot st y z hpre hps) hchain'
+    exact ih (transferPromoteState st y z) (transfer_ParSlot st y z hpre hps) hchain'
 /-- `cascadeRun_ParOK`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_ParOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → ChainOk st chain → ParOK (cascadeRun st chain stop) := by
@@ -230,12 +230,12 @@ theorem cascadeRun_ParOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) 
     intro hpar hrk hnd hnl hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    exact ih (promoteState st y z) hpar' hrk' hnd' hnl' hchain'
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    exact ih (transferPromoteState st y z) hpar' hrk' hnd' hnl' hchain'
 /-- `cascadeRun_KidsNodup`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_KidsNodup (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → ChainOk st chain → ∀ q, KidsNodup (cascadeRun st chain stop) q := by
@@ -245,12 +245,12 @@ theorem cascadeRun_KidsNodup (st : HState) (stop : ℕ) (chain : List (ℕ × �
     intro hpar hrk hnd hnl hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    exact ih (promoteState st y z) hpar' hrk' hnd' hnl' hchain'
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    exact ih (transferPromoteState st y z) hpar' hrk' hnd' hnl' hchain'
 /-- `cascadeRun_PosOK`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_PosOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     MarkOK st → ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → PosOK st → ChainOk st chain → PosOK (cascadeRun st chain stop) := by
@@ -260,14 +260,14 @@ theorem cascadeRun_PosOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) 
     intro hm hpar hrk hnd hnl hpos hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hm' : MarkOK (promoteState st y z) := promote_MarkOK st y z hm
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    have hpos' : PosOK (promoteState st y z) := promote_PosOK st y z hrk hpar hpre hpos
-    exact ih (promoteState st y z) hm' hpar' hrk' hnd' hnl' hpos' hchain'
+    have hm' : MarkOK (transferPromoteState st y z) := transfer_MarkOK st y z hm
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    have hpos' : PosOK (transferPromoteState st y z) := transfer_PosOK st y z hrk hpar hpre hpos
+    exact ih (transferPromoteState st y z) hm' hpar' hrk' hnd' hnl' hpos' hchain'
 /-- `cascadeRun_SlotOK`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_SlotOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → SlotOK st → ChainOk st chain → SlotOK (cascadeRun st chain stop) := by
@@ -277,13 +277,13 @@ theorem cascadeRun_SlotOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ))
     intro hpar hrk hnd hnl hslot hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    have hslot' : SlotOK (promoteState st y z) := promote_SlotOK st y z hrk hpar hpre hslot
-    exact ih (promoteState st y z) hpar' hrk' hnd' hnl' hslot' hchain'
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    have hslot' : SlotOK (transferPromoteState st y z) := transfer_SlotOK st y z hrk hpar hpre hslot
+    exact ih (transferPromoteState st y z) hpar' hrk' hnd' hnl' hslot' hchain'
 /-- `cascadeRun_Acyc`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_Acyc (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     NILSelf st → NILNotChild st → ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → Acyc st → ChainOk st chain → Acyc (cascadeRun st chain stop) := by
@@ -293,16 +293,16 @@ theorem cascadeRun_Acyc (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     intro hns hnc hpar hrk hnd hnl hac hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hns' : NILSelf (promoteState st y z) := promote_NILSelf st y z hpre hnc hns
-    have hnc' : NILNotChild (promoteState st y z) :=
-      promote_NILNotChild st y z hrk hpar hpre hnc
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    have hac' : Acyc (promoteState st y z) := promote_Acyc st y z hpre hns hac
-    exact ih (promoteState st y z) hns' hnc' hpar' hrk' hnd' hnl' hac' hchain'
+    have hns' : NILSelf (transferPromoteState st y z) := transfer_NILSelf st y z hpre hnc hns
+    have hnc' : NILNotChild (transferPromoteState st y z) :=
+      transfer_NILNotChild st y z hrk hpar hpre hnc
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    have hac' : Acyc (transferPromoteState st y z) := transfer_Acyc st y z hpre hns hac
+    exact ih (transferPromoteState st y z) hns' hnc' hpar' hrk' hnd' hnl' hac' hchain'
 /-- `cascadeRun_NILRoots`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_NILRoots (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     NILRoots st → ChainOk st chain → NILRoots (cascadeRun st chain stop) := by
@@ -312,7 +312,7 @@ theorem cascadeRun_NILRoots (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ
     intro hnrs hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    exact ih (promoteState st y z) (promote_NILRoots st y z hnrs) hchain'
+    exact ih (transferPromoteState st y z) (transfer_NILRoots st y z hnrs) hchain'
 /-- `cascadeRun_NILSelf`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_NILSelf (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     NILSelf st → NILNotChild st → ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → ChainOk st chain → NILSelf (cascadeRun st chain stop) := by
@@ -322,15 +322,15 @@ theorem cascadeRun_NILSelf (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)
     intro hs hnc hpar hrk hnd hnl hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hs' : NILSelf (promoteState st y z) := promote_NILSelf st y z hpre hnc hs
-    have hnc' : NILNotChild (promoteState st y z) :=
-      promote_NILNotChild st y z hrk hpar hpre hnc
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    exact ih (promoteState st y z) hs' hnc' hpar' hrk' hnd' hnl' hchain'
+    have hs' : NILSelf (transferPromoteState st y z) := transfer_NILSelf st y z hpre hnc hs
+    have hnc' : NILNotChild (transferPromoteState st y z) :=
+      transfer_NILNotChild st y z hrk hpar hpre hnc
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    exact ih (transferPromoteState st y z) hs' hnc' hpar' hrk' hnd' hnl' hchain'
 /-- `cascadeRun_NILNotRoot`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_NILNotRoot (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     NILNotRoot st → NILNotChild st → ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → ChainOk st chain → NILNotRoot (cascadeRun st chain stop) := by
@@ -340,15 +340,15 @@ theorem cascadeRun_NILNotRoot (st : HState) (stop : ℕ) (chain : List (ℕ × �
     intro hnn hnc hpar hrk hnd hnl hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hnn' : NILNotRoot (promoteState st y z) := promote_NILNotRoot st y z hpre hnc hnn
-    have hnc' : NILNotChild (promoteState st y z) :=
-      promote_NILNotChild st y z hrk hpar hpre hnc
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    exact ih (promoteState st y z) hnn' hnc' hpar' hrk' hnd' hnl' hchain'
+    have hnn' : NILNotRoot (transferPromoteState st y z) := transfer_NILNotRoot st y z hpre hnc hnn
+    have hnc' : NILNotChild (transferPromoteState st y z) :=
+      transfer_NILNotChild st y z hrk hpar hpre hnc
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    exact ih (transferPromoteState st y z) hnn' hnc' hpar' hrk' hnd' hnl' hchain'
 /-- `cascadeRun_NILLeaf`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_NILLeaf (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     NILLeaf st → ChainOk st chain → NILLeaf (cascadeRun st chain stop) := by
@@ -358,7 +358,7 @@ theorem cascadeRun_NILLeaf (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)
     intro hnl hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    exact ih (promoteState st y z) (promote_NILLeaf st y z hpre hnl) hchain'
+    exact ih (transferPromoteState st y z) (transfer_NILLeaf st y z hpre hnl) hchain'
 /-- `cascadeRun_NILNotChild`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_NILNotChild (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → NILNotChild st → ChainOk st chain → NILNotChild (cascadeRun st chain stop) := by
@@ -368,14 +368,14 @@ theorem cascadeRun_NILNotChild (st : HState) (stop : ℕ) (chain : List (ℕ × 
     intro hpar hrk hnd hnl hnc hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    have hnc' : NILNotChild (promoteState st y z) :=
-      promote_NILNotChild st y z hrk hpar hpre hnc
-    exact ih (promoteState st y z) hpar' hrk' hnd' hnl' hnc' hchain'
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    have hnc' : NILNotChild (transferPromoteState st y z) :=
+      transfer_NILNotChild st y z hrk hpar hpre hnc
+    exact ih (transferPromoteState st y z) hpar' hrk' hnd' hnl' hnc' hchain'
 /-- `cascadeRun_RootNotChild`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_RootNotChild (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     RootNotChild st → ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → NILNotChild st → ChainOk st chain → RootNotChild (cascadeRun st chain stop) := by
@@ -385,16 +385,16 @@ theorem cascadeRun_RootNotChild (st : HState) (stop : ℕ) (chain : List (ℕ ×
     intro hrnc hpar hrk hnd hnl hnc hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    have hnc' : NILNotChild (promoteState st y z) :=
-      promote_NILNotChild st y z hrk hpar hpre hnc
-    have hrnc' : RootNotChild (promoteState st y z) :=
-      promote_RootNotChild st y z hrk hpar hpre (hnd z) hnc hnl hrnc
-    exact ih (promoteState st y z) hrnc' hpar' hrk' hnd' hnl' hnc' hchain'
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    have hnc' : NILNotChild (transferPromoteState st y z) :=
+      transfer_NILNotChild st y z hrk hpar hpre hnc
+    have hrnc' : RootNotChild (transferPromoteState st y z) :=
+      transfer_RootNotChild st y z hrk hpar hpre (hnd z) hnc hnl hrnc
+    exact ih (transferPromoteState st y z) hrnc' hpar' hrk' hnd' hnl' hnc' hchain'
 /-- `cascadeRun_RootsLive`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_RootsLive (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     RootsLive st → ParOK st → RingOK st → (∀ q, KidsNodup st q) → NILLeaf st → SlotOK st →
@@ -405,15 +405,15 @@ theorem cascadeRun_RootsLive (st : HState) (stop : ℕ) (chain : List (ℕ × �
     intro hrl hpar hrk hnd hnl hslot hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hrl' : RootsLive (promoteState st y z) :=
-      promote_RootsLive st y z hrk hpre hslot hrl
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    have hslot' : SlotOK (promoteState st y z) := promote_SlotOK st y z hrk hpar hpre hslot
-    exact ih (promoteState st y z) hrl' hpar' hrk' hnd' hnl' hslot' hchain'
+    have hrl' : RootsLive (transferPromoteState st y z) :=
+      transfer_RootsLive st y z hrk hpre hslot hrl
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    have hslot' : SlotOK (transferPromoteState st y z) := transfer_SlotOK st y z hrk hpar hpre hslot
+    exact ih (transferPromoteState st y z) hrl' hpar' hrk' hnd' hnl' hslot' hchain'
 /-- `cascadeRun_RingOK`: the invariant survives the whole cascade fold. -/
 theorem cascadeRun_RingOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ)) :
     RingOK st → ParOK st → (∀ q, KidsNodup st q) → NILLeaf st → ChainOk st chain → RingOK (cascadeRun st chain stop) := by
@@ -423,12 +423,12 @@ theorem cascadeRun_RingOK (st : HState) (stop : ℕ) (chain : List (ℕ × ℕ))
     intro hrk hpar hnd hnl hchain
     obtain ⟨y, z⟩ := head
     obtain ⟨hpre, hchain'⟩ := hchain
-    have hrk' : RingOK (promoteState st y z) := promote_RingOK st y z hrk hpar hpre hnl
-    have hpar' : ParOK (promoteState st y z) := promote_ParOK st y z hpar hrk hpre (hnd z)
-    have hnd' : ∀ q, KidsNodup (promoteState st y z) q :=
-      promote_KidsNodup st y z hrk hpar hpre hnd
-    have hnl' : NILLeaf (promoteState st y z) := promote_NILLeaf st y z hpre hnl
-    exact ih (promoteState st y z) hrk' hpar' hnd' hnl' hchain'
+    have hrk' : RingOK (transferPromoteState st y z) := transfer_RingOK st y z hrk hpar hpre hnl
+    have hpar' : ParOK (transferPromoteState st y z) := transfer_ParOK st y z hpar hrk hpre (hnd z)
+    have hnd' : ∀ q, KidsNodup (transferPromoteState st y z) q :=
+      transfer_KidsNodup st y z hrk hpar hpre hnd
+    have hnl' : NILLeaf (transferPromoteState st y z) := transfer_NILLeaf st y z hpre hnl
+    exact ih (transferPromoteState st y z) hrk' hpar' hnd' hnl' hchain'
 
 /-! ## The decrease-key program -/
 
@@ -588,158 +588,158 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
 @[simp] theorem casOut_par (v : ℕ) : casOut.par v = if v = 5 then 1 else 0 := by
   by_cases h1 : v = 1
   · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
       casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
         casPreSt]
     · by_cases h3 : v = 3
       · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
           casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
             casPreSt]
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt] <;> omega
+              transferPromoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt, h1, h2, h3, h4]
+              transferPromoteState, casPreSt, h1, h2, h3, h4]
 
 @[simp] theorem casOut_mrk (v : ℕ) : casOut.mrk v = if v = 4 then 1 else 0 := by
   by_cases h1 : v = 1
   · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
       casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
         casPreSt]
     · by_cases h3 : v = 3
       · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
           casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
             casPreSt]
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt] <;> omega
+              transferPromoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt, h1, h2, h3, h4]
+              transferPromoteState, casPreSt, h1, h2, h3, h4]
 
 @[simp] theorem casOut_deg (v : ℕ) : casOut.deg v = if v = 1 then 1 else 0 := by
   by_cases h1 : v = 1
   · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
       casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
         casPreSt]
     · by_cases h3 : v = 3
       · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
           casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
             casPreSt]
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt] <;> omega
+              transferPromoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt, h1, h2, h3, h4]
+              transferPromoteState, casPreSt, h1, h2, h3, h4]
 
 @[simp] theorem casOut_chd (v : ℕ) : casOut.chd v = if v = 1 then 5 else 0 := by
   by_cases h1 : v = 1
   · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
       casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
         casPreSt]
     · by_cases h3 : v = 3
       · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
           casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
             casPreSt]
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt] <;> omega
+              transferPromoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt, h1, h2, h3, h4]
+              transferPromoteState, casPreSt, h1, h2, h3, h4]
 
 @[simp] theorem casOut_rgt (v : ℕ) :
     casOut.rgt v = if v = 1 then 1 else if v = 2 then 2 else if v = 3 then 3 else if v = 4 then 4 else if v = 5 then 5 else 0 := by
   by_cases h1 : v = 1
   · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
       casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
         casPreSt]
     · by_cases h3 : v = 3
       · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
           casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
             casPreSt]
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt] <;> omega
+              transferPromoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt, h1, h2, h3, h4]
+              transferPromoteState, casPreSt, h1, h2, h3, h4]
 
 @[simp] theorem casOut_lft (v : ℕ) :
     casOut.lft v = if v = 1 then 1 else if v = 2 then 2 else if v = 3 then 3 else if v = 4 then 4 else if v = 5 then 5 else 0 := by
   by_cases h1 : v = 1
   · subst h1
-    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+    simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
       casPreSt] <;> omega
   · by_cases h2 : v = 2
     · subst h2
-      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+      simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
         casPreSt]
     · by_cases h3 : v = 3
       · subst h3
-        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+        simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
           casPreSt] <;> omega
       · by_cases h4 : v = 4
         · subst h4
-          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
             casPreSt]
         · by_cases h5 : v = 5
           · subst h5
             simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt] <;> omega
+              transferPromoteState, casPreSt] <;> omega
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
-              promoteState, casPreSt, h1, h2, h3, h4]
+              transferPromoteState, casPreSt, h1, h2, h3, h4]
 
 @[simp] theorem casOut_roots : casOut.roots = [3, 2, 1, 4] := by
-  simp only [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, markState,
+  simp only [casOut, decreaseKeyPath, cascadeRun, cutState, transferPromoteState, markState,
     casPreSt]
   simp
 
 @[simp] theorem casOut_n : casOut.n = 6 := rfl
 
 @[simp] theorem kids_casOut (q : ℕ) : kids casOut q = if q = 1 then [5] else [] := by
-  unfold kids casOut decreaseKeyPath cascadeRun cutState promoteState casPreSt
+  unfold kids casOut decreaseKeyPath cascadeRun cutState transferPromoteState casPreSt
   by_cases h1 : q = 1
   · subst h1; rfl
   · by_cases h2 : q = 2
@@ -750,7 +750,7 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
         · subst h4; rfl
         · by_cases h5 : q = 5
           · subst h5; rfl
-          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, promoteState,
+          · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState, transferPromoteState,
               casPreSt, h1, h2, h3, h4, h5]
 
 /-! ### The pre-state satisfies the bundle -/
@@ -1038,19 +1038,19 @@ theorem cas_chainOk : ChainOk (cutState casPreSt 1 2) [(2, 3), (3, 4)] := by
     · simp [cutState, casPreSt]
     · intro h
       exact absurd h (by simp [cutState, casPreSt])
-  have hpre34 : PromotePre (promoteState (cutState casPreSt 1 2) 2 3) 3 4 := by
+  have hpre34 : PromotePre (transferPromoteState (cutState casPreSt 1 2) 2 3) 3 4 := by
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · unfold kids
-      simp [promoteState, cutState, casPreSt]
-    · rw [promoteState_n]
+      simp [transferPromoteState, cutState, casPreSt]
+    · rw [transferPromoteState_n]
       simp [cutState, casPreSt]
-    · exact promoteState_mrk_z (cutState casPreSt 1 2) 2 3
-    · rw [promoteState_mrk_ne (cutState casPreSt 1 2) 2 3 4 (by decide) (by decide),
+    · exact transferPromoteState_mrk_z (cutState casPreSt 1 2) 2 3
+    · rw [transferPromoteState_mrk_ne (cutState casPreSt 1 2) 2 3 4 (by decide) (by decide),
         cutState_mrk_ne casPreSt 1 2 4 (by decide)]
       simp [casPreSt]
-    · simp [promoteState, cutState, casPreSt]
+    · simp [transferPromoteState, cutState, casPreSt]
     · intro h
-      exact absurd h (by simp [promoteState_deg, cutState, casPreSt])
+      exact absurd h (by simp [transferPromoteState_deg, cutState, casPreSt])
   have hpar : ParOK (cutState casPreSt 1 2) :=
     cut_ParOK casPreSt 1 2 cas_ParOK cas_RingOK cas_CutPre (cas_KidsNodup 2)
   exact ⟨hpre23, ⟨hpre34, trivial⟩⟩

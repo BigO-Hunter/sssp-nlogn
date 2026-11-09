@@ -69,11 +69,11 @@ theorem mem_markSet {st : HState} {i : ℕ} :
   · rw [if_neg h']
     exact ⟨fun h => Or.inr h, fun h => h.elim (absurd · h') id⟩
 
-@[simp] theorem markSet_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
+@[simp] theorem markSet_transferPromoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
     (hzn : z < st.n) (hy : st.mrk y = 1) (hz : st.mrk z = 0) :
-    markSet (promoteState st y z) = (markSet st).erase y ∪ {z} := by
+    markSet (transferPromoteState st y z) = (markSet st).erase y ∪ {z} := by
   ext i
-  simp only [markSet, promoteState_n, promoteState_mrk, Finset.mem_filter, Finset.mem_range]
+  simp only [markSet, transferPromoteState_n, transferPromoteState_mrk, Finset.mem_filter, Finset.mem_range]
   by_cases hiy : i = y
   · subst hiy
     by_cases hiz : i = z
@@ -122,19 +122,19 @@ theorem machineMarks_markState_le (st : HState) (y : ℕ) :
 
 /-- The promote's mark count is unchanged: the promoted node's mark (one banked
 token pair) is consumed to pay for the mark set on the losing ancestor. -/
-theorem machineMarks_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n) (hzn : z < st.n)
+theorem machineMarks_transferPromoteState (st : HState) (y z : ℕ) (hyn : y < st.n) (hzn : z < st.n)
     (hy : st.mrk y = 1) (hz : st.mrk z = 0) :
-    machineMarks (promoteState st y z) = machineMarks st := by
+    machineMarks (transferPromoteState st y z) = machineMarks st := by
   simp only [machineMarks]
   by_cases hyz : y = z
   · subst hyz
-    have h : markSet (promoteState st y y) = markSet st := by
+    have h : markSet (transferPromoteState st y y) = markSet st := by
       ext i
       by_cases hiy : i = y
-      · subst hiy; simp [markSet, promoteState_n, promoteState_mrk, hy]
-      · simp [markSet, promoteState_n, promoteState_mrk, hiy]
+      · subst hiy; simp [markSet, transferPromoteState_n, transferPromoteState_mrk, hy]
+      · simp [markSet, transferPromoteState_n, transferPromoteState_mrk, hiy]
     rw [h]
-  · rw [markSet_promoteState st y z hyn hzn hy hz]
+  · rw [markSet_transferPromoteState st y z hyn hzn hy hz]
     have hyin : y ∈ markSet st := by simp [mem_markSet, hy, hyn]
     have hzout : z ∉ markSet st := by simp [mem_markSet, hz]
     have hdisj : Disjoint ((markSet st).erase y) {z} :=
@@ -144,18 +144,18 @@ theorem machineMarks_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n) (hz
       Finset.card_singleton]
     omega
 
-theorem machinePotential_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
+theorem machinePotential_transferPromoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
     (hzn : z < st.n) (hy : st.mrk y = 1) (hz : st.mrk z = 0) :
-    machinePotential (promoteState st y z) = machinePotential st + 1 := by
-  have hroots : (promoteState st y z).roots.length = st.roots.length + 1 := by
-    rw [promoteState_roots]; simp
-  simp only [machinePotential, hroots, machineMarks_promoteState st y z hyn hzn hy hz]
+    machinePotential (transferPromoteState st y z) = machinePotential st + 1 := by
+  have hroots : (transferPromoteState st y z).roots.length = st.roots.length + 1 := by
+    rw [transferPromoteState_roots]; simp
+  simp only [machinePotential, hroots, machineMarks_transferPromoteState st y z hyn hzn hy hz]
   omega
 
 /-! ## The mark discipline of the cascade -/
 
 /-- The machine mark discipline of a consolidation chain: each cell `(y, z)` runs
-against live slots (`y`, `z` under the fixed bound `N` — `promoteState_n` keeps
+against live slots (`y`, `z` under the fixed bound `N` — `transferPromoteState_n` keeps
 the live size constant along the fold) with `y`'s mark set and `z`'s clear, and
 the rest of the chain runs on the state after that cell.  This is exactly what
 the `ChainOk` premises say cell-by-cell; the bridge below extracts it. -/
@@ -163,11 +163,11 @@ def MarkChain (st : HState) (N : ℕ) : List (ℕ × ℕ) → Prop
   | [] => True
   | (y, z) :: rest =>
       y < N ∧ z < N ∧ st.mrk y = 1 ∧ st.mrk z = 0
-        ∧ MarkChain (promoteState st y z) N rest
+        ∧ MarkChain (transferPromoteState st y z) N rest
 
 /-- The `ChainOk` premises realize the machine mark discipline: the promote
 preconditions supply each cell's marks, and `SlotOK` (stable across the fold —
-`promoteState_n` keeps the live size) bounds the promoted node. -/
+`transferPromoteState_n` keeps the live size) bounds the promoted node. -/
 theorem chainOk_markChain (st : HState) (chain : List (ℕ × ℕ)) (N : ℕ)
     (hst : st.n = N) (hslot : ∀ s : HState, s.n = N → SlotOK s)
     (hchain : ChainOk st chain) : MarkChain st N chain := by
@@ -178,7 +178,7 @@ theorem chainOk_markChain (st : HState) (chain : List (ℕ × ℕ)) (N : ℕ)
     obtain ⟨hpre, hrest⟩ := hchain
     refine ⟨Nat.lt_of_lt_of_eq (hslot st hst z hpre.2.1 y hpre.1) hst,
       Nat.lt_of_lt_of_eq hpre.2.1 hst, hpre.2.2.1, hpre.2.2.2.1,
-      ih (promoteState st y z) (by rw [promoteState_n]; exact hst) hrest⟩
+      ih (transferPromoteState st y z) (by rw [transferPromoteState_n]; exact hst) hrest⟩
 
 /-! ## The amortization's machine form: the decrease-key path's potential -/
 
@@ -196,10 +196,10 @@ theorem cascadeRun_potential (st : HState) (chain : List (ℕ × ℕ)) (stop : �
   | cons head tail ih =>
     obtain ⟨y, z⟩ := head
     obtain ⟨hyn, hzn, hmy, hmz, hrest⟩ := hmc
-    have hprom := machinePotential_promoteState st y z hyn hzn hmy hmz
-    calc machinePotential (cascadeRun (promoteState st y z) tail stop)
-        ≤ machinePotential (promoteState st y z) + tail.length + 2 :=
-          ih (promoteState st y z) (by rw [promoteState_n]; exact hrest)
+    have hprom := machinePotential_transferPromoteState st y z hyn hzn hmy hmz
+    calc machinePotential (cascadeRun (transferPromoteState st y z) tail stop)
+        ≤ machinePotential (transferPromoteState st y z) + tail.length + 2 :=
+          ih (transferPromoteState st y z) (by rw [transferPromoteState_n]; exact hrest)
       _ = machinePotential st + 1 + tail.length + 2 := by rw [hprom]
       _ ≤ machinePotential st + ((y, z) :: tail).length + 2 := by
           simp only [List.length_cons]
@@ -234,7 +234,7 @@ theorem decreaseKeyPath_potential (st : HState) (x y : ℕ) (chain : List (ℕ �
 `decrease_amortized_clrs` needs `hmarks : μ' + c ≤ μ + 2`.  Under THIS
 machine's transfer writes the mark count is forced upward: the cut banks one
 mark *exactly* (`machineMarks_cutState`), every consolidation cell moves it
-without changing the count (`machineMarks_promoteState`), and the stop's
+without changing the count (`machineMarks_transferPromoteState`), and the stop's
 `markState` only adds.  So for any cascade of at least two cells
 `μ' + c ≥ μ + 3` — the premise is machine-refuted.  Under the CLRS clearing
 writes the count instead drops by one per cascaded cell and rises once at the
@@ -270,10 +270,10 @@ theorem markcount_cells (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s : HSta
     intro s hmc
     obtain ⟨y, z⟩ := head
     obtain ⟨hyn, hzn, hmy, hmz, hrest⟩ := hmc
-    rw [← promoteState_n] at hrest
-    have hp := machineMarks_promoteState s y z hyn hzn hmy hmz
-    calc machineMarks s = machineMarks (promoteState s y z) := hp.symm
-      _ ≤ machineMarks (cascadeRun (promoteState s y z) tail stop) := ih (promoteState s y z) hrest
+    rw [← transferPromoteState_n] at hrest
+    have hp := machineMarks_transferPromoteState s y z hyn hzn hmy hmz
+    calc machineMarks s = machineMarks (transferPromoteState s y z) := hp.symm
+      _ ≤ machineMarks (cascadeRun (transferPromoteState s y z) tail stop) := ih (transferPromoteState s y z) hrest
 
 /-- **M4 determination, case (a): refuted.**  Under the transfer writes the
 post-cascade mark count is at least `μ + 1` (the cut's banked mark survives
@@ -293,14 +293,14 @@ theorem transfer_clrs_gap (st : HState) (x y : ℕ) (chain : List (ℕ × ℕ)) 
     omega
   omega
 
-/-! ## The clearing anchors: `clearPromoteState`'s mark count -/
+/-! ## The clearing anchors: `promoteState`'s mark count -/
 
 /-- The clearing splice's mark set: `y` and `z` are removed from the mark set
 (the erase of a non-member is the identity, so this is unconditional). -/
 theorem markSet_clearPromote (st : HState) (y z : ℕ) :
-    markSet (clearPromoteState st y z) = ((markSet st).erase z).erase y := by
+    markSet (promoteState st y z) = ((markSet st).erase z).erase y := by
   ext i
-  rw [mem_markSet, clearPromoteState_n, clearPromoteState_mrk, Finset.mem_erase,
+  rw [mem_markSet, promoteState_n, promoteState_mrk, Finset.mem_erase,
     Finset.mem_erase, mem_markSet]
   by_cases h1 : i = y
   · subst h1; simp
@@ -312,14 +312,14 @@ theorem markSet_clearPromote (st : HState) (y z : ℕ) :
 /-- **Anchor two, intermediate cell.**  Both marks present: the clearing splice
 consumes two (`y`'s banked mark and `z`'s old mark) — the `CascadeMarks` clear
 cell's `−1`-per-cascade-cut ledger, taken two at a time. -/
-theorem machineMarks_clearPromoteState_intermediate (st : HState) (y z : ℕ)
+theorem machineMarks_promoteState_intermediate (st : HState) (y z : ℕ)
     (hyn : y < st.n) (hzn : z < st.n) (hy1 : st.mrk y = 1) (hz1 : st.mrk z = 1)
     (hyz : y ≠ z) :
-    machineMarks (clearPromoteState st y z) + 2 = machineMarks st := by
+    machineMarks (promoteState st y z) + 2 = machineMarks st := by
   have hmem1 : y ∈ markSet st := by simp [mem_markSet, hy1, hyn]
   have hmem2 : z ∈ markSet st := by simp [mem_markSet, hz1, hzn]
   have hyz' : y ∈ (markSet st).erase z := Finset.mem_erase.mpr ⟨hyz, hmem1⟩
-  have hset : markSet (clearPromoteState st y z) = ((markSet st).erase z).erase y :=
+  have hset : markSet (promoteState st y z) = ((markSet st).erase z).erase y :=
     markSet_clearPromote st y z
   have hcard2 : 2 ≤ (markSet st).card := by
     have hznot : z ∉ insert y (∅ : Finset ℕ) := by
@@ -343,8 +343,8 @@ theorem machineMarks_clearPromoteState_intermediate (st : HState) (y z : ℕ)
   have hcard : (((markSet st).erase z).erase y).card + 2 = (markSet st).card := by
     rw [Finset.card_erase_of_mem hyz', Finset.card_erase_of_mem hmem2]
     omega
-  calc machineMarks (clearPromoteState st y z) + 2
-      = (markSet (clearPromoteState st y z)).card + 2 := rfl
+  calc machineMarks (promoteState st y z) + 2
+      = (markSet (promoteState st y z)).card + 2 := rfl
     _ = (((markSet st).erase z).erase y).card + 2 := by rw [hset]
     _ = (markSet st).card := hcard
     _ = machineMarks st := rfl
@@ -352,18 +352,18 @@ theorem machineMarks_clearPromoteState_intermediate (st : HState) (y z : ℕ)
 /-- **Anchor two, terminal cell.**  Only `y`'s banked mark present: the
 clearing splice consumes it, and the stop's `markState` re-banks (`+1`) —
 net zero for the terminal cell, the `CascadeMarks` mark case. -/
-theorem machineMarks_clearPromoteState_terminal (st : HState) (y z : ℕ)
+theorem machineMarks_promoteState_terminal (st : HState) (y z : ℕ)
     (hyn : y < st.n) (hy1 : st.mrk y = 1) (hz0 : st.mrk z = 0) (hyz : y ≠ z) :
-    machineMarks (clearPromoteState st y z) + 1 = machineMarks st := by
+    machineMarks (promoteState st y z) + 1 = machineMarks st := by
   have hnotmem : z ∉ markSet st := by simp [mem_markSet, hz0]
   have hmem1 : y ∈ markSet st := by simp [mem_markSet, hy1, hyn]
   have hpos : 0 < (markSet st).card := Finset.card_pos.mpr ⟨y, hmem1⟩
-  have hset : markSet (clearPromoteState st y z) = (markSet st).erase y := by
+  have hset : markSet (promoteState st y z) = (markSet st).erase y := by
     rw [markSet_clearPromote, Finset.erase_eq_self.mpr hnotmem]
   have hcard : ((markSet st).erase y).card + 1 = (markSet st).card := by
     rw [Finset.card_erase_of_mem hmem1]; omega
-  calc machineMarks (clearPromoteState st y z) + 1
-      = (markSet (clearPromoteState st y z)).card + 1 := rfl
+  calc machineMarks (promoteState st y z) + 1
+      = (markSet (promoteState st y z)).card + 1 := rfl
     _ = ((markSet st).erase y).card + 1 := by rw [hset]
     _ = (markSet st).card := hcard
     _ = machineMarks st := rfl
@@ -372,21 +372,21 @@ theorem machineMarks_clearPromoteState_terminal (st : HState) (y z : ℕ)
 
 /-- **The clearing cell consumes at least its banked mark.**  Wrapper over
 the two exact shapes (intermediate −2 / terminal −1). -/
-theorem machineMarks_clearPromoteState_le (st : HState) (y z : ℕ)
+theorem machineMarks_promoteState_le (st : HState) (y z : ℕ)
     (hyn : y < st.n) (hzn : z < st.n) (hm : MarkOK st) (hy1 : st.mrk y = 1)
     (hyz : y ≠ z) :
-    machineMarks (clearPromoteState st y z) + 1 ≤ machineMarks st := by
+    machineMarks (promoteState st y z) + 1 ≤ machineMarks st := by
   by_cases hz1 : st.mrk z = 1
-  · have h := machineMarks_clearPromoteState_intermediate st y z hyn hzn hy1 hz1 hyz
+  · have h := machineMarks_promoteState_intermediate st y z hyn hzn hy1 hz1 hyz
     omega
   · have hz0 : st.mrk z = 0 := by have := hm z; omega
-    have h := machineMarks_clearPromoteState_terminal st y z hyn hy1 hz0 hyz
+    have h := machineMarks_promoteState_terminal st y z hyn hy1 hz0 hyz
     omega
 /-- **The clearing fold's mark ledger.**  The cut's banked mark is consumed
 by the first cell and every cell consumes at least one, so the fold's mark
 count is at most the bank: `μ' + c ≤ μ₀ + 1` with `c = chain.length` — the
 cell-by-cell form of the CLRS premise.  `MarkOK` of the running state
-threads through Anchor 1 (`promoteClear_MarkOK`). -/
+threads through Anchor 1 (`promote_MarkOK`). -/
 theorem markcount_clearCells (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s : HState),
     MarkOK s → ClearChain s s.n chain →
     machineMarks (clearCascadeRun s chain stop) + chain.length ≤ machineMarks s + 1 := by
@@ -400,17 +400,17 @@ theorem markcount_clearCells (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s :
     intro s hm hcc
     obtain ⟨y, z⟩ := cell
     obtain ⟨hyN, hzN, hy1, hyz, hrest⟩ := hcc
-    have hrest' : ClearChain (clearPromoteState s y z)
-        (clearPromoteState s y z).n tail := by
-      rw [clearPromoteState_n]; exact hrest
-    have hm' : MarkOK (clearPromoteState s y z) := promoteClear_MarkOK s y z hm
-    have hle := machineMarks_clearPromoteState_le s y z hyN hzN hm hy1 hyz
+    have hrest' : ClearChain (promoteState s y z)
+        (promoteState s y z).n tail := by
+      rw [promoteState_n]; exact hrest
+    have hm' : MarkOK (promoteState s y z) := promote_MarkOK s y z hm
+    have hle := machineMarks_promoteState_le s y z hyN hzN hm hy1 hyz
     calc machineMarks (clearCascadeRun s ((y, z) :: tail) stop) + ((y, z) :: tail).length
-        = machineMarks (clearCascadeRun (clearPromoteState s y z) tail stop)
+        = machineMarks (clearCascadeRun (promoteState s y z) tail stop)
             + (tail.length + 1) := by simp only [clearCascadeRun, List.length_cons]
       _ ≤ machineMarks s + 1 := by
-          have h := ih (clearPromoteState s y z) hm' hrest'
-          have hle := machineMarks_clearPromoteState_le s y z hyN hzN hm hy1 hyz
+          have h := ih (promoteState s y z) hm' hrest'
+          have hle := machineMarks_promoteState_le s y z hyN hzN hm hy1 hyz
           omega
 
 /-- **The CLRS mark premise, machine-derived over the clearing writes.**  The
@@ -435,15 +435,15 @@ theorem machineMarks_clearCascade_hmarks (st : HState) (x y : ℕ)
 the equation lemma the witness construction splits on. -/
 theorem clearFlags_cons (s : HState) (y z : ℕ) (rest : List (ℕ × ℕ)) :
     clearFlags s ((y, z) :: rest)
-      = true :: (if s.mrk z = 1 then true :: clearFlags (clearPromoteState s y z) rest
-        else false :: clearFlags (clearPromoteState s y z) rest) := rfl
+      = true :: (if s.mrk z = 1 then true :: clearFlags (promoteState s y z) rest
+        else false :: clearFlags (promoteState s y z) rest) := rfl
 
 /-- **Intermediate cell** (`z` already marked): the flags are `true, true` — the
 consumed banked mark at `y` and the consumed old mark at `z`. -/
 theorem clearFlags_cons_marked (s : HState) (y z : ℕ) (rest : List (ℕ × ℕ))
     (hz : s.mrk z = 1) :
     clearFlags s ((y, z) :: rest)
-      = true :: true :: clearFlags (clearPromoteState s y z) rest := by
+      = true :: true :: clearFlags (promoteState s y z) rest := by
   rw [clearFlags_cons, if_pos hz]
 
 /-- **Terminal cell** (`z` unmarked): the flags are `true, false` — the consumed
@@ -451,7 +451,7 @@ banked mark at `y`, then the stop's fresh mark. -/
 theorem clearFlags_cons_unmarked (s : HState) (y z : ℕ) (rest : List (ℕ × ℕ))
     (hz : s.mrk z = 0) :
     clearFlags s ((y, z) :: rest)
-      = true :: false :: clearFlags (clearPromoteState s y z) rest := by
+      = true :: false :: clearFlags (promoteState s y z) rest := by
   rw [clearFlags_cons, if_neg (by omega)]
 
 /-- The well-formed clearing chain: `ClearChain` plus the terminal discipline —
@@ -464,7 +464,7 @@ def ClearChainStrict (st : HState) : List (ℕ × ℕ) → Prop
   | (y, z) :: rest =>
       y < st.n ∧ z < st.n ∧ st.mrk y = 1 ∧ y ≠ z
         ∧ (rest ≠ [] → st.mrk z = 1)
-        ∧ ClearChainStrict (clearPromoteState st y z) rest
+        ∧ ClearChainStrict (promoteState st y z) rest
 
 /-- The clearing fold adds exactly one root per cell; the stop's mark adds none. -/
 theorem clearCascadeRun_roots (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s : HState),
@@ -476,7 +476,7 @@ theorem clearCascadeRun_roots (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s 
     intro s
     obtain ⟨y, z⟩ := cell
     simp only [clearCascadeRun]
-    rw [ih (clearPromoteState s y z), clearPromoteState_roots', promoteState_roots]
+    rw [ih (promoteState s y z), promoteState_roots', transferPromoteState_roots]
     simp
     omega
 
@@ -492,7 +492,7 @@ relation's per-flag `−1` is the splice's `−2`-per-intermediate /
 `−1`-per-terminal, read one bit at a time), which lands both ledgers with no
 slack: the relation's CLRS form `μ' + (c+1) ≤ μ₀ + 2` (equality in fact), and
 the count-level machine form `μ' + k ≤ μ₀ + 1`.  Mark state threads through
-`clearPromoteState` (Anchor 1's `promoteClear_MarkOK`); no count hypothesis is
+`promoteState` (Anchor 1's `promote_MarkOK`); no count hypothesis is
 needed — the mark supply `2k−1 ≤ μ₀ + 1` is a consequence, not an assumption. -/
 theorem clearChain_cascadeMarks :
     ∀ (chain : List (ℕ × ℕ)) (s : HState), MarkOK s → ClearChainStrict s chain →
@@ -515,15 +515,15 @@ theorem clearChain_cascadeMarks :
     by_cases hz1 : s.mrk z = 1
     · -- intermediate cell: two consumptions, two `clear`s
       obtain ⟨c', μ'', hcm, hlen, hled2, hled1⟩ :=
-        ih (clearPromoteState s y z) (promoteClear_MarkOK s y z hm) hrest
-      have hanchor : machineMarks (clearPromoteState s y z) + 2 = machineMarks s :=
-        machineMarks_clearPromoteState_intermediate s y z hyn hzn hy1 hz1 hyz
+        ih (promoteState s y z) (promote_MarkOK s y z hm) hrest
+      have hanchor : machineMarks (promoteState s y z) + 2 = machineMarks s :=
+        machineMarks_promoteState_intermediate s y z hyn hzn hy1 hz1 hyz
       have hge : 2 ≤ machineMarks s := by omega
-      have heq : machineMarks s - 1 - 1 = machineMarks (clearPromoteState s y z) := by
+      have heq : machineMarks s - 1 - 1 = machineMarks (promoteState s y z) := by
         omega
-      have hcm' : CascadeMarks (clearFlags (clearPromoteState s y z) tail)
+      have hcm' : CascadeMarks (clearFlags (promoteState s y z) tail)
           (machineMarks s - 1 - 1) μ'' c' := by rw [heq]; exact hcm
-      have hcm1 : CascadeMarks (true :: clearFlags (clearPromoteState s y z) tail)
+      have hcm1 : CascadeMarks (true :: clearFlags (promoteState s y z) tail)
           (machineMarks s - 1) μ'' (c' + 1) := CascadeMarks.clear (by omega) hcm'
       rw [clearFlags_cons_marked s y z tail hz1]
       refine ⟨c' + 2, μ'', CascadeMarks.clear (by omega) hcm1, ?_, ?_, ?_⟩
@@ -537,7 +537,7 @@ theorem clearChain_cascadeMarks :
         exact hz1 (hstrict hne)
       subst htail
       have hge : 1 ≤ machineMarks s := by
-        have hanchor := machineMarks_clearPromoteState_terminal s y z hyn hy1 hz0 hyz
+        have hanchor := machineMarks_promoteState_terminal s y z hyn hy1 hz0 hyz
         omega
       rw [clearFlags_cons_unmarked s y z [] hz0]
       refine ⟨1, machineMarks s - 1 + 1,
@@ -572,13 +572,13 @@ theorem decrease_amortized_of_clearCascadeRun {K D0 D1 : ℕ} {t t' μ μ' : ℕ
 
 /-- **The clearing splice's potential drops.**  One fresh root (`+1`) against
 at least one consumed mark (`−2·1` or better): `Φ' ≤ Φ + 1 − 2 ≤ Φ`. -/
-theorem machinePotential_clearPromoteState_le (st : HState) (y z : ℕ)
+theorem machinePotential_promoteState_le (st : HState) (y z : ℕ)
     (hyn : y < st.n) (hzn : z < st.n) (hm : MarkOK st) (hy1 : st.mrk y = 1)
     (hyz : y ≠ z) :
-    machinePotential (clearPromoteState st y z) + 1 ≤ machinePotential st := by
-  have hmrk := machineMarks_clearPromoteState_le st y z hyn hzn hm hy1 hyz
-  have hroots : (clearPromoteState st y z).roots.length = st.roots.length + 1 := by
-    rw [clearPromoteState_roots', promoteState_roots, List.length_cons]
+    machinePotential (promoteState st y z) + 1 ≤ machinePotential st := by
+  have hmrk := machineMarks_promoteState_le st y z hyn hzn hm hy1 hyz
+  have hroots : (promoteState st y z).roots.length = st.roots.length + 1 := by
+    rw [promoteState_roots', transferPromoteState_roots, List.length_cons]
   simp only [machinePotential, hroots]
   omega
 
@@ -605,15 +605,15 @@ theorem clearCascadeRun_potential (stop : ℕ) : ∀ (chain : List (ℕ × ℕ))
     intro s hm hcc
     obtain ⟨y, z⟩ := cell
     obtain ⟨hyN, hzN, hy1, hyz, hrest⟩ := hcc
-    have hrest' : ClearChain (clearPromoteState s y z)
-        (clearPromoteState s y z).n tail := by
-      rw [clearPromoteState_n]; exact hrest
-    have hm' : MarkOK (clearPromoteState s y z) := promoteClear_MarkOK s y z hm
-    have hcell := machinePotential_clearPromoteState_le s y z hyN hzN hm hy1 hyz
+    have hrest' : ClearChain (promoteState s y z)
+        (promoteState s y z).n tail := by
+      rw [promoteState_n]; exact hrest
+    have hm' : MarkOK (promoteState s y z) := promote_MarkOK s y z hm
+    have hcell := machinePotential_promoteState_le s y z hyN hzN hm hy1 hyz
     calc machinePotential (clearCascadeRun s ((y, z) :: tail) stop)
-        = machinePotential (clearCascadeRun (clearPromoteState s y z) tail stop) := rfl
-      _ ≤ machinePotential (clearPromoteState s y z) + 2 :=
-          ih (clearPromoteState s y z) hm' hrest'
+        = machinePotential (clearCascadeRun (promoteState s y z) tail stop) := rfl
+      _ ≤ machinePotential (promoteState s y z) + 2 :=
+          ih (promoteState s y z) hm' hrest'
       _ ≤ machinePotential s + 2 := by omega
 
 /-! ## The consolidation measure -/

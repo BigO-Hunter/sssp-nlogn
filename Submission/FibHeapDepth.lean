@@ -569,7 +569,7 @@ inductive Cascade : HState → ℕ → List (ℕ × ℕ) → Prop where
   | nil (s : HState) (y : ℕ) : Cascade s y []
   | cons {s : HState} {y z : ℕ} {rest : List (ℕ × ℕ)}
       (hpre : PromotePre s y z)
-      (hrest : Cascade (promoteState s y z) z rest) : Cascade s y ((y, z) :: rest)
+      (hrest : Cascade (transferPromoteState s y z) z rest) : Cascade s y ((y, z) :: rest)
 
 /-- A cascade witness is a `ChainOk` witness: the cells carry the full
 `PromotePre` bundle. -/
@@ -581,7 +581,7 @@ theorem cascade_chainOk : ∀ (chain : List (ℕ × ℕ)) (s : HState) (y : ℕ)
   | cons cell rest ih =>
     intro s y hC
     cases hC with
-    | @cons _ _ z _ hpre hrest => exact ⟨hpre, ih (promoteState s y z) z hrest⟩
+    | @cons _ _ z _ hpre hrest => exact ⟨hpre, ih (transferPromoteState s y z) z hrest⟩
 
 /-- The cascade's nonempty start is live: the first cell's `y ∈ kids z`
 with `z < s.n` puts it under `SlotOK`. -/
@@ -611,13 +611,13 @@ theorem cascade_walkUp : ∀ (chain : List (ℕ × ℕ)) (st : HState) (s : HSta
     cases hC with
     | cons hpre hrest =>
       have hmem : y ∈ kids st z := hlift y z hpre.1
-      have hpar' : ParOK (promoteState s y z) :=
-        promote_ParOK s y z hpar hrk hpre (hnd z)
-      have hrk' : RingOK (promoteState s y z) := promote_RingOK s y z hrk hpar hpre hnl
-      have hnl' : NILLeaf (promoteState s y z) := promote_NILLeaf s y z hpre hnl
-      have hnd' : ∀ q, KidsNodup (promoteState s y z) q :=
-        promote_KidsNodup s y z hrk hpar hpre hnd
-      have hlift' : ∀ a b : ℕ, a ∈ kids (promoteState s y z) b → a ∈ kids st b := by
+      have hpar' : ParOK (transferPromoteState s y z) :=
+        transfer_ParOK s y z hpar hrk hpre (hnd z)
+      have hrk' : RingOK (transferPromoteState s y z) := transfer_RingOK s y z hrk hpar hpre hnl
+      have hnl' : NILLeaf (transferPromoteState s y z) := transfer_NILLeaf s y z hpre hnl
+      have hnd' : ∀ q, KidsNodup (transferPromoteState s y z) q :=
+        transfer_KidsNodup s y z hrk hpar hpre hnd
+      have hlift' : ∀ a b : ℕ, a ∈ kids (transferPromoteState s y z) b → a ∈ kids st b := by
         intro a b hab
         by_cases hbz : b = z
         · obtain ⟨k, -, -, heq⟩ := kids_promote s y z hrk hpre
@@ -627,7 +627,7 @@ theorem cascade_walkUp : ∀ (chain : List (ℕ × ℕ)) (st : HState) (s : HSta
           exact hlift a z (List.mem_of_mem_eraseIdx hab)
         · rw [kids_promote_unchanged s y z b hpar hpre hbz] at hab
           exact hlift a b hab
-      exact WalkUp.cons hmem (ih st (promoteState s y z) z hpar' hrk' hnl' hnd' hrest hlift')
+      exact WalkUp.cons hmem (ih st (transferPromoteState s y z) z hpar' hrk' hnl' hnd' hrest hlift')
 
 /-- **The cascade's length cap, machine-derived.**  A cascade witness over a
 state with the machine invariant bundle lifts to a `WalkUp` over that same

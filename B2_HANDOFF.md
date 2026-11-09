@@ -78,10 +78,17 @@ The row is potential-level accounting, not yet the program-level
    `hdeg : DegOK s.last` with the extract-state strictness derived
    internally.  The anonymous per-call `hmono` over the extract state is
    gone; the clause sits where the row's other bundle pieces sit.
-2. **The def-swap session** (named separate session): the clearing/
-   transfer semantics swap so the machine `CascadeMarks` ledger lands on
-   the row's discipline.  Not a bound risk (both units are
-   constant-per-op); it is the honesty seam for the literal CLRS charge.
+2. **The def-swap session** — **LANDED 2026-11-09**: the clearing writes
+   ARE the machine's canonical `promoteState` (`FibHeapPromote:1297`);
+   the transfer splice survives as `transferPromoteState` with its
+   `transfer_*` suite (the `DkRun` / `cascadeRun` / `decreaseKeyPath`
+   aggregates run on it), so the CLRS/transfer seam stays dual-track
+   exactly as the row states it.  The mark anchors re-keyed with the
+   splice: `machineMarks_promoteState_intermediate` / `_terminal`
+   (−2/−1, the clearing consumption) vs
+   `machineMarks_transferPromoteState` (the net-zero move).  Not a bound
+   risk (both units are constant-per-op); the honesty seam for the
+   literal CLRS charge remains the stated boundary.
 3. **The transport** — wire the Fib-heap Dijkstra into Frontier's word
    RAM (`Frontier.CostModel`), charge the potential deltas as time, and
    prove the program-level `CorrectWithin` + fallback.  Then

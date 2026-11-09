@@ -3,7 +3,7 @@ import Submission.FibHeapCut
 /-!
 # M3c: the promote updater — the cascade's marked-parent cut
 
-`promoteState st y z` is the exact array splice of the CLRS cascading-cut step that M3a's
+`transferPromoteState st y z` is the exact array splice of the CLRS cascading-cut step that M3a's
 `cutState` cannot express: the child `y` is *marked* (`mrk y = 1` — it already lost a child
 once), so instead of marking `z` again, `y` itself is cut from `z`'s circular child list and
 re-rooted (`par y := 0`, prepended to the root list), `y`'s mark is *cleared* (`mrk y := 0` —
@@ -68,11 +68,13 @@ def PromotePre (st : HState) (y z : ℕ) : Prop :=
   y ∈ kids st z ∧ z < st.n ∧ st.mrk y = 1 ∧ st.mrk z = 0
     ∧ st.rgt (st.lft y) = y ∧ (2 ≤ st.deg z → st.lft y ∈ kids st z)
 
-/-- The promote splice.  Both branches write only to already-live slots.  The mark write
+/-- The transfer promote splice — the CLRS/transfer seam's other side (kept green for the
+transfer aggregates `DkRun` / `cascadeRun`; the canonical `promoteState` below is the
+CLRS-clearing splice).  Both branches write only to already-live slots.  The mark write
 checks `z` first: `mrk z := 1` is unconditional in the pointwise reading (`z ≠ z` is
 false), and the promoted child's cleared mark needs `y ≠ z` — true of any real state
 (`Acyc` forbids a self-parent). -/
-def promoteState (st : HState) (y z : ℕ) : HState :=
+def transferPromoteState (st : HState) (y z : ℕ) : HState :=
   if st.deg z = 1 then
     { st with
       par := (fun i => if i = y then 0 else st.par i)
@@ -92,93 +94,93 @@ def promoteState (st : HState) (y z : ℕ) : HState :=
 
 /-! ## Pointwise behaviour of the splice -/
 
-theorem promoteState_deg (st : HState) (y z q : ℕ) :
-    (promoteState st y z).deg q = if q = z then st.deg q - 1 else st.deg q := by
-  unfold promoteState
+theorem transferPromoteState_deg (st : HState) (y z q : ℕ) :
+    (transferPromoteState st y z).deg q = if q = z then st.deg q - 1 else st.deg q := by
+  unfold transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h]
   · rw [if_neg h]
 
-theorem promoteState_mrk (st : HState) (y z q : ℕ) :
-    (promoteState st y z).mrk q =
+theorem transferPromoteState_mrk (st : HState) (y z q : ℕ) :
+    (transferPromoteState st y z).mrk q =
       if q = z then 1 else if q = y then 0 else st.mrk q := by
-  unfold promoteState
+  unfold transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h]
   · rw [if_neg h]
 
-theorem promoteState_par (st : HState) (y z q : ℕ) :
-    (promoteState st y z).par q = if q = y then 0 else st.par q := by
-  unfold promoteState
+theorem transferPromoteState_par (st : HState) (y z q : ℕ) :
+    (transferPromoteState st y z).par q = if q = y then 0 else st.par q := by
+  unfold transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h]
   · rw [if_neg h]
 
-theorem promoteState_roots (st : HState) (y z : ℕ) :
-    (promoteState st y z).roots = y :: st.roots := by
-  unfold promoteState
+theorem transferPromoteState_roots (st : HState) (y z : ℕ) :
+    (transferPromoteState st y z).roots = y :: st.roots := by
+  unfold transferPromoteState
   by_cases h : st.deg z = 1
   · simp [h]
   · simp [h]
 
-theorem promoteState_n (st : HState) (y z : ℕ) : (promoteState st y z).n = st.n := by
-  unfold promoteState
+theorem transferPromoteState_n (st : HState) (y z : ℕ) : (transferPromoteState st y z).n = st.n := by
+  unfold transferPromoteState
   by_cases h : st.deg z = 1
   · simp [h]
   · simp [h]
 
-theorem promoteState_par_y (st : HState) (y z : ℕ) : (promoteState st y z).par y = 0 := by
-  rw [promoteState_par, if_pos rfl]
+theorem transferPromoteState_par_y (st : HState) (y z : ℕ) : (transferPromoteState st y z).par y = 0 := by
+  rw [transferPromoteState_par, if_pos rfl]
 
-theorem promoteState_par_ne (st : HState) (y z q : ℕ) (hne : q ≠ y) :
-    (promoteState st y z).par q = st.par q := by
-  rw [promoteState_par, if_neg hne]
+theorem transferPromoteState_par_ne (st : HState) (y z q : ℕ) (hne : q ≠ y) :
+    (transferPromoteState st y z).par q = st.par q := by
+  rw [transferPromoteState_par, if_neg hne]
 
-theorem promoteState_mrk_z (st : HState) (y z : ℕ) : (promoteState st y z).mrk z = 1 := by
-  rw [promoteState_mrk, if_pos rfl]
+theorem transferPromoteState_mrk_z (st : HState) (y z : ℕ) : (transferPromoteState st y z).mrk z = 1 := by
+  rw [transferPromoteState_mrk, if_pos rfl]
 
-theorem promoteState_mrk_y (st : HState) (y z : ℕ) (hyz : y ≠ z) :
-    (promoteState st y z).mrk y = 0 := by
-  rw [promoteState_mrk, if_neg hyz, if_pos rfl]
+theorem transferPromoteState_mrk_y (st : HState) (y z : ℕ) (hyz : y ≠ z) :
+    (transferPromoteState st y z).mrk y = 0 := by
+  rw [transferPromoteState_mrk, if_neg hyz, if_pos rfl]
 
-theorem promoteState_mrk_ne (st : HState) (y z q : ℕ) (hqz : q ≠ z) (hqy : q ≠ y) :
-    (promoteState st y z).mrk q = st.mrk q := by
-  rw [promoteState_mrk, if_neg hqz, if_neg hqy]
+theorem transferPromoteState_mrk_ne (st : HState) (y z q : ℕ) (hqz : q ≠ z) (hqy : q ≠ y) :
+    (transferPromoteState st y z).mrk q = st.mrk q := by
+  rw [transferPromoteState_mrk, if_neg hqz, if_neg hqy]
 
-theorem promoteState_chd_zero (st : HState) (y z : ℕ) (h : st.deg z = 1) :
-    (promoteState st y z).chd z = 0 := by
-  simp [promoteState, h]
+theorem transferPromoteState_chd_zero (st : HState) (y z : ℕ) (h : st.deg z = 1) :
+    (transferPromoteState st y z).chd z = 0 := by
+  simp [transferPromoteState, h]
 
-theorem promoteState_rgt_eq (st : HState) (y z v : ℕ) (h : st.deg z = 1) :
-    (promoteState st y z).rgt v = st.rgt v := by
-  simp [promoteState, h]
+theorem transferPromoteState_rgt_eq (st : HState) (y z v : ℕ) (h : st.deg z = 1) :
+    (transferPromoteState st y z).rgt v = st.rgt v := by
+  simp [transferPromoteState, h]
 
-theorem promoteState_lft_eq (st : HState) (y z v : ℕ) (h : st.deg z = 1) :
-    (promoteState st y z).lft v = st.lft v := by
-  simp [promoteState, h]
+theorem transferPromoteState_lft_eq (st : HState) (y z v : ℕ) (h : st.deg z = 1) :
+    (transferPromoteState st y z).lft v = st.lft v := by
+  simp [transferPromoteState, h]
 
-theorem promoteState_chd_ne (st : HState) (y z q : ℕ) (h : st.deg z ≠ 1) :
-    (promoteState st y z).chd q =
+theorem transferPromoteState_chd_ne (st : HState) (y z q : ℕ) (h : st.deg z ≠ 1) :
+    (transferPromoteState st y z).chd q =
       if q = z then (if st.chd z = y then st.rgt y else st.chd z) else st.chd q := by
   by_cases hq : q = z
-  · simp [promoteState, h, hq]
-  · simp [promoteState, h, hq]
+  · simp [transferPromoteState, h, hq]
+  · simp [transferPromoteState, h, hq]
 
-theorem promoteState_rgt_ne (st : HState) (y z v : ℕ) (h : st.deg z ≠ 1) (hv : v ≠ st.lft y) :
-    (promoteState st y z).rgt v = st.rgt v := by
-  simp [promoteState, h, hv]
+theorem transferPromoteState_rgt_ne (st : HState) (y z v : ℕ) (h : st.deg z ≠ 1) (hv : v ≠ st.lft y) :
+    (transferPromoteState st y z).rgt v = st.rgt v := by
+  simp [transferPromoteState, h, hv]
 
-theorem promoteState_rgt_pred (st : HState) (y z : ℕ) (h : st.deg z ≠ 1) :
-    (promoteState st y z).rgt (st.lft y) = st.rgt y := by
-  simp [promoteState, h]
+theorem transferPromoteState_rgt_pred (st : HState) (y z : ℕ) (h : st.deg z ≠ 1) :
+    (transferPromoteState st y z).rgt (st.lft y) = st.rgt y := by
+  simp [transferPromoteState, h]
 
-theorem promoteState_lft_ne (st : HState) (y z v : ℕ) (h : st.deg z ≠ 1) (hv : v ≠ st.rgt y) :
-    (promoteState st y z).lft v = st.lft v := by
-  simp [promoteState, h, hv]
+theorem transferPromoteState_lft_ne (st : HState) (y z v : ℕ) (h : st.deg z ≠ 1) (hv : v ≠ st.rgt y) :
+    (transferPromoteState st y z).lft v = st.lft v := by
+  simp [transferPromoteState, h, hv]
 
-theorem promoteState_lft_succ (st : HState) (y z : ℕ) (h : st.deg z ≠ 1) :
-    (promoteState st y z).lft (st.rgt y) = st.lft y := by
-  simp [promoteState, h]
+theorem transferPromoteState_lft_succ (st : HState) (y z : ℕ) (h : st.deg z ≠ 1) :
+    (transferPromoteState st y z).lft (st.rgt y) = st.lft y := by
+  simp [transferPromoteState, h]
 
 /-! ## Positions in the ring -/
 
@@ -260,7 +262,7 @@ position `k` (the cut child `y`) is skipped. -/
 theorem walk_promote_pos (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : PromotePre st y z)
     (hd2 : 2 ≤ st.deg z) (k : ℕ) (hk : k < st.deg z ∧ (st.rgt)^[k] (st.chd z) = y) :
     ∀ j : ℕ, j < st.deg z - 1 →
-      (promoteState st y z).rgt^[j] ((promoteState st y z).chd z) =
+      (transferPromoteState st y z).rgt^[j] ((transferPromoteState st y z).chd z) =
         (st.rgt)^[if j < k then j else j + 1] (st.chd z) := by
   have hpredpos := pred_pos st y z hrk hpre hd2 k hk
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
@@ -275,15 +277,15 @@ theorem walk_promote_pos (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : Pro
       rw [Function.iterate_zero, hk.2]; exact hc
     exact (hinj 0 k (by omega) hk.1 h0).symm
   -- The new head.
-  have hchd : (promoteState st y z).chd z = if k = 0 then st.rgt y else st.chd z := by
-    rw [promoteState_chd_ne st y z z hd1, if_pos rfl]
+  have hchd : (transferPromoteState st y z).chd z = if k = 0 then st.rgt y else st.chd z := by
+    rw [transferPromoteState_chd_ne st y z z hd1, if_pos rfl]
     by_cases hkz : k = 0
     · rw [if_pos (hxchd hkz), if_pos hkz]
     · rw [if_neg (fun hc => hkz (hchdx hc)), if_neg hkz]
   -- The splice's `rgt` behaviour.
-  have hstep : ∀ v : ℕ, v ≠ st.lft y → (promoteState st y z).rgt v = st.rgt v :=
-    fun v hv => promoteState_rgt_ne st y z v hd1 hv
-  have hstepp : (promoteState st y z).rgt (st.lft y) = st.rgt y := promoteState_rgt_pred st y z hd1
+  have hstep : ∀ v : ℕ, v ≠ st.lft y → (transferPromoteState st y z).rgt v = st.rgt v :=
+    fun v hv => transferPromoteState_rgt_ne st y z v hd1 hv
+  have hstepp : (transferPromoteState st y z).rgt (st.lft y) = st.rgt y := transferPromoteState_rgt_pred st y z hd1
   have hrgtx : st.rgt y = (st.rgt)^[k + 1] (st.chd z) := by
     rw [Function.iterate_succ_apply', hk.2]
   intro j
@@ -331,18 +333,18 @@ theorem walk_promote_pos (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : Pro
 /-- **The re-root walk, empty branch.**  Cutting the only child empties the list. -/
 theorem kids_promote_zero (st : HState) (y z k : ℕ) (hpre : PromotePre st y z)
     (hd : st.deg z = 1) (hk : k < st.deg z ∧ (st.rgt)^[k] (st.chd z) = y) :
-    kids (promoteState st y z) z = (kids st z).eraseIdx k := by
+    kids (transferPromoteState st y z) z = (kids st z).eraseIdx k := by
   have hk0 : k = 0 := by omega
   subst hk0
   unfold kids
   have hx : st.chd z = y := by rw [← hk.2, Function.iterate_zero_apply]
-  rw [promoteState_deg st y z z, if_pos rfl, hd, promoteState_chd_zero st y z hd]
+  rw [transferPromoteState_deg st y z z, if_pos rfl, hd, transferPromoteState_chd_zero st y z hd]
   simp [hx]
 
 /-- **The re-root walk, positive-degree branch, as a list equation.** -/
 theorem kids_promote_pos (st : HState) (y z k : ℕ) (hrk : RingOK st) (hpre : PromotePre st y z)
     (hd2 : 2 ≤ st.deg z) (hk : k < st.deg z ∧ (st.rgt)^[k] (st.chd z) = y) :
-    kids (promoteState st y z) z = (kids st z).eraseIdx k := by
+    kids (transferPromoteState st y z) z = (kids st z).eraseIdx k := by
   have hd1 : st.deg z ≠ 1 := by omega
   have hw := walk_promote_pos st y z hrk hpre hd2 k hk
   -- the new head, in `hw`'s exact form
@@ -350,13 +352,13 @@ theorem kids_promote_pos (st : HState) (y z k : ℕ) (hrk : RingOK st) (hpre : P
     intro h
     rw [← hk.2, h, Function.iterate_zero_apply]
   have hchdx : st.chd z = y → k = 0 := (chdy_iff st y z hrk k hk).mp
-  have hchd : (promoteState st y z).chd z = if k = 0 then st.rgt y else st.chd z := by
-    rw [promoteState_chd_ne st y z z hd1, if_pos rfl]
+  have hchd : (transferPromoteState st y z).chd z = if k = 0 then st.rgt y else st.chd z := by
+    rw [transferPromoteState_chd_ne st y z z hd1, if_pos rfl]
     by_cases hkz : k = 0
     · rw [if_pos (hxchd hkz), if_pos hkz]
     · rw [if_neg (fun hc => hkz (hchdx hc)), if_neg hkz]
   unfold kids
-  rw [promoteState_deg st y z z, if_pos rfl]
+  rw [transferPromoteState_deg st y z z, if_pos rfl]
   have hlen : ((List.ofFn fun j : Fin (st.deg z) => st.rgt^[j.val] (st.chd z)).eraseIdx k).length
       = st.deg z - 1 := by
     rw [length_eraseIdx_lt (cs := List.ofFn fun j : Fin (st.deg z) => st.rgt^[j.val] (st.chd z))
@@ -391,7 +393,7 @@ theorem kids_promote_pos (st : HState) (y z k : ℕ) (hrk : RingOK st) (hpre : P
 child list is the old list with position `k` erased. -/
 theorem kids_promote (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : PromotePre st y z) :
     ∃ k, k < st.deg z ∧ (st.rgt)^[k] (st.chd z) = y ∧
-      kids (promoteState st y z) z = (kids st z).eraseIdx k := by
+      kids (transferPromoteState st y z) z = (kids st z).eraseIdx k := by
   have hd0 : 0 < st.deg z := by
     have h1 := kids_length st z
     have h2 := List.length_pos_of_mem hpre.1
@@ -404,7 +406,7 @@ theorem kids_promote (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : Promote
 
 /-- The cut child no longer appears in `z`'s child list. -/
 theorem promotechild_notin_kids (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : PromotePre st y z)
-    (hnd : KidsNodup st z) : y ∉ kids (promoteState st y z) z := by
+    (hnd : KidsNodup st z) : y ∉ kids (transferPromoteState st y z) z := by
   obtain ⟨k, hk1, hkx, hkeq⟩ := kids_promote st y z hrk hpre
   obtain ⟨hclose, hinj, htail⟩ := (hrk z).resolve_left (by have := kids_length st z; omega)
   have hlen : ((kids st z).eraseIdx k).length = st.deg z - 1 := by
@@ -427,24 +429,24 @@ theorem promotechild_notin_kids (st : HState) (y z : ℕ) (hrk : RingOK st) (hpr
 
 /-- **Every other child list is untouched by the cut.** -/
 theorem kids_promote_unchanged (st : HState) (y z q : ℕ) (hpar : ParOK st) (hpre : PromotePre st y z)
-    (hq : q ≠ z) : kids (promoteState st y z) q = kids st q := by
+    (hq : q ≠ z) : kids (transferPromoteState st y z) q = kids st q := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   have hd0 : 0 < st.deg z := by
     have h1 := kids_length st z
     have h3 := List.length_pos_of_mem hx
     omega
-  have h1 : (promoteState st y z).deg q = st.deg q := by
-    rw [promoteState_deg, if_neg hq]
-  have h2 : (promoteState st y z).chd q = st.chd q := by
+  have h1 : (transferPromoteState st y z).deg q = st.deg q := by
+    rw [transferPromoteState_deg, if_neg hq]
+  have h2 : (transferPromoteState st y z).chd q = st.chd q := by
     by_cases hd : st.deg z = 1
-    · simp [promoteState, hd, hq]
-    · rw [promoteState_chd_ne st y z q hd, if_neg hq]
+    · simp [transferPromoteState, hd, hq]
+    · rw [transferPromoteState_chd_ne st y z q hd, if_neg hq]
   have hmem : ∀ z j, j < st.deg z → (st.rgt)^[j] (st.chd z) ∈ kids st z := by
     intro z j hj
     rw [kids]
     exact List.mem_ofFn.mpr ⟨⟨j, hj⟩, rfl⟩
   have hw : ∀ j : ℕ, j < st.deg q →
-      (promoteState st y z).rgt^[j] (st.chd q) = (st.rgt)^[j] (st.chd q) := by
+      (transferPromoteState st y z).rgt^[j] (st.chd q) = (st.rgt)^[j] (st.chd q) := by
     intro j hj
     induction j with
     | zero => simp
@@ -452,7 +454,7 @@ theorem kids_promote_unchanged (st : HState) (y z q : ℕ) (hpar : ParOK st) (hp
       have hik : k < st.deg q := by omega
       rw [Function.iterate_succ_apply', Function.iterate_succ_apply', ih hik]
       rcases Nat.lt_or_ge (st.deg z) 2 with hlt | hd2
-      · exact promoteState_rgt_eq st y z _ (by omega)
+      · exact transferPromoteState_rgt_eq st y z _ (by omega)
       · -- the walk visits only children of `q`; `lft y` is a child of `z`
         have hly : st.lft y ∈ kids st z := hlftmem (by omega)
         have hne : (st.rgt)^[k] (st.chd q) ≠ st.lft y := by
@@ -460,7 +462,7 @@ theorem kids_promote_unchanged (st : HState) (y z q : ℕ) (hpar : ParOK st) (hp
           have hm : (st.rgt)^[k] (st.chd q) ∈ kids st q := hmem q k hik
           rw [hc] at hm
           exact hq ((hpar q _ hm).symm.trans (hpar z _ hly))
-        exact promoteState_rgt_ne st y z _ (by omega) hne
+        exact transferPromoteState_rgt_ne st y z _ (by omega) hne
   unfold kids
   rw [h1, h2]
   refine List.ext_get (by simp) (fun n hn1 hn2 => ?_)
@@ -472,10 +474,10 @@ theorem kids_promote_unchanged (st : HState) (y z q : ℕ) (hpar : ParOK st) (hp
 /-- `MarkOK` survives the promote: the only mark writes are `mrk z := 1` (the unmarked
 parent spends its one loss) and `mrk y := 0` (the promoted child's mark is cleared) —
 both constants are trivially `≤ 1`. -/
-theorem promote_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
-    MarkOK (promoteState st y z) := by
+theorem transfer_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
+    MarkOK (transferPromoteState st y z) := by
   intro q
-  rw [promoteState_mrk]
+  rw [transferPromoteState_mrk]
   by_cases hqz : q = z
   · rw [if_pos hqz]
   · by_cases hqy : q = y
@@ -483,23 +485,23 @@ theorem promote_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
     · rw [if_neg hqz, if_neg hqy]; exact hm q
 
 /-- `ParSlot` survives the cut: every `par` value is either unchanged or the NIL slot `0`. -/
-theorem promote_ParSlot (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hps : ParSlot st) :
-    ParSlot (promoteState st y z) := by
+theorem transfer_ParSlot (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hps : ParSlot st) :
+    ParSlot (transferPromoteState st y z) := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
-  have hn : (promoteState st y z).n = st.n := promoteState_n st y z
+  have hn : (transferPromoteState st y z).n = st.n := transferPromoteState_n st y z
   have hpos : 0 < st.n := by omega
   intro q hq
   rw [hn] at hq ⊢
   by_cases hqx : q = y
-  · rw [hqx, promoteState_par_y]
+  · rw [hqx, transferPromoteState_par_y]
     exact hpos
-  · rw [promoteState_par_ne st y z q hqx]
+  · rw [transferPromoteState_par_ne st y z q hqx]
     exact hps q hq
 
 /-- `ParOK` survives the cut: `z`'s remaining children keep their parent, every other list is
 untouched, and the only `par` write is `par y := 0`. -/
-theorem promote_ParOK (st : HState) (y z : ℕ) (hpar : ParOK st) (hrk : RingOK st)
-    (hpre : PromotePre st y z) (hnd : KidsNodup st z) : ParOK (promoteState st y z) := by
+theorem transfer_ParOK (st : HState) (y z : ℕ) (hpar : ParOK st) (hrk : RingOK st)
+    (hpre : PromotePre st y z) (hnd : KidsNodup st z) : ParOK (transferPromoteState st y z) := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   obtain ⟨k, hk1, hkx, hkeq⟩ := kids_promote st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩
   intro q v hv
@@ -512,20 +514,20 @@ theorem promote_ParOK (st : HState) (y z : ℕ) (hpar : ParOK st) (hrk : RingOK 
       rw [hc] at hv
       apply promotechild_notin_kids st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ hnd
       rw [hkeq]; exact hv
-    rw [promoteState_par_ne st y z v hvx]
+    rw [transferPromoteState_par_ne st y z v hvx]
     exact hpar z v hvm
   · rw [kids_promote_unchanged st y z q hpar ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ hqy] at hv
     have hvx : v ≠ y := by
       intro hc
       rw [hc] at hv
       exact hqy ((hpar q y hv).symm.trans (hpar z y hx))
-    rw [promoteState_par_ne st y z v hvx]
+    rw [transferPromoteState_par_ne st y z v hvx]
     exact hpar q v hv
 
 /-- `KidsNodup` survives the cut: `z`'s list loses one element (the erased list is strictly
 order-preserving on positions), every other list is untouched. -/
-theorem promote_KidsNodup (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
-    (hpre : PromotePre st y z) (hnd : ∀ q, KidsNodup st q) : ∀ q, KidsNodup (promoteState st y z) q := by
+theorem transfer_KidsNodup (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hnd : ∀ q, KidsNodup st q) : ∀ q, KidsNodup (transferPromoteState st y z) q := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   obtain ⟨k, hk1, hkx, hkeq⟩ := kids_promote st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩
   have hlen := length_eraseIdx_lt (by rw [kids_length]; exact hk1)
@@ -547,7 +549,7 @@ theorem promote_KidsNodup (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : Pa
   intro q j j' hjk hk
   by_cases hqy : q = z
   · rw [hqy] at hk ⊢
-    rw [promoteState_deg st y z z, if_pos rfl] at hk
+    rw [transferPromoteState_deg st y z z, if_pos rfl] at hk
     rw [hkeq] at ⊢
     rw [hget j (by omega), hget j' (by omega)]
     have hbd : (if j' < k then j' else j' + 1) < st.deg z := by
@@ -556,14 +558,14 @@ theorem promote_KidsNodup (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : Pa
       · rw [if_neg (show ¬((j':ℕ) < k) from by omega)]; omega
     exact hnd z _ _ (hmono j j' hjk hk) hbd
   · rw [kids_promote_unchanged st y z q hpar ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ hqy]
-    rw [promoteState_deg st y z q, if_neg hqy] at hk
+    rw [transferPromoteState_deg st y z q, if_neg hqy] at hk
     exact hnd q j j' hjk hk
 
 /-- `PosOK` survives the cut.  The one-loss rule does the work: `ldeg z` is invariant
 (`(deg z - 1) + 1 = deg z + 0`, which needs the parent unmarked), the cut child is off every
 list, and every other `ldeg` is untouched. -/
-theorem promote_PosOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
-    (hpre : PromotePre st y z) (hpos : PosOK st) : PosOK (promoteState st y z) := by
+theorem transfer_PosOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hpos : PosOK st) : PosOK (transferPromoteState st y z) := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   obtain ⟨k, hk1, hkx, hk2⟩ := kids_promote st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩
   have hlen := length_eraseIdx_lt (by rw [kids_length]; exact hk1)
@@ -572,9 +574,9 @@ theorem promote_PosOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK 
     rcases Nat.lt_or_ge j k with a | a
     · rw [if_pos a]; omega
     · rw [if_neg (show ¬((j:ℕ) < k) from by omega)]; omega
-  have hldegy : ldeg (promoteState st y z) z = st.deg z := by
+  have hldegy : ldeg (transferPromoteState st y z) z = st.deg z := by
     unfold ldeg
-    rw [promoteState_deg st y z z, if_pos rfl, promoteState_mrk_z]
+    rw [transferPromoteState_deg st y z z, if_pos rfl, transferPromoteState_mrk_z]
     omega
   intro q j hj
   by_cases hqy : q = z
@@ -603,10 +605,10 @@ theorem promote_PosOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK 
       · exfalso
         obtain ⟨hc0, hinj, ht2⟩ := (hrk z).resolve_left (by omega)
         exact hne j hj (hinj _ k hjd2 hk1 (hvx.trans hkx.symm))
-      · have hl : ldeg (promoteState st y z) ((st.rgt)^[if j < k then j else j + 1] (st.chd z))
+      · have hl : ldeg (transferPromoteState st y z) ((st.rgt)^[if j < k then j else j + 1] (st.chd z))
             = ldeg st ((st.rgt)^[if j < k then j else j + 1] (st.chd z)) := by
           unfold ldeg
-          rw [promoteState_deg st y z _, if_neg hvy, promoteState_mrk_ne st y z _ hvy hvx]
+          rw [transferPromoteState_deg st y z _, if_neg hvy, transferPromoteState_mrk_ne st y z _ hvy hvx]
         rw [hl]
         exact le_trans hjle hold
   · rw [kids_promote_unchanged st y z q hpar ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ hqy] at hj ⊢
@@ -621,19 +623,19 @@ theorem promote_PosOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK 
       rw [show ldeg st ((kids st q).getD j 0) = st.deg z from by
         rw [hvy]; unfold ldeg; omega] at hold
       exact hold
-    · have hl : ldeg (promoteState st y z) ((kids st q).getD j 0)
+    · have hl : ldeg (transferPromoteState st y z) ((kids st q).getD j 0)
           = ldeg st ((kids st q).getD j 0) := by
         unfold ldeg
-        rw [promoteState_deg st y z _, if_neg hvy, promoteState_mrk_ne st y z _ hvy hvx]
+        rw [transferPromoteState_deg st y z _, if_neg hvy, transferPromoteState_mrk_ne st y z _ hvy hvx]
       rw [hl]
       exact hpos q j hj
 
 /-- `SlotOK` survives the cut: `z`'s list only shrinks, every other list is untouched. -/
-theorem promote_SlotOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
-    (hpre : PromotePre st y z) (hslot : SlotOK st) : SlotOK (promoteState st y z) := by
+theorem transfer_SlotOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hslot : SlotOK st) : SlotOK (transferPromoteState st y z) := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   obtain ⟨k, hk1, hkx, hkeq⟩ := kids_promote st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩
-  have hn : (promoteState st y z).n = st.n := promoteState_n st y z
+  have hn : (transferPromoteState st y z).n = st.n := transferPromoteState_n st y z
   intro q hq v hv
   rw [hn] at hq ⊢
   by_cases hqy : q = z
@@ -646,23 +648,23 @@ theorem promote_SlotOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
 /-- `Acyc` survives the cut.  The splice's only `par` change is `par y := 0`; a chain that hits
 `y` is absorbed at NIL (`NILSelf`), one that misses `y` is an old chain, and either way a
 closure forces the node to be `0`. -/
-theorem promote_Acyc (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hns : NILSelf st)
-    (hac : Acyc st) : Acyc (promoteState st y z) := by
-  have f0 : (promoteState st y z).par 0 = 0 := by
+theorem transfer_Acyc (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hns : NILSelf st)
+    (hac : Acyc st) : Acyc (transferPromoteState st y z) := by
+  have f0 : (transferPromoteState st y z).par 0 = 0 := by
     by_cases h0x : (0:ℕ) = y
-    · rw [promoteState_par, if_pos h0x]
-    · rw [promoteState_par, if_neg h0x]
+    · rw [transferPromoteState_par, if_pos h0x]
+    · rw [transferPromoteState_par, if_neg h0x]
       exact hns
-  have fzero : ∀ k : ℕ, (promoteState st y z).par^[k] 0 = 0 := by
+  have fzero : ∀ k : ℕ, (transferPromoteState st y z).par^[k] 0 = 0 := by
     intro k
     induction k with
     | zero => rfl
     | succ k ih => rw [Function.iterate_succ_apply', ih, f0]
   intro v j hj heq
-  by_cases hhit : ∃ m, m < j ∧ (promoteState st y z).par^[m] v = y
+  by_cases hhit : ∃ m, m < j ∧ (transferPromoteState st y z).par^[m] v = y
   · obtain ⟨m, hmj, hmc⟩ := hhit
-    have hstep : (promoteState st y z).par^[m + 1] v = 0 := by
-      rw [Function.iterate_succ_apply', hmc, promoteState_par_y]
+    have hstep : (transferPromoteState st y z).par^[m + 1] v = 0 := by
+      rw [Function.iterate_succ_apply', hmc, transferPromoteState_par_y]
     by_cases hjm : j = m + 1
     · rw [hjm] at heq
       rw [hstep] at heq
@@ -671,7 +673,7 @@ theorem promote_Acyc (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hns :
       rw [show j = j - (m + 1) + (m + 1) from by omega, Function.iterate_add_apply, hstep,
         fzero] at heq
       exact heq.symm
-  · have hall : ∀ i, i ≤ j → (promoteState st y z).par^[i] v = (st.par)^[i] v := by
+  · have hall : ∀ i, i ≤ j → (transferPromoteState st y z).par^[i] v = (st.par)^[i] v := by
       intro i hi
       induction i with
       | zero => rfl
@@ -683,61 +685,61 @@ theorem promote_Acyc (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hns :
           rw [← ih hikj] at hc
           exact hhit ⟨k, hlt, hc⟩
         rw [Function.iterate_succ_apply', Function.iterate_succ_apply', ih hikj,
-          promoteState_par_ne st y z _ hkne]
+          transferPromoteState_par_ne st y z _ hkne]
     rw [hall j (le_refl j)] at heq
     exact hac v j hj heq
 
 /-- `NILRoots` survives the cut: the new root `y` has `par y = 0` by the splice, every old
 root keeps its `par`. -/
-theorem promote_NILRoots (st : HState) (y z : ℕ) (hnrs : NILRoots st) :
-    NILRoots (promoteState st y z) := by
+theorem transfer_NILRoots (st : HState) (y z : ℕ) (hnrs : NILRoots st) :
+    NILRoots (transferPromoteState st y z) := by
   intro r hr
-  rw [promoteState_roots, List.mem_cons] at hr
+  rw [transferPromoteState_roots, List.mem_cons] at hr
   rcases hr with hrx | hr
-  · rw [hrx, promoteState_par_y]
+  · rw [hrx, transferPromoteState_par_y]
   · by_cases hx2 : y = r
-    · rw [← hx2, promoteState_par_y]
-    · rw [promoteState_par_ne st y z r (fun hc => hx2 hc.symm)]
+    · rw [← hx2, transferPromoteState_par_y]
+    · rw [transferPromoteState_par_ne st y z r (fun hc => hx2 hc.symm)]
       exact hnrs r hr
 
 /-- `NILSelf` survives the cut: slot 0 is never the cut child written to. -/
-theorem promote_NILSelf (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hnc : NILNotChild st)
-    (hns : NILSelf st) : NILSelf (promoteState st y z) := by
+theorem transfer_NILSelf (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hnc : NILNotChild st)
+    (hns : NILSelf st) : NILSelf (transferPromoteState st y z) := by
   have hx0 : y ≠ 0 := fun hc => hnc z (hc ▸ hpre.1)
-  show (promoteState st y z).par 0 = 0
+  show (transferPromoteState st y z).par 0 = 0
   by_cases h0x : (0:ℕ) = y
-  · rw [promoteState_par, if_pos h0x]
-  · rw [promoteState_par, if_neg (show (0:ℕ) ≠ y from fun hc => hx0 hc.symm)]
+  · rw [transferPromoteState_par, if_pos h0x]
+  · rw [transferPromoteState_par, if_neg (show (0:ℕ) ≠ y from fun hc => hx0 hc.symm)]
     exact hns
 
 /-- `NILNotRoot` survives the cut: the new root is `y ≠ 0` (`NILNotChild`), and `0` was not an
 old root. -/
-theorem promote_NILNotRoot (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hnc : NILNotChild st)
-    (hnn : NILNotRoot st) : NILNotRoot (promoteState st y z) := by
+theorem transfer_NILNotRoot (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hnc : NILNotChild st)
+    (hnn : NILNotRoot st) : NILNotRoot (transferPromoteState st y z) := by
   have hx0 : y ≠ 0 := fun hc => hnc z (hc ▸ hpre.1)
   intro h
-  rw [promoteState_roots, List.mem_cons] at h
+  rw [transferPromoteState_roots, List.mem_cons] at h
   rcases h with h | h
   · exact hx0 h.symm
   · exact hnn h
 
 /-- `NILLeaf` survives the cut: `z ≠ 0` (a live node with children cannot be NIL), so slot 0's
 degree is untouched. -/
-theorem promote_NILLeaf (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hnl : NILLeaf st) :
-    NILLeaf (promoteState st y z) := by
+theorem transfer_NILLeaf (st : HState) (y z : ℕ) (hpre : PromotePre st y z) (hnl : NILLeaf st) :
+    NILLeaf (transferPromoteState st y z) := by
   have hy0 : z ≠ 0 := by
     intro hc
     rw [hc] at hpre
     have h1 : 0 < (kids st 0).length := List.length_pos_of_mem hpre.1
     have h2 : (kids st 0).length = 0 := by rw [kids_length, hnl]
     omega
-  show (promoteState st y z).deg 0 = 0
-  rw [promoteState_deg st y z 0, if_neg (show (0:ℕ) ≠ z from fun hc => hy0 hc.symm), hnl]
+  show (transferPromoteState st y z).deg 0 = 0
+  rw [transferPromoteState_deg st y z 0, if_neg (show (0:ℕ) ≠ z from fun hc => hy0 hc.symm), hnl]
 
 /-- `NILNotChild` survives the cut: `z`'s shrunk list is a sublist of the old one, every other
 list is untouched, and the cut child is not NIL anyway. -/
-theorem promote_NILNotChild (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
-    (hpre : PromotePre st y z) (hnc : NILNotChild st) : NILNotChild (promoteState st y z) := by
+theorem transfer_NILNotChild (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hnc : NILNotChild st) : NILNotChild (transferPromoteState st y z) := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   obtain ⟨k, hk1, hkx, hkeq⟩ := kids_promote st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩
   intro q hv
@@ -750,9 +752,9 @@ theorem promote_NILNotChild (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : 
 
 /-- `RootNotChild` survives the cut: the new root `y` sits on no list (`z`'s list lost it, no
 other list ever had it), and old roots are children only of NIL. -/
-theorem promote_RootNotChild (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+theorem transfer_RootNotChild (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
     (hpre : PromotePre st y z) (hnd : KidsNodup st z) (hnc : NILNotChild st) (hnl : NILLeaf st)
-    (hrnc : RootNotChild st) : RootNotChild (promoteState st y z) := by
+    (hrnc : RootNotChild st) : RootNotChild (transferPromoteState st y z) := by
   have hy0 : z ≠ 0 := by
     intro hc
     rw [hc] at hpre
@@ -762,7 +764,7 @@ theorem promote_RootNotChild (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar :
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   obtain ⟨k, hk1, hkx, hkeq⟩ := kids_promote st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩
   intro r hr q hq0 hv
-  rw [promoteState_roots, List.mem_cons] at hr
+  rw [transferPromoteState_roots, List.mem_cons] at hr
   rcases hr with hrx | hr
   · -- the new root `y`
     by_cases hqy : q = z
@@ -782,13 +784,13 @@ theorem promote_RootNotChild (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar :
 
 /-- `RootsLive` survives the cut: the new root `y` is live (`SlotOK` downwards from the live
 parent `z`), and old roots stay live. -/
-theorem promote_RootsLive (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : PromotePre st y z)
-    (hslot : SlotOK st) (hrl : RootsLive st) : RootsLive (promoteState st y z) := by
+theorem transfer_RootsLive (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : PromotePre st y z)
+    (hslot : SlotOK st) (hrl : RootsLive st) : RootsLive (transferPromoteState st y z) := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   have hxv : y < st.n := hslot z hyv y hx
-  have hn : (promoteState st y z).n = st.n := promoteState_n st y z
+  have hn : (transferPromoteState st y z).n = st.n := transferPromoteState_n st y z
   intro r hr
-  rw [promoteState_roots, List.mem_cons] at hr
+  rw [transferPromoteState_roots, List.mem_cons] at hr
   rcases hr with hrx | hr
   · rw [hrx, hn]
     exact hxv
@@ -799,8 +801,8 @@ theorem promote_RootsLive (st : HState) (y z : ℕ) (hrk : RingOK st) (hpre : Pr
 rewritten slots — `lft y`, `rgt y` — are children of `z`, and every visited node is a child of
 `q`).  For `z` itself the new ring is the old one with position `k` removed: it closes at
 period `deg z - 1`, is injective there, and its head's `lft` is its last position. -/
-theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
-    (hpre : PromotePre st y z) (hnl : NILLeaf st) : RingOK (promoteState st y z) := by
+theorem transfer_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+    (hpre : PromotePre st y z) (hnl : NILLeaf st) : RingOK (transferPromoteState st y z) := by
   obtain ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ := hpre
   have hd0 : 0 < st.deg z := by
     have h1 := kids_length st z
@@ -820,7 +822,7 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
   by_cases hqy : q = z
   · rw [hqy] at ⊢
     by_cases hd1 : st.deg z = 1
-    · rw [promoteState_deg st y z z, if_pos rfl, hd1]
+    · rw [transferPromoteState_deg st y z z, if_pos rfl, hd1]
       exact Or.inl (by omega)
     · have hd2 : 2 ≤ st.deg z := by omega
       obtain ⟨k, hk1, hk2⟩ := exists_pos_of_mem hx
@@ -829,25 +831,25 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
         intro h
         rw [← hk2, h, Function.iterate_zero_apply]
       have hchdx : st.chd z = y → k = 0 := (chdy_iff st y z hrk k ⟨hk1, hk2⟩).mp
-      have hchd : (promoteState st y z).chd z = if k = 0 then st.rgt y else st.chd z := by
-        rw [promoteState_chd_ne st y z z hd1, if_pos rfl]
+      have hchd : (transferPromoteState st y z).chd z = if k = 0 then st.rgt y else st.chd z := by
+        rw [transferPromoteState_chd_ne st y z z hd1, if_pos rfl]
         by_cases hkz : k = 0
         · rw [if_pos (hxchd hkz), if_pos hkz]
         · rw [if_neg (fun hc => hkz (hchdx hc)), if_neg hkz]
-      have hd1' : (promoteState st y z).deg z ≠ 0 := by
-        rw [promoteState_deg st y z z, if_pos rfl]; omega
+      have hd1' : (transferPromoteState st y z).deg z ≠ 0 := by
+        rw [transferPromoteState_deg st y z z, if_pos rfl]; omega
       have hw := walk_promote_pos st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ hd2 k ⟨hk1, hk2⟩
-      have hstep : ∀ v : ℕ, v ≠ st.lft y → (promoteState st y z).rgt v = st.rgt v :=
-        fun v hv => promoteState_rgt_ne st y z v hd1 hv
-      have hstepp : (promoteState st y z).rgt (st.lft y) = st.rgt y := promoteState_rgt_pred st y z hd1
+      have hstep : ∀ v : ℕ, v ≠ st.lft y → (transferPromoteState st y z).rgt v = st.rgt v :=
+        fun v hv => transferPromoteState_rgt_ne st y z v hd1 hv
+      have hstepp : (transferPromoteState st y z).rgt (st.lft y) = st.rgt y := transferPromoteState_rgt_pred st y z hd1
       have hrgtx : st.rgt y = (st.rgt)^[k + 1] (st.chd z) := by
         rw [Function.iterate_succ_apply', hk2]
       have hpp := pred_pos st y z hrk ⟨hx, hyv, hmy1, hmz0, hpred, hlftmem⟩ hd2 k ⟨hk1, hk2⟩
       -- the new walk's jump: at the predecessor, `rgt'` moves to the cut child's successor
       have hjump : k ≠ 0 →
-          (promoteState st y z).rgt^[k] (st.chd z) = (st.rgt)^[k + 1] (st.chd z) := by
+          (transferPromoteState st y z).rgt^[k] (st.chd z) = (st.rgt)^[k + 1] (st.chd z) := by
         intro hkz
-        have hpre_eq2 : (promoteState st y z).rgt^[k - 1] (st.chd z) = st.lft y := by
+        have hpre_eq2 : (transferPromoteState st y z).rgt^[k - 1] (st.chd z) = st.lft y := by
           have h1 := hw (k - 1) (by omega)
           rw [hchd, if_neg hkz] at h1
           rw [h1, if_pos (show (k:ℕ) - 1 < k from by omega), hpp, if_neg hkz]
@@ -855,15 +857,15 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
           hpre_eq2, hstepp, hrgtx,
           show (k:ℕ) + 1 = (k - 1) + 1 + 1 from by omega]
       -- the new ring closes at the new period `deg z - 1`
-      have hclos : (promoteState st y z).rgt^[(st.deg z - 1)] ((promoteState st y z).chd z)
-          = (promoteState st y z).chd z := by
+      have hclos : (transferPromoteState st y z).rgt^[(st.deg z - 1)] ((transferPromoteState st y z).chd z)
+          = (transferPromoteState st y z).chd z := by
         by_cases hkz : k = 0
         · -- k = 0: the new walk runs unchanged to the old tail, then jumps back to the new head
           have hxh : st.chd z = y := hxchd hkz
           have hrx1 : st.rgt y = (st.rgt)^[1] (st.chd z) := by
             rw [hrgtx, hkz, show (0:ℕ) + 1 = 1 from by omega]
-          have hstep1 : (promoteState st y z).rgt^[(st.deg z - 1 - 1)] (st.rgt y) = st.lft y := by
-            have hc2 : (promoteState st y z).rgt^[(st.deg z - 1 - 1)] (st.rgt y)
+          have hstep1 : (transferPromoteState st y z).rgt^[(st.deg z - 1 - 1)] (st.rgt y) = st.lft y := by
+            have hc2 : (transferPromoteState st y z).rgt^[(st.deg z - 1 - 1)] (st.rgt y)
                 = (st.rgt)^[(st.deg z - 1 - 1)] (st.rgt y) := by
               refine congr _ _ _ _ _ hstep (fun m hm hc => ?_)
               rw [hrx1, ← Function.iterate_add_apply] at hc
@@ -881,7 +883,7 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
             rw [hchd, if_neg (show ¬(k:ℕ) = 0 from by omega),
               show (st.deg z - 1) = (st.deg z - 1 - k) + k from by omega,
               Function.iterate_add_apply, hjump (by omega)]
-            have hc3 : (promoteState st y z).rgt^[(st.deg z - 1 - k)] ((st.rgt)^[k + 1] (st.chd z))
+            have hc3 : (transferPromoteState st y z).rgt^[(st.deg z - 1 - k)] ((st.rgt)^[k + 1] (st.chd z))
                 = (st.rgt)^[(st.deg z - 1 - k)] ((st.rgt)^[k + 1] (st.chd z)) := by
               refine congr _ _ _ _ _ hstep (fun m hm hc => ?_)
               rw [hpp, if_neg (show ¬(k:ℕ) = 0 from by omega),
@@ -894,7 +896,7 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
             exact hclose
           · -- k = deg z - 1: the walk reaches the old tail (the cut child) and jumps to the head
             have hkde : k = st.deg z - 1 := by omega
-            have hpre_eq2 : (promoteState st y z).rgt^[k - 1] (st.chd z) = st.lft y := by
+            have hpre_eq2 : (transferPromoteState st y z).rgt^[k - 1] (st.chd z) = st.lft y := by
               have h1 := hw (k - 1) (by omega)
               rw [hchd, if_neg (show ¬(k:ℕ) = 0 from by omega)] at h1
               rw [h1, if_pos (show (k:ℕ) - 1 < k from by omega), hpp,
@@ -903,14 +905,14 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
               show (st.deg z - 1) = (k - 1) + 1 from by omega,
               Function.iterate_succ_apply', hpre_eq2, hstepp, hrgtx,
               show (k:ℕ) + 1 = st.deg z from by omega, hclose]
-      have hclos' : (promoteState st y z).rgt^[(promoteState st y z).deg z]
-          ((promoteState st y z).chd z) = (promoteState st y z).chd z := by
-        rw [promoteState_deg st y z z, if_pos rfl]
+      have hclos' : (transferPromoteState st y z).rgt^[(transferPromoteState st y z).deg z]
+          ((transferPromoteState st y z).chd z) = (transferPromoteState st y z).chd z := by
+        rw [transferPromoteState_deg st y z z, if_pos rfl]
         exact hclos
       refine Or.inr ⟨hclos', ?_, ?_⟩
       -- injectivity of the new walk: the position map is strictly increasing
       · intro j j' hj hj' heq
-        rw [promoteState_deg st y z z, if_pos rfl] at hj hj'
+        rw [transferPromoteState_deg st y z z, if_pos rfl] at hj hj'
         rw [hw j hj, hw j' hj'] at heq
         have hfinj : ∀ a b : ℕ, a < st.deg z - 1 → b < st.deg z - 1 →
             (if a < k then a else a + 1) = (if b < k then b else b + 1) → a = b := by
@@ -933,10 +935,10 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
         exact hfinj j j' hj hj' hf
       -- `lft` of the new head is the last position of the new walk
       · have hwb : st.deg z - 1 - 1 < st.deg z - 1 := by omega
-        rw [promoteState_deg st y z z, if_pos rfl, hw (st.deg z - 1 - 1) hwb, hchd]
+        rw [transferPromoteState_deg st y z z, if_pos rfl, hw (st.deg z - 1 - 1) hwb, hchd]
         by_cases hkz : k = 0
         · -- k = 0: the new head is the cut child's successor; the splice set its `lft`
-          rw [if_pos hkz, promoteState_lft_succ st y z hd1,
+          rw [if_pos hkz, transferPromoteState_lft_succ st y z hd1,
             if_neg (show ¬((st.deg z - 1 - 1:ℕ) < k) from by omega),
             show (st.deg z - 1 - 1) + 1 = st.deg z - 1 from by omega,
             hpp, if_pos hkz]
@@ -951,7 +953,7 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
               have h6 : ¬((k:ℕ) + 1 = 0) := by simp
               exact absurd h5 h6
             rw [if_neg hkz, if_neg (show ¬((st.deg z - 1 - 1:ℕ) < k) from by omega),
-              promoteState_lft_ne st y z (st.chd z) hd1 hchd_ne, htail,
+              transferPromoteState_lft_ne st y z (st.chd z) hd1 hchd_ne, htail,
               show (st.deg z - 1 - 1) + 1 = st.deg z - 1 from by omega]
           · -- k = deg z - 1: the cut child was the tail; the new head is its successor
             have hkde : k = st.deg z - 1 := by omega
@@ -959,33 +961,33 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
               rw [hrgtx, hkde, show (st.deg z - 1) + 1 = st.deg z from by omega, hclose]
             rw [if_neg (show ¬(k:ℕ) = 0 from by omega),
               if_pos (show (st.deg z - 1 - 1:ℕ) < k from by omega), heq,
-              promoteState_lft_succ st y z hd1, hpp, if_neg (show ¬(k:ℕ) = 0 from by omega),
+              transferPromoteState_lft_succ st y z hd1, hpp, if_neg (show ¬(k:ℕ) = 0 from by omega),
               hkde, ← heq]
-  · by_cases hdq : (promoteState st y z).deg q = 0
+  · by_cases hdq : (transferPromoteState st y z).deg q = 0
     · exact Or.inl hdq
     · right
       have hdq' : st.deg q ≠ 0 := by
-        rw [promoteState_deg st y z q, if_neg hqy] at hdq; exact hdq
+        rw [transferPromoteState_deg st y z q, if_neg hqy] at hdq; exact hdq
       have hmem : ∀ j, j < st.deg q → (st.rgt)^[j] (st.chd q) ∈ kids st q := by
         intro j hj
         rw [kids]
         exact List.mem_ofFn.mpr ⟨⟨j, hj⟩, rfl⟩
       by_cases hdy1 : st.deg z = 1
       · -- the degree-1 splice does not touch `q`'s fields at all
-        have hchdq : (promoteState st y z).chd q = st.chd q := by
-          simp [promoteState, hdy1, hqy]
-        have hf : (promoteState st y z).rgt = st.rgt := by
-          funext v; exact promoteState_rgt_eq st y z v hdy1
-        have hff : (promoteState st y z).lft = st.lft := by
-          funext v; exact promoteState_lft_eq st y z v hdy1
+        have hchdq : (transferPromoteState st y z).chd q = st.chd q := by
+          simp [transferPromoteState, hdy1, hqy]
+        have hf : (transferPromoteState st y z).rgt = st.rgt := by
+          funext v; exact transferPromoteState_rgt_eq st y z v hdy1
+        have hff : (transferPromoteState st y z).lft = st.lft := by
+          funext v; exact transferPromoteState_lft_eq st y z v hdy1
         refine ⟨?_, ?_, ?_⟩
-        · rw [promoteState_deg st y z q, if_neg hqy, hchdq, hf]
+        · rw [transferPromoteState_deg st y z q, if_neg hqy, hchdq, hf]
           exact ((hrk q).resolve_left hdq').1
         · intro j j' hj hj' heq
-          rw [promoteState_deg st y z q, if_neg hqy] at hj hj'
+          rw [transferPromoteState_deg st y z q, if_neg hqy] at hj hj'
           rw [hchdq, hf] at heq
           exact ((hrk q).resolve_left hdq').2.1 j j' hj hj' heq
-        · rw [promoteState_deg st y z q, if_neg hqy, hchdq, hf, hff]
+        · rw [transferPromoteState_deg st y z q, if_neg hqy, hchdq, hf, hff]
           exact ((hrk q).resolve_left hdq').2.2
       · have hd2 : 2 ≤ st.deg z := by omega
         have hd1 : st.deg z ≠ 1 := by omega
@@ -1005,27 +1007,27 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
           · have hk1' : (k + 1 : ℕ) = st.deg z := by omega
             rw [hk1', hclose]
             exact hmemY 0 (by omega)
-        have hchdq : (promoteState st y z).chd q = st.chd q := by
-          rw [promoteState_chd_ne st y z q hd1, if_neg hqy]
+        have hchdq : (transferPromoteState st y z).chd q = st.chd q := by
+          rw [transferPromoteState_chd_ne st y z q hd1, if_neg hqy]
         have hvs : ∀ i, i < st.deg q →
-            (st.rgt)^[i] ((promoteState st y z).chd q) ≠ st.lft y := by
+            (st.rgt)^[i] ((transferPromoteState st y z).chd q) ≠ st.lft y := by
           intro i hi hc
           rw [hchdq] at hc
           have hm : (st.rgt)^[i] (st.chd q) ∈ kids st q := hmem i hi
           rw [hc] at hm
           exact hqy ((hpar q _ hm).symm.trans (hpar z _ hly))
         have hw2 : ∀ j, j < st.deg q →
-            (promoteState st y z).rgt^[j] ((promoteState st y z).chd q) = (st.rgt)^[j] (st.chd q) := by
+            (transferPromoteState st y z).rgt^[j] ((transferPromoteState st y z).chd q) = (st.rgt)^[j] (st.chd q) := by
           intro j hj
           rw [hchdq]
-          refine congr (promoteState st y z).rgt st.rgt (st.lft y) (st.chd q) j
-            (fun v hv => promoteState_rgt_ne st y z v hd1 hv) ?_
+          refine congr (transferPromoteState st y z).rgt st.rgt (st.lft y) (st.chd q) j
+            (fun v hv => transferPromoteState_rgt_ne st y z v hd1 hv) ?_
           intro i hi
           rw [← hchdq]
           exact hvs i (by omega)
         refine ⟨?_, ?_, ?_⟩
-        · have hdq1 : (promoteState st y z).deg q = (st.deg q - 1) + 1 := by
-            rw [promoteState_deg st y z q, if_neg hqy]
+        · have hdq1 : (transferPromoteState st y z).deg q = (st.deg q - 1) + 1 := by
+            rw [transferPromoteState_deg st y z q, if_neg hqy]
             omega
           rw [hdq1, Function.iterate_succ_apply', hw2 (st.deg q - 1) (by omega), hchdq]
           have hvne : (st.rgt)^[st.deg q - 1] (st.chd q) ≠ st.lft y := by
@@ -1035,7 +1037,7 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
           have hfin_eq : (st.rgt)^[st.deg q] (st.chd q)
               = (st.rgt)^[st.deg q - 1 + 1] (st.chd q) := by
             rw [show st.deg q - 1 + 1 = st.deg q from by omega]
-          rw [promoteState_rgt_ne st y z _ hd1 hvne]
+          rw [transferPromoteState_rgt_ne st y z _ hd1 hvne]
           have hfin : st.rgt ((st.rgt)^[st.deg q - 1] (st.chd q))
               = (st.rgt)^[st.deg q] (st.chd q) := by
             rw [hfin_eq]
@@ -1043,14 +1045,14 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
           rw [hfin]
           exact ((hrk q).resolve_left hdq').1
         · intro j j' hj hj' heq
-          rw [promoteState_deg st y z q, if_neg hqy] at hj hj'
+          rw [transferPromoteState_deg st y z q, if_neg hqy] at hj hj'
           rw [hw2 j hj, hw2 j' hj'] at heq
           obtain ⟨hc2, hij2, ht3⟩ := (hrk q).resolve_left hdq'
           exact hij2 j j' hj hj' heq
-        · rw [promoteState_deg st y z q, if_neg hqy]
+        · rw [transferPromoteState_deg st y z q, if_neg hqy]
           rw [hw2 (st.deg q - 1) (by omega)]
           -- `chd q ≠ rgt y` (their parents differ), so `lft` is untouched at the new head
-          have hchdq' : (promoteState st y z).chd q ≠ st.rgt y := by
+          have hchdq' : (transferPromoteState st y z).chd q ≠ st.rgt y := by
             intro hc
             have h0m : st.chd q ∈ kids st q := by
               have hmz0' := hmem 0 (by have := kids_length st q; omega)
@@ -1059,7 +1061,7 @@ theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK
             have hp2 : st.par (st.rgt y) = z := hpar z _ hrgxy
             rw [← hchdq, hc] at hp1
             exact hqy (hp1.symm.trans hp2)
-          rw [promoteState_lft_ne st y z _ hd1 hchdq', hchdq]
+          rw [transferPromoteState_lft_ne st y z _ hd1 hchdq', hchdq]
           exact (hrk q).resolve_left hdq' |>.2.2
 
 /-! ## The promote-output witness -/
@@ -1078,7 +1080,7 @@ def promotePreSt : HState where
 
 /-- The promote output: the marked child `2` is cut off slot `1` and re-rooted, its mark
 clears, and slot `1` is marked. -/
-def promoted : HState := promoteState promotePreSt 2 1
+def promoted : HState := transferPromoteState promotePreSt 2 1
 
 /-- The witness pre-state really is a legal promote pre-state. -/
 theorem promotePreSt_ok : PromotePre promotePreSt 2 1 := by
@@ -1094,28 +1096,28 @@ theorem promotePreSt_ok : PromotePre promotePreSt 2 1 := by
 
 @[simp] theorem promoted_par (v : ℕ) : promoted.par v = if v = 3 then 2 else 0 := by
   by_cases h1 : v = 1 <;> by_cases h2 : v = 2 <;> by_cases h3 : v = 3 <;>
-    simp [promoted, promoteState, promotePreSt, h1, h2, h3]
+    simp [promoted, transferPromoteState, promotePreSt, h1, h2, h3]
 @[simp] theorem promoted_mrk (v : ℕ) : promoted.mrk v = if v = 1 then 1 else 0 := by
-  by_cases h1 : v = 1 <;> by_cases h2 : v = 2 <;> simp [promoted, promoteState, promotePreSt, h1, h2]
+  by_cases h1 : v = 1 <;> by_cases h2 : v = 2 <;> simp [promoted, transferPromoteState, promotePreSt, h1, h2]
 @[simp] theorem promoted_deg (v : ℕ) : promoted.deg v = if v = 2 then 1 else 0 := by
-  by_cases h1 : v = 1 <;> by_cases h2 : v = 2 <;> simp [promoted, promoteState, promotePreSt, h1, h2]
+  by_cases h1 : v = 1 <;> by_cases h2 : v = 2 <;> simp [promoted, transferPromoteState, promotePreSt, h1, h2]
 @[simp] theorem promoted_chd (v : ℕ) : promoted.chd v = if v = 2 then 3 else 0 := by
-  by_cases h1 : v = 1 <;> by_cases h2 : v = 2 <;> simp [promoted, promoteState, promotePreSt, h1, h2]
+  by_cases h1 : v = 1 <;> by_cases h2 : v = 2 <;> simp [promoted, transferPromoteState, promotePreSt, h1, h2]
 @[simp] theorem promoted_rgt (v : ℕ) :
     promoted.rgt v = if v = 2 then 2 else if v = 3 then 3 else 0 := by
-  by_cases h2 : v = 2 <;> by_cases h3 : v = 3 <;> simp [promoted, promoteState, promotePreSt, h2, h3]
+  by_cases h2 : v = 2 <;> by_cases h3 : v = 3 <;> simp [promoted, transferPromoteState, promotePreSt, h2, h3]
 @[simp] theorem promoted_lft (v : ℕ) :
     promoted.lft v = if v = 2 then 2 else if v = 3 then 3 else 0 := by
-  by_cases h2 : v = 2 <;> by_cases h3 : v = 3 <;> simp [promoted, promoteState, promotePreSt, h2, h3]
+  by_cases h2 : v = 2 <;> by_cases h3 : v = 3 <;> simp [promoted, transferPromoteState, promotePreSt, h2, h3]
 @[simp] theorem promoted_roots : promoted.roots = [2, 1] := by
-  simp [promoted, promoteState, promotePreSt]
+  simp [promoted, transferPromoteState, promotePreSt]
 @[simp] theorem promoted_n : promoted.n = 4 := rfl
 @[simp] theorem kids_promoted (q : ℕ) : kids promoted q = if q = 2 then [3] else [] := by
   unfold kids
   by_cases hq : q = 2
   · subst hq
-    simp [promoted, promoteState, promotePreSt]
-  · by_cases hq1 : q = 1 <;> simp [promoted, promoteState, promotePreSt, hq, hq1]
+    simp [promoted, transferPromoteState, promotePreSt]
+  · by_cases hq1 : q = 1 <;> simp [promoted, transferPromoteState, promotePreSt, hq, hq1]
 
 theorem promoted_ParOK : ParOK promoted := by
   intro q v hv
@@ -1196,7 +1198,7 @@ theorem promoted_RootsLive : RootsLive promoted := by
 
 theorem promoted_NILNotRoot : NILNotRoot promoted := by
   intro h
-  simp [promoted, promoteState, promotePreSt] at h
+  simp [promoted, transferPromoteState, promotePreSt] at h
 
 theorem promoted_NILLeaf : NILLeaf promoted := rfl
 
@@ -1283,18 +1285,23 @@ theorem promoted_capstone : promoted.deg 2 ≤ FibHeapAccounting.rankCap promote
     promoted_KidsNodup promoted_Acyc promoted_NILSelf promoted_NILLeaf promoted_NILNotChild
     promoted_MarkOK promoted_PosOK (by simp) (by simp) hsup
 
-/-! ## The clearing variant: CLRS mark writes (Route A's anchors)
+/-! ## The canonical splice: CLRS clearing mark writes (Route A's anchors)
 
-The transfer `promoteState` banks-or-moves one mark (`y → 0`, `z → 1`).
-`clearPromoteState` is the same splice with the CLRS clearing writes: BOTH
+`transferPromoteState` banks-or-moves one mark (`y → 0`, `z → 1`).
+`promoteState` is the same splice with the CLRS clearing writes: BOTH
 `y` and `z` are cleared (`y → 0`, `z → 0`).  On an intermediate cell (both
 marked) that consumes two marks; on the terminal cell (only `y` marked) it
 consumes one and the stop's `markState` re-banks — the `CascadeMarks`
-ledger's `k` clears plus one fresh mark.  It is a separate constructor by
-design: the transfer suite stays green while the clearing surface re-runs;
-the def-swap into `promoteState` is the surface's last step. -/
+ledger's `k` clears plus one fresh mark.
 
-def clearPromoteState (st : HState) (y z : ℕ) : HState :=
+**Canonical (the def-swap, landed).**  The clearing writes ARE the
+machine's `promoteState`; the clearing preservation suite carries the
+`promote_*` names; the transfer sibling `transferPromoteState` and its
+`transfer_*` suite stay green as the stated CLRS/transfer seam's other
+side (the transfer aggregates `DkRun`, `cascadeRun`, `decreaseKeyPath`
+run on it; the row's boundary note in `FibHeapRow` states the seam). -/
+
+def promoteState (st : HState) (y z : ℕ) : HState :=
   if st.deg z = 1 then
     { st with
       par := (fun i => if i = y then 0 else st.par i)
@@ -1312,27 +1319,27 @@ def clearPromoteState (st : HState) (y z : ℕ) : HState :=
       lft := (fun i => if i = st.rgt y then st.lft y else st.lft i)
       roots := y :: st.roots }
 
-theorem clearPromoteState_mrk (st : HState) (y z q : ℕ) :
-    (clearPromoteState st y z).mrk q =
+theorem promoteState_mrk (st : HState) (y z q : ℕ) :
+    (promoteState st y z).mrk q =
       if q = y then 0 else if q = z then 0 else st.mrk q := by
-  unfold clearPromoteState
+  unfold promoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h]
   · rw [if_neg h]
 
-theorem clearPromoteState_n (st : HState) (y z : ℕ) :
-    (clearPromoteState st y z).n = st.n := by
-  unfold clearPromoteState
+theorem promoteState_n (st : HState) (y z : ℕ) :
+    (promoteState st y z).n = st.n := by
+  unfold promoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h]
   · rw [if_neg h]
 
 /-- **Anchor one.**  `MarkOK` survives the clearing writes trivially: they
 only write zeros. -/
-theorem promoteClear_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
-    MarkOK (clearPromoteState st y z) := by
+theorem promote_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
+    MarkOK (promoteState st y z) := by
   intro q
-  rw [clearPromoteState_mrk]
+  rw [promoteState_mrk]
   by_cases hqy : q = y
   · simp [hqy]
   by_cases hqz : q = z
@@ -1342,172 +1349,172 @@ theorem promoteClear_MarkOK (st : HState) (y z : ℕ) (hm : MarkOK st) :
 
 /-! ## The clearing suite: the splice is field-identical, only `mrk` differs
 
-`clearPromoteState` and `promoteState` write the same `par`/`deg`/`chd`/
+`promoteState` and `transferPromoteState` write the same `par`/`deg`/`chd`/
 `rgt`/`lft`/`roots`/`n` — they differ only in `mrk` (`z` cleared vs banked).
 Every structural projection is therefore `rfl`-congruent, and the whole
 transfer preservation suite transfers through per-field congruences instead
 of replaying the proofs. -/
 
-theorem clearPromoteState_deg' (st : HState) (y z q : ℕ) :
-    (clearPromoteState st y z).deg q = (promoteState st y z).deg q := by
-  unfold clearPromoteState promoteState
+theorem promoteState_deg' (st : HState) (y z q : ℕ) :
+    (promoteState st y z).deg q = (transferPromoteState st y z).deg q := by
+  unfold promoteState transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h, if_pos h]
   · rw [if_neg h, if_neg h]
 
-theorem clearPromoteState_chd' (st : HState) (y z q : ℕ) :
-    (clearPromoteState st y z).chd q = (promoteState st y z).chd q := by
-  unfold clearPromoteState promoteState
+theorem promoteState_chd' (st : HState) (y z q : ℕ) :
+    (promoteState st y z).chd q = (transferPromoteState st y z).chd q := by
+  unfold promoteState transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h, if_pos h]
   · rw [if_neg h, if_neg h]
 
-theorem clearPromoteState_par' (st : HState) (y z q : ℕ) :
-    (clearPromoteState st y z).par q = (promoteState st y z).par q := by
-  unfold clearPromoteState promoteState
+theorem promoteState_par' (st : HState) (y z q : ℕ) :
+    (promoteState st y z).par q = (transferPromoteState st y z).par q := by
+  unfold promoteState transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h, if_pos h]
   · rw [if_neg h, if_neg h]
 
-theorem clearPromoteState_rgt' (st : HState) (y z q : ℕ) :
-    (clearPromoteState st y z).rgt q = (promoteState st y z).rgt q := by
-  unfold clearPromoteState promoteState
+theorem promoteState_rgt' (st : HState) (y z q : ℕ) :
+    (promoteState st y z).rgt q = (transferPromoteState st y z).rgt q := by
+  unfold promoteState transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h, if_pos h]
   · rw [if_neg h, if_neg h]
 
-theorem clearPromoteState_lft' (st : HState) (y z q : ℕ) :
-    (clearPromoteState st y z).lft q = (promoteState st y z).lft q := by
-  unfold clearPromoteState promoteState
+theorem promoteState_lft' (st : HState) (y z q : ℕ) :
+    (promoteState st y z).lft q = (transferPromoteState st y z).lft q := by
+  unfold promoteState transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h, if_pos h]
   · rw [if_neg h, if_neg h]
 
-theorem clearPromoteState_roots' (st : HState) (y z : ℕ) :
-    (clearPromoteState st y z).roots = (promoteState st y z).roots := by
-  unfold clearPromoteState promoteState
+theorem promoteState_roots' (st : HState) (y z : ℕ) :
+    (promoteState st y z).roots = (transferPromoteState st y z).roots := by
+  unfold promoteState transferPromoteState
   by_cases h : st.deg z = 1
   · rw [if_pos h, if_pos h]
   · rw [if_neg h, if_neg h]
 
 /-- Bare-projection congruences (for rewriting under `iterate`/`ofFn`). -/
-theorem clearPromoteState_deg (st : HState) (y z : ℕ) :
-    (clearPromoteState st y z).deg = (promoteState st y z).deg :=
-  funext fun q => clearPromoteState_deg' st y z q
+theorem promoteState_deg (st : HState) (y z : ℕ) :
+    (promoteState st y z).deg = (transferPromoteState st y z).deg :=
+  funext fun q => promoteState_deg' st y z q
 
-theorem clearPromoteState_rgt (st : HState) (y z : ℕ) :
-    (clearPromoteState st y z).rgt = (promoteState st y z).rgt :=
-  funext fun q => clearPromoteState_rgt' st y z q
+theorem promoteState_rgt (st : HState) (y z : ℕ) :
+    (promoteState st y z).rgt = (transferPromoteState st y z).rgt :=
+  funext fun q => promoteState_rgt' st y z q
 
-theorem clearPromoteState_chd (st : HState) (y z : ℕ) :
-    (clearPromoteState st y z).chd = (promoteState st y z).chd :=
-  funext fun q => clearPromoteState_chd' st y z q
+theorem promoteState_chd (st : HState) (y z : ℕ) :
+    (promoteState st y z).chd = (transferPromoteState st y z).chd :=
+  funext fun q => promoteState_chd' st y z q
 
-theorem clearPromoteState_par (st : HState) (y z : ℕ) :
-    (clearPromoteState st y z).par = (promoteState st y z).par :=
-  funext fun q => clearPromoteState_par' st y z q
+theorem promoteState_par (st : HState) (y z : ℕ) :
+    (promoteState st y z).par = (transferPromoteState st y z).par :=
+  funext fun q => promoteState_par' st y z q
 
-theorem clearPromoteState_lft (st : HState) (y z : ℕ) :
-    (clearPromoteState st y z).lft = (promoteState st y z).lft :=
-  funext fun q => clearPromoteState_lft' st y z q
+theorem promoteState_lft (st : HState) (y z : ℕ) :
+    (promoteState st y z).lft = (transferPromoteState st y z).lft :=
+  funext fun q => promoteState_lft' st y z q
 
 /-- The child lists agree, so every `kids`-reading property transfers. -/
 theorem kids_congr_clear (st : HState) (y z q : ℕ) :
-    kids (clearPromoteState st y z) q = kids (promoteState st y z) q := by
-  simp only [kids, clearPromoteState_rgt, clearPromoteState_chd,
-    clearPromoteState_deg]
+    kids (promoteState st y z) q = kids (transferPromoteState st y z) q := by
+  simp only [kids, promoteState_rgt, promoteState_chd,
+    promoteState_deg]
   rw [List.ofFn_inj.mpr (funext fun i => by rw [Fin.val_cast])]
 
 /-- **Anchor suite: `ParOK`.** -/
-theorem promoteClear_ParOK (st : HState) (y z : ℕ) (hpar : ParOK st) (hrk : RingOK st)
+theorem promote_ParOK (st : HState) (y z : ℕ) (hpar : ParOK st) (hrk : RingOK st)
     (hpre : PromotePre st y z) (hnd : KidsNodup st z) :
-    ParOK (clearPromoteState st y z) := by
-  have h := promote_ParOK st y z hpar hrk hpre hnd
+    ParOK (promoteState st y z) := by
+  have h := transfer_ParOK st y z hpar hrk hpre hnd
   intro p v hv
   rw [kids_congr_clear] at hv
-  rw [clearPromoteState_par']
+  rw [promoteState_par']
   exact h p v hv
 
 /-- **Anchor suite: `SlotOK`.** -/
-theorem promoteClear_SlotOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+theorem promote_SlotOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
     (hpre : PromotePre st y z) (hslot : SlotOK st) :
-    SlotOK (clearPromoteState st y z) := by
-  have h := promote_SlotOK st y z hrk hpar hpre hslot
+    SlotOK (promoteState st y z) := by
+  have h := transfer_SlotOK st y z hrk hpar hpre hslot
   intro q hq v hv
-  have hqn : q < st.n := by rw [clearPromoteState_n] at hq; exact hq
+  have hqn : q < st.n := by rw [promoteState_n] at hq; exact hq
   rw [kids_congr_clear] at hv
-  rw [clearPromoteState_n]
-  have hconcl := h q (by rw [promoteState_n]; exact hqn) v hv
-  rw [promoteState_n] at hconcl
+  rw [promoteState_n]
+  have hconcl := h q (by rw [transferPromoteState_n]; exact hqn) v hv
+  rw [transferPromoteState_n] at hconcl
   exact hconcl
 
 /-- **Anchor suite: `KidsNodup`.** -/
-theorem promoteClear_KidsNodup (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+theorem promote_KidsNodup (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
     (hpre : PromotePre st y z) (hnd : ∀ q, KidsNodup st q) :
-    ∀ q, KidsNodup (clearPromoteState st y z) q := by
-  have h := promote_KidsNodup st y z hrk hpar hpre hnd
+    ∀ q, KidsNodup (promoteState st y z) q := by
+  have h := transfer_KidsNodup st y z hrk hpar hpre hnd
   intro q
-  show ∀ j k : ℕ, j < k → k < (clearPromoteState st y z).deg q →
-    (kids (clearPromoteState st y z) q).getD j 0
-      ≠ (kids (clearPromoteState st y z) q).getD k 0
-  rw [clearPromoteState_deg', kids_congr_clear]
+  show ∀ j k : ℕ, j < k → k < (promoteState st y z).deg q →
+    (kids (promoteState st y z) q).getD j 0
+      ≠ (kids (promoteState st y z) q).getD k 0
+  rw [promoteState_deg', kids_congr_clear]
   exact h q
 
 /-- **Anchor suite: `ParSlot`.** -/
-theorem promoteClear_ParSlot (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
-    (hps : ParSlot st) : ParSlot (clearPromoteState st y z) := by
-  have h := promote_ParSlot st y z hpre hps
+theorem promote_ParSlot (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
+    (hps : ParSlot st) : ParSlot (promoteState st y z) := by
+  have h := transfer_ParSlot st y z hpre hps
   intro q hq
-  have hqn : q < st.n := by rw [clearPromoteState_n] at hq; exact hq
-  rw [clearPromoteState_n, clearPromoteState_par']
-  have hconcl := h q (by rw [promoteState_n]; exact hqn)
-  rw [promoteState_n] at hconcl
+  have hqn : q < st.n := by rw [promoteState_n] at hq; exact hq
+  rw [promoteState_n, promoteState_par']
+  have hconcl := h q (by rw [transferPromoteState_n]; exact hqn)
+  rw [transferPromoteState_n] at hconcl
   exact hconcl
 
 /-- **Anchor suite: `NILLeaf`.** -/
-theorem promoteClear_NILLeaf (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
-    (hnl : NILLeaf st) : NILLeaf (clearPromoteState st y z) := by
-  show (clearPromoteState st y z).deg 0 = 0
-  rw [clearPromoteState_deg', promoteState_deg]
+theorem promote_NILLeaf (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
+    (hnl : NILLeaf st) : NILLeaf (promoteState st y z) := by
+  show (promoteState st y z).deg 0 = 0
+  rw [promoteState_deg', transferPromoteState_deg]
   by_cases hz0 : 0 = z
   · rw [if_pos hz0, hnl]
   · rw [if_neg hz0]; exact hnl
 
 /-- **Anchor suite: `NILNotChild`.** -/
-theorem promoteClear_NILNotChild (st : HState) (y z : ℕ) (hrk : RingOK st)
+theorem promote_NILNotChild (st : HState) (y z : ℕ) (hrk : RingOK st)
     (hpar : ParOK st) (hpre : PromotePre st y z) (hnc : NILNotChild st) :
-    NILNotChild (clearPromoteState st y z) := by
-  have h := promote_NILNotChild st y z hrk hpar hpre hnc
+    NILNotChild (promoteState st y z) := by
+  have h := transfer_NILNotChild st y z hrk hpar hpre hnc
   intro q hv
   rw [kids_congr_clear] at hv
   exact h q hv
 
 /-- **Anchor suite: `RingOK`.** -/
-theorem promoteClear_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
+theorem promote_RingOK (st : HState) (y z : ℕ) (hrk : RingOK st) (hpar : ParOK st)
     (hpre : PromotePre st y z) (hnl : NILLeaf st) :
-    RingOK (clearPromoteState st y z) := by
-  have h := promote_RingOK st y z hrk hpar hpre hnl
-  show ∀ p, (clearPromoteState st y z).deg p = 0 ∨
-    (((clearPromoteState st y z).rgt)^[((clearPromoteState st y z).deg p)]
-        ((clearPromoteState st y z).chd p) = (clearPromoteState st y z).chd p ∧
-      (∀ j k, j < (clearPromoteState st y z).deg p → k < (clearPromoteState st y z).deg p →
-        ((clearPromoteState st y z).rgt)^[j] ((clearPromoteState st y z).chd p)
-          = ((clearPromoteState st y z).rgt)^[k] ((clearPromoteState st y z).chd p)
+    RingOK (promoteState st y z) := by
+  have h := transfer_RingOK st y z hrk hpar hpre hnl
+  show ∀ p, (promoteState st y z).deg p = 0 ∨
+    (((promoteState st y z).rgt)^[((promoteState st y z).deg p)]
+        ((promoteState st y z).chd p) = (promoteState st y z).chd p ∧
+      (∀ j k, j < (promoteState st y z).deg p → k < (promoteState st y z).deg p →
+        ((promoteState st y z).rgt)^[j] ((promoteState st y z).chd p)
+          = ((promoteState st y z).rgt)^[k] ((promoteState st y z).chd p)
             → j = k) ∧
-      (clearPromoteState st y z).lft ((clearPromoteState st y z).chd p)
-        = ((clearPromoteState st y z).rgt)^[((clearPromoteState st y z).deg p - 1)]
-            ((clearPromoteState st y z).chd p))
+      (promoteState st y z).lft ((promoteState st y z).chd p)
+        = ((promoteState st y z).rgt)^[((promoteState st y z).deg p - 1)]
+            ((promoteState st y z).chd p))
   intro p
-  rw [clearPromoteState_deg', clearPromoteState_rgt, clearPromoteState_chd',
-    clearPromoteState_lft']
+  rw [promoteState_deg', promoteState_rgt, promoteState_chd',
+    promoteState_lft']
   exact h p
 
 /-- **Anchor suite: `Acyc`.** -/
-theorem promoteClear_Acyc (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
-    (hns : NILSelf st) (hac : Acyc st) : Acyc (clearPromoteState st y z) := by
-  have h := promote_Acyc st y z hpre hns hac
+theorem promote_Acyc (st : HState) (y z : ℕ) (hpre : PromotePre st y z)
+    (hns : NILSelf st) (hac : Acyc st) : Acyc (promoteState st y z) := by
+  have h := transfer_Acyc st y z hpre hns hac
   intro x j hj hiter
-  rw [clearPromoteState_par] at hiter
+  rw [promoteState_par] at hiter
   exact h x j hj hiter
 
 end Submission.FibHeapPromote
