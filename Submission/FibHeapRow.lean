@@ -4,16 +4,19 @@ THE ROW: the decrease-key and extract-min aggregates, assembled.
 **Fredman–Tarjan 1987.  Bound theirs; formalization ours.**
 
 Accounting boundary (stated, not papered — the FibHeapMeasure /
-FibHeapAmortized headers' language carried to the row): this lane's
-cascade is the *transfer* mark discipline, so the decrease-key per-op
-bound is len-linear and the row's cap is the Size-range `B` (≤ `st.n`
-once the `LiveDistinct (treeOf …)` bridge lands — the `ids` fold's
-child-subtree disjointness is the one unproven link).  The CLRS
-clear-per-step discipline would give the *c-independent* corollary
-(`Φ' + c ≤ Φ + 4`) and with it the true `n log ; n log` form; reaching
-it needs a clear-semantics cascade here or a transfer-semantics ledger
-in the accounting lane.  The `n log` form is therefore the cross-lane
-todo; the honest row below is the `st.n`-form.
+FibHeapAmortized headers' language carried to the row): the row's
+decrease-key half is the *clearing* discipline (`DkRunClear` — the
+CLRS-write cascade landed in the Measure lane), whose per-op bound is
+constant (`count * 5` potential; `count * (D0 + 6K + D1)` scaled — the
+honest-6K note in `DkRunClear.potential_scaled_ft`: the fresh-parent
+run re-banks a mark at every cut, so the unit carries the cut's rise).
+The transfer-discipline run (`DkRun`, `count * (st.n + 5)`) is kept
+alongside as the seam's other side.  The transfer lane's `CascadeMarks`
+ledger remains the accounting boundary between them.  The extract-min
+half runs at the rank-cap class (the splice + the consolidation walk
+both `rankCap st.n`-bounded — the recount below; the machine
+degree-strictness `deg_lt_of_kids` is the named seam, wound
+2125609385).
 -/
 import Submission.FibHeapAmortized
 import Submission.FibHeapMeasure
@@ -163,7 +166,117 @@ theorem row_sequential_rankCap {st : HState} (s : DkRun st.n st) (r : ℕ)
   simp only [machinePotential] at *
   omega
 
-/- Fredman–Tarjan 1987.  Bound theirs; formalization ours.  The CLRS /
+/- Fredman–Tarjan 1987.  Bound theirs; formalization ours.  The CLRS
 transfer seam above is the stated accounting boundary. -/
+
+/-! ## The recount: cascade walks are rankCap-bounded -/
+
+/-- **The recount.**  A `WalkUp` cascade over a state with the machine
+rank-cap bundle is rankCap-bounded: the walk climbs (degree-strict edges),
+so its length plus the start's degree fits under the cap — per-node
+`degree_le_rankCap_of_machine` (Support via `support_of_machine`; NIL slot
+0's degree is zero, `NILLeaf`).  `hmono` — the machine degree-strictness
+`deg_lt_of_kids` — is the named seam (wound 2125609385: PosOK's ldeg
+ordering lower-bounds child degrees by position and gives no
+parent-strictness; the strictness is the link-time discipline, a machine
+`InvOK` carry). -/
+theorem recount_len_le {st : HState} {y : ℕ} {chain : List (ℕ × ℕ)}
+    (hmono : ∀ a b : ℕ, a ∈ kids st b → st.deg a < st.deg b)
+    (hpar : ParOK st) (hslot : SlotOK st) (hps : ParSlot st) (hs : NILSelf st)
+    (hac : Acyc st) (hnl : NILLeaf st) (hm : MarkOK st) (hpos : PosOK st)
+    (hnd : ∀ q, KidsNodup st q)
+    (hW : WalkUp st y chain) (hy : y < st.n) :
+    chain.length + st.deg y ≤ FibHeapAccounting.rankCap st.n + 1 := by
+  have hcap : ∀ p, p < st.n → st.deg p ≤ FibHeapAccounting.rankCap st.n + 1 := by
+    intro p hpv
+    by_cases hp0 : p = 0
+    · subst hp0
+      have h0 : st.deg 0 = 0 := hnl
+      omega
+    · exact Nat.le_succ_of_le
+        (FibHeapAcyclic.degree_le_rankCap_of_machine st hpar hslot hps hs hac hnl hm
+          hpos hpv hp0 (support_of_machine st hpar hac hnl hnd hslot hpv))
+  revert hy
+  induction hW with
+  | nil y =>
+    intro hy
+    have := hcap y hy
+    simp only [List.length_nil]
+    omega
+  | @cons y z rest hk hrest ih =>
+    intro hy
+    have hpar' : st.par y = z := walkUp_par hpar hk
+    have hz : z < st.n := by rw [← hpar']; exact hps y hy
+    have hmono' : st.deg y + 1 ≤ st.deg z := Nat.succ_le_of_lt (hmono y z hk)
+    have hih := ih hz
+    simp only [List.length_cons]
+    omega
+
+/-- The recount, cap form: with a non-leaf start (a cascading-cut's cut node
+has a parent, so its degree is positive) the walk's length is at most the
+rank cap — the decrease-key half's log cap, `L := rankCap st.n`. -/
+theorem recount_len_le_rankCap {st : HState} {y : ℕ} {chain : List (ℕ × ℕ)}
+    (hmono : ∀ a b : ℕ, a ∈ kids st b → st.deg a < st.deg b)
+    (hpar : ParOK st) (hslot : SlotOK st) (hps : ParSlot st) (hs : NILSelf st)
+    (hac : Acyc st) (hnl : NILLeaf st) (hm : MarkOK st) (hpos : PosOK st)
+    (hnd : ∀ q, KidsNodup st q)
+    (hW : WalkUp st y chain) (hy : y < st.n) (hy0 : 0 < st.deg y) :
+    chain.length ≤ FibHeapAccounting.rankCap st.n := by
+  have h := recount_len_le hmono hpar hslot hps hs hac hnl hm hpos hnd hW hy
+  omega
+
+/-! ## The row: the `n log ; n log` form -/
+
+/-- **The row, clearing decrease-key half (scaled).**  The machine's FT
+per-op charge `D0 + 6K + D1` — the lift's fold-segment charge
+`D0 + 3K + D1` plus the cut's `+3K` rise — telescoped over the capped run
+(`DkRunClear.potential_scaled_ft`).  The honest-6K note is carried there. -/
+theorem row_decreaseKeyClear_scaled {K D0 D1 : ℕ} (hK : D1 ≤ K) {L : ℕ} {st : HState}
+    (s : DkRunClear L st) :
+    FibHeapAccounting.scaledPotential K s.last.roots.length (machineMarks s.last)
+      ≤ FibHeapAccounting.scaledPotential K st.roots.length (machineMarks st)
+        + s.count * (D0 + 6 * K + D1) :=
+  DkRunClear.potential_scaled_ft hK s
+
+/-- **The row: `n log ; n log`.**  `m = s.count` decrease-keys (the clearing
+discipline, cascade cap `rankCap st.n` — `L` instantiated at the recount's
+output) then one extract-min with its consolidation walk: the potential rise
+is `m · 5` — constant per op, the `n log` decrease-key half — plus the
+extract seam with BOTH walk terms at the rank cap: the splice
+(`(kids r).length`, the machine rank cap at the run's final state) and the
+consolidation walk (`hchain`, the recount's output shape — discharged by
+`recount_len_le_rankCap` over the extract-state bundle; the extract-state
+`PosOK` piece of that discharge is the named `extract_PosOK` follow-up).
+FT-1987: bound theirs, formalization ours.  The CLRS/transfer seam is the
+stated accounting boundary (the transfer run keeps its
+`count * (st.n + 5)` form; the honest 6K charge note lives in
+`DkRunClear.potential_scaled_ft`). -/
+theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) st)
+    (r : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ)
+    (hmc : MarkChain (extractState s.last r) (extractState s.last r).n chain)
+    (hpre : ExtractPre s.last r) (hrl : RootsLive s.last) (hnn : NILNotRoot s.last)
+    (hpar : ParOK s.last) (hslot : SlotOK s.last) (hps : ParSlot s.last)
+    (hs : NILSelf s.last) (hac : Acyc s.last) (hnl : NILLeaf s.last)
+    (hm : MarkOK s.last) (hpos : PosOK s.last) (hnd : ∀ q, KidsNodup s.last q)
+    (hchain : chain.length ≤ FibHeapAccounting.rankCap st.n) :
+    machinePotential (cascadeRun (extractState s.last r) chain stop)
+      ≤ machinePotential st + s.count * 5
+        + (2 * FibHeapAccounting.rankCap st.n + 2) := by
+  have hlastn : s.last.n = st.n := DkRunClear.last_n s
+  -- the decrease-key half
+  have h1 : machinePotential s.last ≤ machinePotential st + s.count * 5 :=
+    DkRunClear.potential_clrs s
+  -- the extract seam
+  have h2 := extractMin_pop_potential s.last r chain stop hmc
+  -- the splice at the cap (the s.last bundle, `s.last.n = st.n`)
+  have hrn : r < s.last.n := hrl r hpre
+  have hr0 : r ≠ 0 := fun hc => hnn (by rw [← hc]; exact hpre)
+  have hcap := FibHeapAcyclic.degree_le_rankCap_of_machine s.last hpar hslot hps hs hac
+    hnl hm hpos hrn hr0 (support_of_machine s.last hpar hac hnl hnd hslot hrn)
+  rw [hlastn] at hcap
+  have hkids : (kids s.last r).length ≤ FibHeapAccounting.rankCap st.n := by
+    rw [kids_length]; exact hcap
+  simp only [machinePotential] at *
+  omega
 
 end Submission.FibHeapRow

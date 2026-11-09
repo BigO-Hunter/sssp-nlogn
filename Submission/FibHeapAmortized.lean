@@ -259,4 +259,17 @@ theorem DkRunClear.potential_scaled_ft {L : ℕ} {st : HState} :
             + (DkRunClear.count rest + 1) * (D0 + 6 * K + D1) := by
           ring
 
+/-- The clearing run's final state keeps the live size: cut, clearing splice,
+and stop's mark all keep `n`. -/
+theorem DkRunClear.last_n {L : ℕ} {st : HState} : ∀ (s : DkRunClear L st), s.last.n = st.n := by
+  intro s
+  induction s with
+  | nil => rfl
+  | cons st x y chain stop hyn hy0 hm hcc hlen rest ih =>
+    simp only [DkRunClear.last] at ih ⊢
+    rw [ih]
+    have h : (decreaseKeyPathClear st x y chain stop).n = st.n := by
+      simp only [decreaseKeyPathClear, clearCascadeRun_n, cutState_n]
+    exact h
+
 end Submission.FibHeapAmortized
