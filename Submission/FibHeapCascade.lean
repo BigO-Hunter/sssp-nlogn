@@ -672,19 +672,28 @@ def casOut : HState := decreaseKeyPath casPreSt 1 2 [(2, 3), (3, 4)] 4
           · simp [casOut, decreaseKeyPath, cascadeRun, markState, cutState,
               promoteState, casPreSt, h1, h2, h3, h4]
 
+@[simp] theorem casOut_roots : casOut.roots = [3, 2, 1, 4] := by
+  simp only [casOut, decreaseKeyPath, cascadeRun, cutState, promoteState, markState,
+    casPreSt]
+  simp
+
+@[simp] theorem casOut_n : casOut.n = 6 := rfl
+
 @[simp] theorem kids_casOut (q : ℕ) : kids casOut q = if q = 1 then [5] else [] := by
   unfold kids casOut decreaseKeyPath cascadeRun cutState promoteState casPreSt
   by_cases h1 : q = 1
-  · subst h1; rfl
+  · subst h1; simp
   · by_cases h2 : q = 2
-    · subst h2; rfl
+    · subst h2; simp
     · by_cases h3 : q = 3
-      · subst h3; rfl
+      · subst h3; simp
       · by_cases h4 : q = 4
-        · subst h4; rfl
+        · subst h4; simp
         · by_cases h5 : q = 5
-          · subst h5; rfl
-          · rfl
+          · subst h5; simp
+          · simp
+
+
 
 /-! ### The pre-state satisfies the bundle -/
 
@@ -702,7 +711,7 @@ theorem cas_ParSlot : ParSlot casPreSt := by
 theorem cas_ParOK : ParOK casPreSt := by
   intro q v hv
   by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    simp [kids, casPreSt, hq1, hq2, hq3, hq4, hv] at hv ⊢
+    rw [hv] at hv; simp [kids, casPreSt, hq1, hq2, hq3, hq4] at hv ⊢
 
 theorem cas_KidsNodup : ∀ q, KidsNodup casPreSt q := by
   intro q j k hjk hk
@@ -712,7 +721,7 @@ theorem cas_KidsNodup : ∀ q, KidsNodup casPreSt q := by
 theorem cas_SlotOK : SlotOK casPreSt := by
   intro q hq v hv
   by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    simp [kids, casPreSt, hq1, hq2, hq3, hq4, hv] at hv ⊢
+    rw [hv] at hv; simp [kids, casPreSt, hq1, hq2, hq3, hq4] at hv ⊢
 
 theorem cas_PosOK : PosOK casPreSt := by
   intro q j hj
@@ -801,7 +810,7 @@ theorem cas_RootNotChild : RootNotChild casPreSt := by
   simp at hr
   subst hr
   by_cases hq1 : q = 1 <;> by_cases hq2 : q = 2 <;> by_cases hq3 : q = 3 <;> by_cases hq4 : q = 4 <;>
-    simp [kids, casPreSt, hq1, hq2, hq3, hq4, hv] at hv ⊢
+    rw [hv] at hv; simp [kids, casPreSt, hq1, hq2, hq3, hq4] at hv ⊢
 
 theorem cas_RootsLive : RootsLive casPreSt := by
   intro r hr
@@ -919,10 +928,10 @@ theorem casOut_Support : Support casOut (casOut.n + 1) 1 := by
   · have hshape : treeOf casOut (casOut.n + 1) 1
         = FibHeapForest.Tree.node 1
             [FibHeapForest.Child.mk (treeOf casOut 6 5) (ldeg casOut 5) (casOut.mrk 5)] := by
-      simp [treeOf, kids_casOut_one, kids_casOut_ne]
+      simp [treeOf, kids_casOut]
     rw [hshape, FibHeapForest.size_node, FibHeapForest.sizeSum]
     simp [FibHeapForest.Child.size, FibHeapForest.Child.tree, FibHeapForest.size_node,
-      FibHeapForest.sizeSum, treeOf, kids_casOut_one, kids_casOut_ne]
+      FibHeapForest.sizeSum, treeOf, kids_casOut]
   · intro z hz
     rw [Finset.mem_insert, Finset.mem_singleton] at hz
     rcases hz with rfl | rfl <;> simp
