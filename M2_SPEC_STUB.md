@@ -301,3 +301,28 @@ branch's `rfl` to `simp` (probe-verified defs tactic).
 Round-4 state committed; error lines in build r7 (m2a_r7.log): 694 (kids last-branch),
 716-731 (cas_ParOK cells), 736 (KidsNodup unfold), 746-756 (SlotOK cells),
 761-772 (cas_Acyc h0), plus the output-corollary cascade behind them.
+
+## WIP UPDATE #7 (round 5 module state committed; 28 errors — all witness-simp details)
+
+The rcases-rfl-per-slot shape IS applied to cas_ParOK/KidsNodup/SlotOK/NILNotChild/
+RootNotChild, cas_Acyc has the hpos5 orbit structure, kids_casOut is the rfl-tree.
+Remaining 28 errors (m2a_r8.log lines): 694 (kids_casOut all-false branch — the
+composite's ite chain needs the ne-hyps; fix: last branch `rfl` → `simp [h1, h2, h3,
+h4, h5, casPreSt]`), 714/721/726/731 (cas_ParOK cells — simp left the nested-ite goal
+unreduced with hv : v = c in context; fix: `rw [hv] at hv ⊢` FIRST then simp — the
+hv-first arg order lets simp consume hv before it rewrites the goal), 732 (ParOK
+else-cell), 736 (KidsNodup unfold kids), 746/751/756/761 (SlotOK cells — same
+rw-first fix), 762 (SlotOK else), 766 (RootNotChild False-cell), 793 (Acyc hpos5
+apply), 808 (Acyc x=5 branch h0 — the rcases branch-1 binding is out of scope in
+branch 2; use `hne j (by omega)` for j ≥ 1), 809/819 (Acyc hall cells — the
+projection-rewrite `rw [casPreSt.par, ...]` is INVALID (projection ≠ equation);
+replace with `simp [ih, casPreSt]`), 855/875 (RootNotChild/NILNotChild else-cells —
+same rw-first/hv fix), 908 (cas_chainOk refine_4 — False goal from the cut_NILSelf
+hns-slot: pass hns not the missing name), 925 (chain cut_ParOK needs KidsNodup
+casPreSt 2 slot-wise from the ∀-form).
+
+Wounds registered: 2125609325 (witness-oscillation on untracked modules), 2125609326
+(truncated-log false receipts).  b2-refine clean at d1afc71.  Next session: apply the
+above per-line fixes (each small and mechanical), green → banner+exit0+olean →
+`lake build Submission` receipt → fresh #print axioms → ONE atomic M2a landing commit
+onto b2-refine → push → ls-remote.  Then the consolidation program (extract-min).
