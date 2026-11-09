@@ -163,4 +163,100 @@ theorem DkRunClear.potential_clrs {L : ℕ} {st : HState} : ∀ (s : DkRunClear 
       _ = machinePotential st + (DkRunClear.count rest + 1) * 5 := by
             simp only [Nat.add_mul, Nat.one_mul]; omega
 
+/-- **The clearing run's scaled aggregate: the machine's FT per-op charge.**
+Each step is charged `D0 + 6K + D1`: a cascaded step via the machine-ledger
+lift `decrease_amortized_of_clearCascadeRun` (`c := chain.length`, the
+count-level mark ledger as `hmarks`) — whose fold-segment charge
+`D0 + 3K + D1` plus the cut's own `+3K` potential rise gives the full-op
+unit — and an empty-chain step via the stop's `+≤2` (`5K ≤` the charge).
+Telescoping over the run: the scaled potential of the final state exceeds
+the first state's by at most `count * (D0 + 6K + D1)`.  Residual named: the
+literal CLRS charge `D0 + 3K + D1` for the full op is not derivable in this
+model — the fresh-parent run banks a new mark at every cut and the terminal
+leaves it spent, so the amortized unit carries the cut's `3K` on top of the
+fold's `3K + D0 + D1`; reaching `3K` needs the old-mark cascade shape (where
+the cut banks nothing) or an explicit work-sum on the run.  The `n log`
+form's decrease-key half at the FT-1987 per-op bound class (bound theirs,
+formalization ours); the transfer seam remains the stated accounting
+boundary. -/
+theorem DkRunClear.potential_scaled_ft {L : ℕ} {st : HState} :
+    ∀ {K D0 D1 : ℕ} (hK : D1 ≤ K) (s : DkRunClear L st),
+    FibHeapAccounting.scaledPotential K s.last.roots.length (machineMarks s.last)
+      ≤ FibHeapAccounting.scaledPotential K st.roots.length (machineMarks st)
+        + DkRunClear.count s * (D0 + 6 * K + D1) := by
+  intro K D0 D1 hK s
+  induction s with
+  | nil => simp only [DkRunClear.last, DkRunClear.count]; omega
+  | cons st x y chain stop hyn hy0 hm hcc hlen rest ih =>
+    simp only [DkRunClear.last, DkRunClear.count] at ih ⊢
+    -- the cut's potential step: Φ(cut) = Φ(st) + 3, scaled + 3K
+    have hcutroots : (cutState st x y).roots.length = st.roots.length + 1 := by
+      rw [cutState_roots]; simp
+    have hcutmarks : machineMarks (cutState st x y) = machineMarks st + 1 :=
+      machineMarks_cutState st x y hyn hy0
+    have hcutscaled : FibHeapAccounting.scaledPotential K (cutState st x y).roots.length
+        (machineMarks (cutState st x y))
+        = FibHeapAccounting.scaledPotential K st.roots.length (machineMarks st) + 3 * K := by
+      simp only [FibHeapAccounting.scaledPotential, FibHeapAccounting.potential,
+        hcutroots, hcutmarks]
+      ring
+    -- the per-op segment: cut → fold output, charged once
+    have hperop : FibHeapAccounting.scaledPotential K
+        (decreaseKeyPathClear st x y chain stop).roots.length
+        (machineMarks (decreaseKeyPathClear st x y chain stop))
+        ≤ FibHeapAccounting.scaledPotential K st.roots.length (machineMarks st)
+          + (D0 + 6 * K + D1) := by
+      by_cases hc : 1 ≤ chain.length
+      · have hlift := decrease_amortized_of_clearCascadeRun (K := K) (D0 := D0) (D1 := D1)
+          (s := cutState st x y) (chain := chain) (stop := stop) hK hc rfl rfl rfl rfl
+          (cut_MarkOK st x y hm) (by rw [cutState_n]; exact hcc)
+        have hconv1 : (decreaseKeyPathClear st x y chain stop).roots.length
+            = (clearCascadeRun (cutState st x y) chain stop).roots.length := rfl
+        have hconv2 : machineMarks (decreaseKeyPathClear st x y chain stop)
+            = machineMarks (clearCascadeRun (cutState st x y) chain stop) := rfl
+        rw [hconv1, hconv2]
+        omega
+      · -- empty chain: the fold is the stop's mark only (+≤1 mark, +0 roots)
+        have hchain : chain = [] := by
+          cases chain with
+          | nil => rfl
+          | cons p l => exfalso; simp at hc
+        subst hchain
+        have hmark := machineMarks_markState_le (cutState st x y) stop
+        have hroots : (markState (cutState st x y) stop).roots.length
+            = (cutState st x y).roots.length := by rw [markState_roots]
+        have hle : machinePotential (markState (cutState st x y) stop)
+            ≤ machinePotential (cutState st x y) + 2 := by
+          simp only [machinePotential, hroots]
+          omega
+        have hdef : decreaseKeyPathClear st x y [] stop
+            = markState (cutState st x y) stop := rfl
+        have e1 : FibHeapAccounting.scaledPotential K
+              (markState (cutState st x y) stop).roots.length
+              (machineMarks (markState (cutState st x y) stop))
+            = K * machinePotential (markState (cutState st x y) stop) := rfl
+        have e2 : FibHeapAccounting.scaledPotential K (cutState st x y).roots.length
+              (machineMarks (cutState st x y))
+            = K * machinePotential (cutState st x y) := rfl
+        have hstep : FibHeapAccounting.scaledPotential K
+              (decreaseKeyPathClear st x y [] stop).roots.length
+              (machineMarks (decreaseKeyPathClear st x y [] stop))
+            ≤ FibHeapAccounting.scaledPotential K (cutState st x y).roots.length
+                (machineMarks (cutState st x y)) + 2 * K := by
+          rw [hdef, e1, e2]
+          exact le_trans (Nat.mul_le_mul_left K hle)
+            (by rw [Nat.mul_add]; omega)
+        omega
+    calc FibHeapAccounting.scaledPotential K rest.last.roots.length
+            (machineMarks rest.last)
+        ≤ FibHeapAccounting.scaledPotential K
+            (decreaseKeyPathClear st x y chain stop).roots.length
+            (machineMarks (decreaseKeyPathClear st x y chain stop))
+          + DkRunClear.count rest * (D0 + 6 * K + D1) := ih
+      _ ≤ FibHeapAccounting.scaledPotential K st.roots.length (machineMarks st)
+            + (D0 + 6 * K + D1) + DkRunClear.count rest * (D0 + 6 * K + D1) := by omega
+      _ = FibHeapAccounting.scaledPotential K st.roots.length (machineMarks st)
+            + (DkRunClear.count rest + 1) * (D0 + 6 * K + D1) := by
+          ring
+
 end Submission.FibHeapAmortized
