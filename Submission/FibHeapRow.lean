@@ -18,12 +18,15 @@ todo; the honest row below is the `st.n`-form.
 import Submission.FibHeapAmortized
 import Submission.FibHeapMeasure
 import Submission.FibHeapDepth
+import Submission.FibHeapCascade
+import Submission.FibHeapPop
 
 namespace Submission.FibHeapRow
 
 open Submission.FibHeapAmortized Submission.FibHeapMeasure Submission.FibHeapDepth
 open Submission.FibHeapExtractMin
 open Submission.FibHeapRefine
+open Submission.FibHeapCascade Submission.FibHeapPop
 
 /-- **The row, decrease-key half.**  A capped run of `m = s.count`
 decrease-keys raises the potential by at most `m · (L + 5)` — the
@@ -43,18 +46,32 @@ theorem row_extractMin_witness :
     machinePotential (extractState extractPreSt 3) = machinePotential extractPreSt + 1 :=
   extract_potential
 
-/- **The row's sequential composition — named, not yet claimed.**  The
-decrease-key half is fully general in its start state; the extract-min
-half is at witness level (`extractPreSt`).  Their sequential product —
-extract-mins over the *post-run* state — needs the general extract-min
-lemma (`machinePotential (extractState st r) ≤ machinePotential st + 1`
-for arbitrary live `st`, `r`), which is the named next step.  No total
-theorem is stated over mismatched states.  With the general lemma and
-the LiveDistinct bridge (`L ≤ st.n`-class) the row reads
-`m · (st.n + 5)`-form, and the CLRS cross-lane corollary upgrades it to
-the `n log` form.
+/- **The row's sequential total over matched states.**  Landed 2026-11-09:
+the decrease-key half runs at `L := st.n` (`DkRun st.n` — the per-step
+`chain.length ≤ L` witnesses are the walk bound's output,
+`FibHeapDepth.walkUp_len_le_n`'s class) and telescopes to
+`m · (st.n + 5)`; the extract-min half runs on the run's final state
+(matched by construction) and adds its own additive seam — the splice
+`(kids r).length` plus the consolidation walk `chain.length` plus two.
+The seam is left explicit: folding `(kids r).length` into `st.n`-class
+needs the rank-cap lane (`degree_le_rankCap_of_machine`), which is the
+stated accounting boundary.  The `ChainOk → WalkUp` lift that turns a
+cascade witness into the capped walk (cut/promote only remove edges:
+`kids_promote_unchanged` for `q ≠ z`, `kids_promote` +
+`List.eraseIdx_sublist` at the promoted parent) is the remaining cell. -/
+theorem row_sequential {st : HState} (s : DkRun st.n st) (r : ℕ)
+    (chain : List (ℕ × ℕ)) (stop : ℕ)
+    (hmc : MarkChain (extractState s.last r) (extractState s.last r).n chain) :
+    machinePotential (cascadeRun (extractState s.last r) chain stop)
+      ≤ machinePotential st + s.count * (st.n + 5)
+        + ((kids s.last r).length + chain.length + 2) := by
+  have h1 : machinePotential s.last ≤ machinePotential st + s.count * (st.n + 5) :=
+    DkRun.potential_cap s
+  have h2 := extractMin_pop_potential s.last r chain stop hmc
+  simp only [machinePotential] at *
+  omega
 
-Fredman–Tarjan 1987.  Bound theirs; formalization ours.  The CLRS /
+/- Fredman–Tarjan 1987.  Bound theirs; formalization ours.  The CLRS /
 transfer seam above is the stated accounting boundary. -/
 
 end Submission.FibHeapRow
