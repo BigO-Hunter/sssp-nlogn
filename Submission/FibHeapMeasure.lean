@@ -560,4 +560,29 @@ theorem extractedMinState_root_bound :
   simp only [FibHeapAccounting.rootCap]
   omega
 
+/-- **The clearing decrease-key path's potential: the CLRS per-op form.**
+The cut costs exactly `+3` (one fresh root, one banked mark); the clearing
+cascade's potential is c-independently bounded by the stop's `+2`
+(`clearCascadeRun_potential`).  Total: `Φ' ≤ Φ + 5` — independent of the
+cascade length, which is the `n log` per-op form (the transfer form's
+`+ chain.length` is gone).  Premises: the cut's slot/mark data and the
+clearing chain witness; `MarkOK` rides through `cut_MarkOK`. -/
+theorem decreaseKeyPathClear_potential (st : HState) (x y : ℕ)
+    (chain : List (ℕ × ℕ)) (stop : ℕ) (hyn : y < st.n) (hy0 : st.mrk y = 0)
+    (hm : MarkOK st) (hcc : ClearChain (cutState st x y) st.n chain) :
+    machinePotential (decreaseKeyPathClear st x y chain stop)
+      ≤ machinePotential st + 5 := by
+  have hcut : machinePotential (cutState st x y) = machinePotential st + 3 := by
+    have hroots : (cutState st x y).roots.length = st.roots.length + 1 := by
+      rw [cutState_roots]; simp
+    simp only [machinePotential, hroots, machineMarks_cutState st x y hyn hy0]
+    omega
+  have hm' : MarkOK (cutState st x y) := cut_MarkOK st x y hm
+  have hcc' : ClearChain (cutState st x y) (cutState st x y).n chain := by
+    rw [cutState_n]; exact hcc
+  have hpot := clearCascadeRun_potential stop chain (cutState st x y) hm' hcc'
+  simp only [decreaseKeyPathClear] at *
+  omega
+
+
 end Submission.FibHeapMeasure

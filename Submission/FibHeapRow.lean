@@ -38,6 +38,17 @@ theorem row_decreaseKey {L : ℕ} {st : HState} (s : DkRun L st) :
     machinePotential s.last ≤ machinePotential st + s.count * (L + 5) :=
   DkRun.potential_cap s
 
+/-- **The row, clearing decrease-key half.**  The per-op bound is CONSTANT
+(`+5`: the cut's `+3` plus the cascade's stop `+2`) — independent of the
+cascade lengths and the live size.  This is the `n log` form's decrease-key
+half: the transfer `DkRun`'s `count * (L + 5)` grows with the live size
+through `L`; the clearing `DkRunClear` does not.  The scaled
+`D0 + 3K + D1` form (via `decrease_amortized_clrs`'s ledger) needs the
+`FibHeapDynamic` `CascadeMarks` bridge re-point — the named tail item. -/
+theorem row_decreaseKeyClear {L : ℕ} {st : HState} (s : DkRunClear L st) :
+    machinePotential s.last ≤ machinePotential st + s.count * 5 :=
+  DkRunClear.potential_clrs s
+
 /-- **The row, extract-min half (witness level).**  The extract-min
 witness raises the potential by exactly one (M4b's `extract_potential`).
 The generalization to an arbitrary extract-min operation — the per-op

@@ -119,4 +119,48 @@ theorem DkRun.potential_scaled_cap {L : ℕ} {st : HState} : ∀ {K : ℕ}
       _ ≤ K * machinePotential st + (DkRun.count rest + 1) * K * (L + 5) := by
           simp only [Nat.add_mul, Nat.one_mul]; omega
 
+/-! ## The clearing run: Route A's aggregate (the `n log` per-op form) -/
+
+/-- **The clearing run.**  `DkRun`'s CLRS-write sibling: each step carries the
+cut's slot/mark data, `MarkOK`, the clearing chain witness, and the per-step
+cascade cap (`chain.length ≤ L`).  The per-op bound is **c-independent**
+(`decreaseKeyPathClear_potential`: `Φ' ≤ Φ + 5`), so the aggregate is
+`count * 5` — the `n log` form's decrease-key half (the transfer `DkRun`'s
+`count * (L + 5)` grows with the live size through `L`). -/
+inductive DkRunClear (L : ℕ) : HState → Type where
+  | nil (st : HState) : DkRunClear L st
+  | cons (st : HState) (x y : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ)
+      (hyn : y < st.n) (hy0 : st.mrk y = 0) (hm : MarkOK st)
+      (hcc : ClearChain (cutState st x y) st.n chain)
+      (hlen : chain.length ≤ L)
+      (rest : DkRunClear L (decreaseKeyPathClear st x y chain stop)) : DkRunClear L st
+
+/-- The clearing run's final state. -/
+def DkRunClear.last {L : ℕ} {st : HState} : DkRunClear L st → HState
+  | .nil s => s
+  | .cons _ _ _ _ _ _ _ _ _ _ rest => DkRunClear.last rest
+
+/-- The clearing run's operation count. -/
+def DkRunClear.count {L : ℕ} {st : HState} : DkRunClear L st → ℕ
+  | .nil _ => 0
+  | .cons _ _ _ _ _ _ _ _ _ _ rest => DkRunClear.count rest + 1
+
+/-- **The clearing aggregate.**  The per-op bound is constant (`+5`: the
+cut's `+3` plus the cascade's stop `+2`), so the run telescopes at
+`count * 5` — independent of both the cascade lengths and the live size. -/
+theorem DkRunClear.potential_clrs {L : ℕ} {st : HState} : ∀ (s : DkRunClear L st),
+    machinePotential s.last ≤ machinePotential st + s.count * 5 := by
+  intro s
+  induction s with
+  | nil => simp only [DkRunClear.last, DkRunClear.count]; omega
+  | cons st x y chain stop hyn hy0 hm hcc hlen rest ih =>
+    simp only [DkRunClear.last, DkRunClear.count] at ih ⊢
+    have hstep := decreaseKeyPathClear_potential st x y chain stop hyn hy0 hm hcc
+    calc machinePotential rest.last
+        ≤ machinePotential (decreaseKeyPathClear st x y chain stop)
+            + DkRunClear.count rest * 5 := ih
+      _ ≤ machinePotential st + 5 + DkRunClear.count rest * 5 := by omega
+      _ = machinePotential st + (DkRunClear.count rest + 1) * 5 := by
+            simp only [Nat.add_mul, Nat.one_mul]; omega
+
 end Submission.FibHeapAmortized
