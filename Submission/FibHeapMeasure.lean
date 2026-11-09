@@ -229,6 +229,70 @@ theorem decreaseKeyPath_potential (st : HState) (x y : ℕ) (chain : List (ℕ �
     _ = machinePotential st + 3 + chain.length + 2 := by rw [hcut]
     _ ≤ machinePotential st + chain.length + 5 := by omega
 
+/-! ## M4 determination: the transfer writes cannot source the CLRS premise
+
+`decrease_amortized_clrs` needs `hmarks : μ' + c ≤ μ + 2`.  Under THIS
+machine's transfer writes the mark count is forced upward: the cut banks one
+mark *exactly* (`machineMarks_cutState`), every consolidation cell moves it
+without changing the count (`machineMarks_promoteState`), and the stop's
+`markState` only adds.  So for any cascade of at least two cells
+`μ' + c ≥ μ + 3` — the premise is machine-refuted.  Under the CLRS clearing
+writes the count instead drops by one per cascaded cell and rises once at the
+terminal cell, which lands `μ' + c = μ + 2` exactly (`FibHeapForest.
+clrs_cell_premise`); that asymmetry is the Route-A/B decision evidence. -/
+
+/-- `markState` never drops the mark count. -/
+theorem machineMarks_markState_ge (st : HState) (y : ℕ) :
+    machineMarks st ≤ machineMarks (markState st y) := by
+  simp only [machineMarks]
+  have hsub : markSet st ⊆ markSet (markState st y) := by
+    intro i hi
+    rw [mem_markSet, markState_n, markState_mrk]
+    rw [mem_markSet] at hi
+    by_cases h' : i = y
+    · rw [if_pos h']
+      exact ⟨hi.1, Nat.zero_lt_one⟩
+    · rw [if_neg h']
+      exact hi
+  exact Finset.card_le_card hsub
+
+/-- The cascade fold never drops the mark count: every cell's promote
+preserves it exactly and the stop's mark only adds. -/
+theorem markcount_cells (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s : HState),
+    MarkChain s s.n chain → machineMarks s ≤ machineMarks (cascadeRun s chain stop) := by
+  intro chain
+  induction chain with
+  | nil =>
+    intro s _
+    show machineMarks s ≤ machineMarks (markState s stop)
+    exact machineMarks_markState_ge s stop
+  | cons head tail ih =>
+    intro s hmc
+    obtain ⟨y, z⟩ := head
+    obtain ⟨hyn, hzn, hmy, hmz, hrest⟩ := hmc
+    rw [← promoteState_n] at hrest
+    have hp := machineMarks_promoteState s y z hyn hzn hmy hmz
+    calc machineMarks s = machineMarks (promoteState s y z) := hp.symm
+      _ ≤ machineMarks (cascadeRun (promoteState s y z) tail stop) := ih (promoteState s y z) hrest
+
+/-- **M4 determination, case (a): refuted.**  Under the transfer writes the
+post-cascade mark count is at least `μ + 1` (the cut's banked mark survives
+the fold), so any cascade of at least two cells gives `μ' + c ≥ μ + 3 > μ + 2`.
+`decrease_amortized_clrs`'s `hmarks` premise is unsatisfiable here -- and the
+per-cell equality is what makes this a proof, not an estimate. -/
+theorem transfer_clrs_gap (st : HState) (x y : ℕ) (chain : List (ℕ × ℕ)) (stop : ℕ)
+    (hyn : y < st.n) (hy0 : st.mrk y = 0)
+    (hmc : MarkChain (cutState st x y) st.n chain) (hc : 2 ≤ chain.length) :
+    machineMarks st + 2 < machineMarks (cascadeRun (cutState st x y) chain stop)
+      + chain.length := by
+  have hgrow := markcount_cells stop chain (cutState st x y)
+    (by rw [cutState_n]; exact hmc)
+  have hcut := machineMarks_cutState st x y hyn hy0
+  have h1 : machineMarks st + 1 + chain.length
+      ≤ machineMarks (cascadeRun (cutState st x y) chain stop) + chain.length := by
+    omega
+  omega
+
 /-! ## The consolidation measure -/
 
 /-- Distinct root degrees: after consolidation no two roots share a rank. -/

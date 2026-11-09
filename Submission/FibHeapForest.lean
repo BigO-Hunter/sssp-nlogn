@@ -336,4 +336,22 @@ theorem decrease_amortized_of_marks {K D0 D1 : ℕ} {l : List Bool} {μ μ' k t 
       ≤ FibHeapAccounting.scaledPotential K t μ + (D0 + 3 * K + D1) :=
   FibHeapAccounting.decrease_amortized_clrs (by omega) hK ht (cascade_marks_bound h)
 
+/-- **M4 determination, case (b): proved.**  The clearing ledger, cell by
+cell: under CLRS clearing writes the mark flags are forced — each of the `k`
+cascaded cells consumes one mark (`true`), the terminal cell banks one fresh
+mark (`false`) — landing `μ' = μ - k + 1` exactly, so the CLRS premise holds
+**with no slack**: `μ' + (k+1) = μ + 2` whenever the mark supply covers the
+cascade (`k ≤ μ`).  This is the Route-A viability witness: the clearing
+writes discharge `decrease_amortized_clrs`'s `hmarks` for every cascade
+length, as a per-cell equality (mirroring `machineMarks_promoteState`'s
+shape, minus the mark). -/
+theorem clrs_cell_premise (μ k : ℕ) (hk : k ≤ μ) :
+    ∃ μ' : ℕ, CascadeMarks (List.replicate k true ++ [false]) μ μ' k
+      ∧ μ' + (k + 1) ≤ μ + 2 := by
+  induction k generalizing μ with
+  | zero => exact ⟨μ + 1, CascadeMarks.mark [] μ, by omega⟩
+  | succ k ih =>
+    obtain ⟨μ', hcm, hbound⟩ := ih (μ - 1) (by omega)
+    exact ⟨μ', CascadeMarks.clear (by omega) hcm, by omega⟩
+
 end Submission.FibHeapForest
