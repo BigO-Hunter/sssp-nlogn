@@ -66,7 +66,8 @@ theorem mem_markSet {st : HState} {i : ℕ} :
   by_cases h' : i = y
   · subst h'
     simp [hy]
-  · simp [h']
+  · simp only [if_neg h']
+    exact ⟨h', rfl⟩
 
 @[simp] theorem markSet_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
     (hzn : z < st.n) (hy : st.mrk y = 1) (hz : st.mrk z = 0) :
@@ -74,15 +75,16 @@ theorem mem_markSet {st : HState} {i : ℕ} :
   ext i
   simp only [markSet, promoteState_n, promoteState_mrk, Finset.mem_filter, Finset.mem_range]
   by_cases hiy : i = y
-  · subst hiy
-    by_cases hiz : i = z
-    · subst hiz
-      simp [hzn]
-    · simp [hz, hyz]
+  · by_cases hiz : i = z
+    · subst hiy
+      subst hiz
+      simp [hzn, hy]
+    · subst hiy
+      simp [hz, hy, hyn]
   · by_cases hiz : i = z
     · subst hiz
       simp [hyn, hy]
-    · simp [hiy, hiz]
+    · simp [hiy, hiz, hy, hz, hyn]
 
 @[simp] theorem markSet_markState (st : HState) (y : ℕ) (hy : y < st.n) :
     markSet (markState st y) = insert y (markSet st) := by
@@ -111,9 +113,12 @@ theorem machineMarks_markState_le (st : HState) (y : ℕ) :
       ext i
       simp only [markSet, markState_n, markState_mrk, Finset.mem_filter, Finset.mem_range]
       by_cases h' : i = y
-      · subst h'; simp [hy]
-      · simp [h']
+      · subst h'
+        simp [hy]
+      · simp only [if_neg h']
+        exact ⟨rfl, by simp [h']⟩
     rw [hsame]
+    omega
 
 /-- The promote's mark count is unchanged: the promoted node's mark (one banked
 token pair) is consumed to pay for the mark set on the losing ancestor. -/
