@@ -140,6 +140,36 @@ theorem cascadeRun_n (st : HState) (chain : List (ℕ × ℕ)) (stop : ℕ) :
     simp only [cascadeRun]
     rw [ih (promoteState st y z), promoteState_n]
 
+/-! ## The clearing cascade: the CLRS write semantics (Route A) -/
+
+/-- The clearing cascade fold: identical shape to `cascadeRun`, each cell
+runs the CLRS-clearing splice (`clearPromoteState` clears both the banked
+mark at `y` and the old mark at `z`). -/
+def clearCascadeRun (st : HState) : List (ℕ × ℕ) → ℕ → HState
+  | [], stop => markState st stop
+  | (y, z) :: rest, stop => clearCascadeRun (clearPromoteState st y z) rest stop
+
+/-- **The clearing chain witness.**  `MarkChain`'s state-threading with the
+CLRS mark pattern: each cell's `y` carries the banked mark (`mrk y = 1`),
+`y ≠ z` (the splice consumes distinct marks), and the rest threads through
+the clearing splice.  No condition on `mrk z` — the clearing write handles
+both shapes (intermediate `z`-marked: −2; terminal `z`-unmarked: −1). -/
+def ClearChain (st : HState) (N : ℕ) : List (ℕ × ℕ) → Prop
+  | [] => True
+  | (y, z) :: rest =>
+      y < N ∧ z < N ∧ st.mrk y = 1 ∧ y ≠ z
+        ∧ ClearChain (clearPromoteState st y z) N rest
+
+/-- The live size survives the clearing fold. -/
+theorem clearCascadeRun_n (st : HState) (chain : List (ℕ × ℕ)) (stop : ℕ) :
+    (clearCascadeRun st chain stop).n = st.n := by
+  induction chain generalizing st with
+  | nil => simp only [clearCascadeRun, markState_n]
+  | cons head tail ih =>
+    obtain ⟨y, z⟩ := head
+    simp only [clearCascadeRun]
+    rw [ih (clearPromoteState st y z), clearPromoteState_n]
+
 /-- One cell's premises: the promote's own preconditions — on the state that cell
 actually runs in — and the rest of the chain on the state *after* that promote.
 `promote_bridge` is how original-state facts produce the running-state premises. -/
