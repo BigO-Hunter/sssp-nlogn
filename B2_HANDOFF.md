@@ -95,6 +95,32 @@ The row is potential-level accounting, not yet the program-level
    `Submission.lean`: `theorem Race.bound := BigOSpeedrun.DirectedSSSP
    …Bound 1 1 1 1 0` with the FT row as the proof.
 
+   **Scope (2026-11-09, the STEP 3 scoping pass).**  The B1 pattern
+   (`DijkstraRow.lean:200-335`) is the template: program run theorems
+   (`prog_runs_dij`/`prog_runs_bf` — a RAM program `p1` with
+   `r.Solves` + cost bound) wrapped by clause1/clause2 arithmetic into
+   `Bound 1 1 1 2 0`.  The FT transport re-runs that shape at
+   `Bound 1 1 1 1 0` with a Fib-heap program `p2`.  Pieces, in build
+   order: (a) **the machine consolidation fold** — `extractState` only
+   splices; the equal-degree meld (`extractRun` over `mergeState` cells,
+   ExtractMin header's "next module") is NOT yet machine-landed and is
+   the biggest single build (the linking loop, its `InvOK`-analog
+   preservation, the distinct-degrees table discipline); (b) **the sim**
+   — RAM program ⟹ `HState` step sequence (the `DijkstraSim` pattern
+   extended with heap-op witnesses: each decrease-key must EVIDENCE its
+   `DkRunClear` premises — `hyn/hy0/hm/hcc/hlen` per step); (c) **the
+   charge** — per-op RAM cost constants (cut/promote/link O(1)-splices,
+   extract O(deg r) + the walk), with the potential ledger (`row_nlog`'s
+   `m·5 + 2·rankCap + 2`, scaled lane `D0+6K+D1`) as the amortized
+   certificate — charge the deltas as time; (d) **the arithmetic** —
+   `Time 1 1 0 = n·log n` at `m ≤ n·⌊log₂ n⌋` + the `2000·(n+1)(m+1)`
+   fallback: B1's `log_ge`/`cap_one_one`/`sparse_one_one`/`arith_clause*`
+   scaffolding re-runs with FT constants.  Risks named: the roots list
+   as a RAM array (B1's `p1` is array-native; `roots : List ℕ` needs the
+   array encoding), the consolidation fold's witness generation, and the
+   verifier's pinned Frontier commit (no Frontier edits — the B1
+   transport proves the shape suffices).
+
 ## Gating before any filing (B2 task 2125608602)
 
 Zero `sorry`; root `Race.bound`; axioms exactly
