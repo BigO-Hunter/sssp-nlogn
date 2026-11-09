@@ -109,7 +109,6 @@ theorem machineMarks_markState_le (st : HState) (y : ℕ) :
     · rw [markSet_markState st y hy, Finset.insert_eq_of_mem hyin]; omega
     · rw [markSet_markState st y hy,
         Finset.card_insert_of_notMem (by simpa [mem_markSet] using hyin)]
-      omega
   · have hsame : markSet (markState st y) = markSet st := by
       ext i
       rw [mem_markSet, markState_n, markState_mrk, mem_markSet]
@@ -118,7 +117,6 @@ theorem machineMarks_markState_le (st : HState) (y : ℕ) :
         rw [if_pos rfl]
         simp [hy]
       · rw [if_neg h']
-        exact ⟨rfl, by simp [h']⟩
     rw [hsame]
     omega
 
@@ -133,19 +131,21 @@ theorem machineMarks_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n) (hz
     have h : markSet (promoteState st y y) = markSet st := by
       ext i
       by_cases hiy : i = y
-      · subst hiy; simp [markSet, markState_n, markState_mrk, hy]
-      · simp [markSet, markState_n, markState_mrk, hiy]
+      · subst hiy; simp [markSet, promoteState_n, promoteState_mrk, hy]
+      · simp [markSet, promoteState_n, promoteState_mrk, hiy]
     rw [h]
   · rw [markSet_promoteState st y z hyn hzn hy hz]
-    have hyin : y ∈ markSet st := by simp [mem_markSet, hy]
+    have hyin : y ∈ markSet st := by simp [mem_markSet, hy, hyn]
     have hzout : z ∉ markSet st := by simp [mem_markSet, hz]
     have hdisj : Disjoint ((markSet st).erase y) {z} :=
-      Finset.disjoint_singleton_right.mpr hzout
-    rw [Finset.card_union_of_disjoint hdisj, Finset.card_erase_of_mem hyin]
+      Finset.disjoint_singleton_right.mpr (fun hmem => hzout (Finset.mem_of_mem_erase hmem))
+    have hcard : 0 < (markSet st).card := Finset.card_pos.mpr ⟨y, hyin⟩
+    rw [Finset.card_union_of_disjoint hdisj, Finset.card_erase_of_mem hyin,
+      Finset.card_singleton]
     omega
 
-theorem machinePotential_promoteState (st : HState) (y z : ℕ) (hy : st.mrk y = 1)
-    (hz : st.mrk z = 0) :
+theorem machinePotential_promoteState (st : HState) (y z : ℕ) (hyn : y < st.n)
+    (hzn : z < st.n) (hy : st.mrk y = 1) (hz : st.mrk z = 0) :
     machinePotential (promoteState st y z) = machinePotential st + 1 := by
   have hroots : (promoteState st y z).roots.length = st.roots.length + 1 := by
     rw [promoteState_roots]; simp
@@ -227,7 +227,7 @@ theorem decreaseKeyPath_potential (st : HState) (x y : ℕ) (chain : List (ℕ �
       ≤ machinePotential (cutState st x y) + chain.length + 2 :=
         cascadeRun_potential _ chain stop hmc'
     _ = machinePotential st + 3 + chain.length + 2 := by rw [hcut]
-    _ ≤ machinePotential st + chain.length + 5 := omega
+    _ ≤ machinePotential st + chain.length + 5 := by omega
 
 /-! ## The consolidation measure -/
 
@@ -242,7 +242,9 @@ list into `List.range (B + 1)` (pigeonhole through `subperm_of_subset`).  With
 theorem root_count_bound (st : HState) (hnd : st.roots.Nodup) (hc : Consolidated st) {B : ℕ}
     (hB : ∀ r ∈ st.roots, st.deg r ≤ B) : st.roots.length ≤ B + 1 := by
   have hmapnod : (st.roots.map st.deg).Nodup :=
-    (List.nodup_map_iff_inj_on hnd).mpr (fun a ha b hb hab => hc a ha b hb (by rw [hab]))
+    (List.nodup_map_iff_inj_on hnd).mpr (fun a ha b hb hab => by
+      by_contra hne
+      exact absurd hab (hc a ha b hb hne))
   have hmem : ∀ d ∈ st.roots.map st.deg, d ∈ List.range (B + 1) := by
     intro d hd
     obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hd
@@ -261,18 +263,18 @@ theorem merge_Consolidated (st : HState) (hc : Consolidated st) (r p : ℕ)
   intro a ha b hb hab hde
   rw [mergeState_roots] at ha hb
   obtain ⟨hra, hrap⟩ := List.mem_filter.mp ha
-  obtain ⟨hba, hbp⟩ := List.mem_filter.mp hb
+  obtain ⟨hrb, hrbp⟩ := List.mem_filter.mp hb
   rw [mergeState_deg, mergeState_deg] at hde
   by_cases hap : a = p
-  · subst hap
-    simp only [if_pos rfl] at hde
-    exact absurd hde (hnew b hba (by omega) (by rwa [bne_iff_ne]))
   · by_cases hbp : b = p
-    · subst hbp
-      simp only [if_pos rfl] at hde
-      exact absurd hde (Ne.symm (hnew a ha (by omega) (by rwa [bne_iff_ne])))
+    · exact absurd (hap.trans hbp.symm) hab
+    · rw [hap, if_pos rfl, if_neg hbp] at hde
+      exact absurd hde (hnew b hrb hbp (by simpa using hrbp))
+  · by_cases hbp : b = p
+    · rw [hbp, if_neg hap, if_pos rfl] at hde
+      exact absurd hde (Ne.symm (hnew a hra hap (by simpa using hrap)))
     · rw [if_neg hap, if_neg hbp] at hde
-      exact absurd hde (hc a (by simpa using hra) b (by simpa using hba) (by omega))
+      exact absurd hde (hc a hra b hrb hab)
 
 /-! ## The measure on the extract-min witness -/
 
@@ -286,13 +288,9 @@ theorem extract_potential :
   have hmarks : markSet (extractState extractPreSt 3) = ∅ := by
     ext i
     simp [markSet, extracted_state_mrk, extracted_mrk]
-  have h0 : machineMarks extractPreSt = 0 := by
-    simp only [machineMarks]
-    have hex : markSet extractPreSt = ∅ := by ext i; simp [markSet, extractPreSt]
-    rw [hex, Finset.card_empty]
+  have h0 : markSet extractPreSt = ∅ := by ext i; simp [markSet, extractPreSt]
   have hr2 : extractPreSt.roots.length = 2 := by simp [extractPreSt]
   simp only [machinePotential, machineMarks, hroots, hmarks, h0, hr2, Finset.card_empty]
-  omega
 
 /-- The extract-min output witness is consolidated: the two surviving roots have
 distinct degrees (`4` at degree 0, `1` at degree 1). -/
