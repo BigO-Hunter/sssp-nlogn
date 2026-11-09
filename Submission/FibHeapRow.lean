@@ -27,6 +27,7 @@ open Submission.FibHeapAmortized Submission.FibHeapMeasure Submission.FibHeapDep
 open Submission.FibHeapExtractMin
 open Submission.FibHeapRefine
 open Submission.FibHeapCascade Submission.FibHeapPop
+open Submission.FibHeapLink Submission.FibHeapSupport
 
 /-- **The row, decrease-key half.**  A capped run of `m = s.count`
 decrease-keys raises the potential by at most `m · (L + 5)` — the
@@ -68,6 +69,33 @@ theorem row_sequential {st : HState} (s : DkRun st.n st) (r : ℕ)
   have h1 : machinePotential s.last ≤ machinePotential st + s.count * (st.n + 5) :=
     DkRun.potential_cap s
   have h2 := extractMin_pop_potential s.last r chain stop hmc
+  simp only [machinePotential] at *
+  omega
+
+/-- **The row's sequential total, caps machine-derived.**  The extract seam's
+consolidation walk is a `Cascade` witness: `cascade_walkUp` lifts it to a
+`WalkUp` over the extract state and `walkUp_len_le_n` folds `chain.length`
+into the `st.n` class.  The extract state's invariant bundle is discharged
+by the `extract_*` preservation suite (`extract_ParOK`, `extract_RingOK`,
+`extract_SlotOK`, `extract_ParSlot`, `extract_NILSelf`, `extract_Acyc`,
+`extract_NILLeaf`, `extract_KidsNodup`) from the start state's own bundle;
+the `(kids r).length` term stays the stated rank-cap boundary. -/
+theorem row_sequential_capped {st : HState} (s : DkRun st.n st) (r : ℕ)
+    (chain : List (ℕ × ℕ)) (stop : ℕ)
+    (hmc : MarkChain (extractState s.last r) (extractState s.last r).n chain)
+    {y : ℕ}
+    (hC : Cascade (extractState s.last r) y chain)
+    (hpar : ParOK (extractState s.last r)) (hrk : RingOK (extractState s.last r))
+    (hslot : SlotOK (extractState s.last r)) (hps : ParSlot (extractState s.last r))
+    (hs : NILSelf (extractState s.last r)) (hac : Acyc (extractState s.last r))
+    (hnl : NILLeaf (extractState s.last r)) (hnd : ∀ q, KidsNodup (extractState s.last r) q) :
+    machinePotential (cascadeRun (extractState s.last r) chain stop)
+      ≤ machinePotential st + s.count * (st.n + 5)
+        + ((kids s.last r).length + st.n + 2) := by
+  have h1 := row_sequential s r chain stop hmc
+  have hsn : (extractState s.last r).n = st.n := by
+    rw [extractState_n, DkRun.last_n]
+  have h2 := cascade_len_le_n st hsn hpar hrk hslot hps hs hac hnl hnd hC
   simp only [machinePotential] at *
   omega
 
