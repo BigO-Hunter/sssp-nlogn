@@ -11,6 +11,7 @@ import Submission.FibHeapCut
 import Submission.FibHeapMerge
 import Submission.FibHeapPromote
 import Submission.FibHeapCascade
+import Submission.FibHeapExtractMin
 import Submission.FibHeapWitness
 
 /-!
@@ -19,9 +20,10 @@ import Submission.FibHeapWitness
 One umbrella for the machine-level Fibonacci heap: the encoding (`FibHeapRefine`
 and below), the invariant bundle, the four array-level updaters — link
 (`FibHeapLink`/`FibHeapLinkWalk`), cut (`FibHeapCut`), consolidation merge
-(`FibHeapMerge`), promote (`FibHeapPromote`) — and the decrease-key cascade
-with its verified output witness (`FibHeapCascade`), closing the rank cap on
-the freshly cut root.  `FibHeapWitness` holds the shape lemmas consumed by the
+(`FibHeapMerge`), promote (`FibHeapPromote`) — the decrease-key cascade
+with its verified output witness (`FibHeapCascade`), and extract-min with its
+splice, consolidation fold, and rank-cap output capstone
+(`FibHeapExtractMin`).  `FibHeapWitness` holds the shape lemmas consumed by the
 support-level abstraction.
 
 Importing this module compiles the whole closure; the lib-root build is the
