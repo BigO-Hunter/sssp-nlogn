@@ -105,7 +105,21 @@ The row is potential-level accounting, not yet the program-level
    splices; the equal-degree meld (`extractRun` over `mergeState` cells,
    ExtractMin header's "next module") is NOT yet machine-landed and is
    the biggest single build (the linking loop, its `InvOK`-analog
-   preservation, the distinct-degrees table discipline); (b) **the sim**
+   preservation, the distinct-degrees table discipline);
+   **(a) LANDED 2026-11-09, the `DegOK` discipline leg (STEP 4):**
+   `merge_DegOK` (`FibHeapMerge` — the clause survives the meld *at
+   equal degree*; `MergePre`'s bare inequality provably cannot carry
+   it), the deg-aware cell premise `ExtractOkDeg` (`MergePre` +
+   `st.deg c = st.deg p` per cell) with projection
+   `extractOkDeg_imp_ok`, the fold climb `extractRun_DegOK`, and the
+   bridge `extractMin_DegOK` (splice leg `extract_DegOK` + fold leg).
+   Honest seam, unchanged in kind: the equal-degree cell premise is
+   caller discipline — the distinct-degrees table that *generates*
+   well-formed chains is still to land, and `DegOK` at the program
+   level remains the named clause (wound 2125609385); the fold does not
+   discharge the seam, it moves the clause across the one genuinely
+   inductive transition.  Still open in (a): the table discipline;
+   (b) **the sim**
    — RAM program ⟹ `HState` step sequence (the `DijkstraSim` pattern
    extended with heap-op witnesses: each decrease-key must EVIDENCE its
    `DkRunClear` premises — `hyn/hy0/hm/hcc/hlen` per step); (c) **the

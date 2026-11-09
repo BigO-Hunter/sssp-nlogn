@@ -547,6 +547,53 @@ theorem merge_posOK (st : HState) (r p : ℕ) (hpar : ParOK st) (hrnc : RootNotC
       calc j ≤ ldeg st ((kids st q).getD j 0) := hpos q j hj
         _ ≤ ldeg (mergeState st r p) ((kids st q).getD j 0) := hl
 
+/-- **The link-time clause (`DegOK`) survives the merge at equal degree** — the
+consolidation discipline.  This is the discharge `MergePre` alone cannot give: with the
+bare inequality `deg p ≤ deg r` the appended child can be the *larger* root and break
+strictness at `p`, which is exactly why the consolidation fold (`extractRun`) runs its
+cells at `deg r = deg p` (`ExtractOkDeg`).  At equal degree the appended child satisfies
+`deg r = deg p < deg p + 1` (the absorbing root's degree grows by one), every old child
+of `p` keeps its strictness against the incremented degree (`kids_link`), and every other
+list is untouched (`kids_unchanged`; the `q = 0` case is empty by `NILLeaf`).  The
+merge-step sibling of `link_DegOK` — the transition the fold's `DegOK` climb rides on,
+and the machine-landed form of the equal-degree meld. -/
+theorem merge_DegOK (st : HState) (r p : ℕ) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hrk : RingOK st) (hpre : MergePre st r p) (hnl : NILLeaf st)
+    (hde : st.deg r = st.deg p) (h : DegOK st) : DegOK (mergeState st r p) := by
+  have hp0 : p ≠ 0 := fun hc => hnr (hc ▸ hpre.2.1)
+  have hrp : r ≠ p := hpre.2.2.1
+  intro y z hmem
+  by_cases hzp : p = z
+  · subst hzp
+    rw [merge_kids_link st r p hpar hrnc hnr hrk hpre] at hmem
+    rcases List.mem_append.mp hmem with hm | hm
+    · have hy0 : y ≠ p := by
+        intro hc
+        exact absurd (hc ▸ hm) (root_notin_kids_merge st hrnc hpre.2.1 hp0)
+      show (mergeState st r p).deg y < (mergeState st r p).deg p
+      rw [mergeState_deg, if_neg hy0, mergeState_deg, if_pos rfl]
+      have hlt := h y p hm
+      omega
+    · have hyr : y = r := List.mem_singleton.mp hm
+      rw [hyr] at hmem ⊢
+      show (mergeState st r p).deg r < (mergeState st r p).deg p
+      rw [mergeState_deg, if_neg hrp, mergeState_deg, if_pos rfl]
+      omega
+  · by_cases hz0 : z = 0
+    · subst hz0
+      have hd0 : (mergeState st r p).deg 0 = 0 := by
+        rw [mergeState_deg, if_neg (fun hc => hp0 hc.symm), hnl]
+      rw [kids_eq_nil hd0] at hmem
+      simp at hmem
+    · rw [merge_kids_unchanged st r p z hpar hrnc hrk hpre (fun hc => hzp hc.symm) hz0]
+        at hmem
+      have hy0 : y ≠ p := by
+        intro hc
+        exact absurd (hc ▸ hmem) (root_notin_kids_merge st hrnc hpre.2.1 hz0)
+      show (mergeState st r p).deg y < (mergeState st r p).deg z
+      rw [mergeState_deg, if_neg hy0, mergeState_deg, if_neg (fun hc => hzp hc.symm)]
+      exact h y z hmem
+
 /-- `SlotOK` survives the merge: other lists are untouched, and the moved root `r` is live
 (`RootsLive`). -/
 theorem merge_slotOK (st : HState) (r p : ℕ) (hpar : ParOK st) (hrnc : RootNotChild st)

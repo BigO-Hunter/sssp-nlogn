@@ -415,6 +415,30 @@ def ExtractOk (st : HState) : List (ℕ × ℕ) → Prop
   | [] => True
   | (c, p) :: rest => MergePre st c p ∧ ExtractOk (mergeState st c p) rest
 
+/-- **The deg-aware cell premise**: a cell is a merge's own `MergePre` strengthened to
+**equal degree** — the consolidation discipline (each promoted child melds with a root of
+exactly its degree).  `MergePre`'s inequality alone does not carry the link-time clause
+`DegOK`: with `deg p < deg c` the appended child breaks strictness at `p`, which is why
+the fold's `DegOK` climb (`extractRun_DegOK`, via `merge_DegOK`) rides this predicate, not
+`ExtractOk`.  Everything else about a cell — the merge's own preconditions, evaluated on
+the running state — is unchanged. -/
+def ExtractOkDeg (st : HState) : List (ℕ × ℕ) → Prop
+  | [] => True
+  | (c, p) :: rest =>
+    MergePre st c p ∧ st.deg c = st.deg p ∧ ExtractOkDeg (mergeState st c p) rest
+
+/-- A deg-aware run is a run: `ExtractOkDeg` strengthens `ExtractOk` componentwise, so the
+whole existing fold bundle (MarkOK … RingOK) applies to consolidation passes that carry
+the equal-degree discipline. -/
+theorem extractOkDeg_imp_ok (st : HState) (chain : List (ℕ × ℕ))
+    (h : ExtractOkDeg st chain) : ExtractOk st chain := by
+  induction chain generalizing st with
+  | nil => trivial
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, _, hrest⟩ := h
+    exact ⟨hpre, ih (mergeState st c p) hrest⟩
+
 /-- **The extract-min program**: promote the minimum root's children to the root
 list, then consolidate. -/
 def extractMin (st : HState) (r : ℕ) (chain : List (ℕ × ℕ)) : HState :=
@@ -652,6 +676,36 @@ theorem extractRun_RingOK (st : HState) (chain : List (ℕ × ℕ))
       (merge_acyc st c p hnr hpre hnrs hns hac)
       (merge_NILSelf st c p hpre hnr hns) hrest
 
+/-- **The link-time clause (`DegOK`) climbs the consolidation pass** — the fold's `DegOK`
+discharge, the piece that makes the equal-degree meld machine-landed.  Each cell runs
+`merge_DegOK` at its equal-degree premise (`ExtractOkDeg`; `MergePre`'s bare inequality
+cannot carry the clause), and the climb regenerates the merge's own bundle (ParOK /
+RootNotChild / RingOK / NILLeaf) cell-to-cell exactly as the other `extractRun_*`
+discharges do.  The transport's consolidation fold is where `DegOK` is genuinely
+inductive — `extractState`'s splice lemma is unconditional precisely because the splice
+deletes edges only, while every meld here *adds* one. -/
+theorem extractRun_DegOK (st : HState) (chain : List (ℕ × ℕ))
+    (hpar : ParOK st) (hrnc : RootNotChild st) (hnr : NILNotRoot st)
+    (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st) (hac : Acyc st)
+    (hns : NILSelf st)
+    (hdeg : DegOK st) (hok : ExtractOkDeg st chain) :
+    DegOK (extractRun st chain) := by
+  induction chain generalizing st with
+  | nil => exact hdeg
+  | cons head tail ih =>
+    obtain ⟨c, p⟩ := head
+    obtain ⟨hpre, hde, hrest⟩ := hok
+    exact ih (mergeState st c p)
+      (merge_parOK st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_RootNotChild st c p hpar hrnc hnr hrk hpre hnl)
+      (merge_NILNotRoot st c p hnr)
+      (merge_NILRoots st c p hnrs)
+      (merge_RingOK st c p hpar hrnc hnr hnrs hrk hpre hnl hac)
+      (merge_NILLeaf st c p hpre hnr hnl)
+      (merge_acyc st c p hnr hpre hnrs hns hac)
+      (merge_NILSelf st c p hpre hnr hns)
+      (merge_DegOK st c p hpar hrnc hnr hrk hpre hnl hde hdeg) hrest
+
 /-! ## The program bridges: the bundle survives the whole extract-min -/
 
 /-- Every premise the fold needs on the running state is produced by the extract
@@ -715,6 +769,29 @@ theorem extractMin_PosOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
     (extract_Acyc st r hpre hnc hns hac)
     (extract_NILSelf st r hns hnc)
     (extract_PosOK st r hpre hpar hrnc hnl hpos) hok
+
+/-- **The extract-min program keeps the link-time clause.**  The splice leg is
+unconditional (`extract_DegOK` — the splice deletes edges only); the consolidation leg
+carries it cell-to-cell at the equal-degree discipline (`extractRun_DegOK` over
+`ExtractOkDeg`).  This is the bridge the transport consumes: the walk climb's `DegOK`
+premise (`row_nlog`'s `hdeg`, wound 2125609385's named clause) survives the whole
+extract-min program — promotion plus consolidation — with every premise on the pre-splice
+state, mirroring the other `extractMin_*` bridges. -/
+theorem extractMin_DegOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
+    (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
+    (hnr : NILNotRoot st) (hnrs : NILRoots st) (hrk : RingOK st) (hnl : NILLeaf st)
+    (hnc : NILNotChild st) (hns : NILSelf st) (hac : Acyc st)
+    (hdeg : DegOK st) (hok : ExtractOkDeg (extractState st r) chain) :
+    DegOK (extractMin st r chain) :=
+  extractRun_DegOK _ _ (extract_ParOK st r hpar)
+    (extract_RootNotChild st r hpar hrnc hnc)
+    (extract_NILNotRoot st r hnr hnc)
+    (extract_NILRoots st r hpre hnrs hnr hpar)
+    (extract_RingOK st r hrk)
+    (extract_NILLeaf st r hpre hnl hnr)
+    (extract_Acyc st r hpre hnc hns hac)
+    (extract_NILSelf st r hns hnc)
+    (extract_DegOK st r hdeg) hok
 
 theorem extractMin_SlotOK (st : HState) (r : ℕ) (chain : List (ℕ × ℕ))
     (hpre : ExtractPre st r) (hpar : ParOK st) (hrnc : RootNotChild st)
