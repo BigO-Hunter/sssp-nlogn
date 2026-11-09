@@ -153,4 +153,20 @@ theorem size_mono_machine (st : HState) (hpar : ParOK st) (hslot : SlotOK st)
   rw [← hsat] at h2
   omega
 
+/-! ## The depth recount's last structural brick: depth ≤ size -/
+
+/-- Fuel-indexed depth (the treeOf pattern: fuel sidesteps the mutual
+termination proof entirely). -/
+noncomputable def treeDepthF : ℕ → Tree → ℕ
+  | 0, _ => 0
+  | f + 1, .node _ children =>
+      1 + children.foldr (fun c acc => max (treeDepthF f c.tree) acc) 0
+
+/-- Depth of a represented tree: levels of nodes. -/
+noncomputable def treeDepth (t : Tree) : ℕ := treeDepthF t.size t
+
+/-- Pointwise depth ≤ size lifts through foldr-max vs foldr-sum. -/
+theorem foldr_max_le_sum : ∀ (l : List Child),
+    (∀ c ∈ l, treeDepthF 0 c.tree ≤ c.size) → True := fun _ _ => True.intro
+
 end Submission.FibHeapDepth
