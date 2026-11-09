@@ -368,6 +368,112 @@ theorem machineMarks_clearPromoteState_terminal (st : HState) (y z : ℕ)
     _ = (markSet st).card := hcard
     _ = machineMarks st := rfl
 
+/-! ## The clearing cascade's ledger and potential: the Route-A fold -/
+
+/-- **The clearing cell consumes at least its banked mark.**  Wrapper over
+the two exact shapes (intermediate −2 / terminal −1). -/
+theorem machineMarks_clearPromoteState_le (st : HState) (y z : ℕ)
+    (hyn : y < st.n) (hzn : z < st.n) (hm : MarkOK st) (hy1 : st.mrk y = 1)
+    (hyz : y ≠ z) :
+    machineMarks (clearPromoteState st y z) + 1 ≤ machineMarks st := by
+  by_cases hz1 : st.mrk z = 1
+  · have h := machineMarks_clearPromoteState_intermediate st y z hyn hzn hy1 hz1 hyz
+    omega
+  · have hz0 : st.mrk z = 0 := by have := hm z; omega
+    have h := machineMarks_clearPromoteState_terminal st y z hyn hy1 hz0 hyz
+    omega
+/-- **The clearing fold's mark ledger.**  The cut's banked mark is consumed
+by the first cell and every cell consumes at least one, so the fold's mark
+count is at most the bank: `μ' + c ≤ μ₀ + 1` with `c = chain.length` — the
+cell-by-cell form of the CLRS premise.  `MarkOK` of the running state
+threads through Anchor 1 (`promoteClear_MarkOK`). -/
+theorem markcount_clearCells (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s : HState),
+    MarkOK s → ClearChain s s.n chain →
+    machineMarks (clearCascadeRun s chain stop) + chain.length ≤ machineMarks s + 1 := by
+  intro chain
+  induction chain with
+  | nil =>
+    intro s hm _
+    simp only [clearCascadeRun, List.length_nil]
+    exact machineMarks_markState_le s stop
+  | cons cell tail ih =>
+    intro s hm hcc
+    obtain ⟨y, z⟩ := cell
+    obtain ⟨hyN, hzN, hy1, hyz, hrest⟩ := hcc
+    have hrest' : ClearChain (clearPromoteState s y z)
+        (clearPromoteState s y z).n tail := by
+      rw [clearPromoteState_n]; exact hrest
+    have hm' : MarkOK (clearPromoteState s y z) := promoteClear_MarkOK s y z hm
+    have hle := machineMarks_clearPromoteState_le s y z hyN hzN hm hy1 hyz
+    calc machineMarks (clearCascadeRun s ((y, z) :: tail) stop) + ((y, z) :: tail).length
+        = machineMarks (clearCascadeRun (clearPromoteState s y z) tail stop)
+            + (tail.length + 1) := by simp only [clearCascadeRun, List.length_cons]
+      _ ≤ machineMarks s + 1 := by
+          have h := ih (clearPromoteState s y z) hm' hrest'
+          have hle := machineMarks_clearPromoteState_le s y z hyN hzN hm hy1 hyz
+          omega
+
+/-- **The CLRS mark premise, machine-derived over the clearing writes.**  The
+cut banks one mark exactly, the clearing cells consume one each, the stop's
+mark adds at most one — so with `c = chain.length + 1` total cuts:
+`μ' + c ≤ μ + 2`.  This is `decrease_amortized_clrs`'s `hmarks`, discharged. -/
+theorem machineMarks_clearCascade_hmarks (st : HState) (x y : ℕ)
+    (chain : List (ℕ × ℕ)) (stop : ℕ) (hyn : y < st.n) (hy0 : st.mrk y = 0)
+    (hm : MarkOK st) (hcc : ClearChain (cutState st x y) st.n chain) :
+    machineMarks (clearCascadeRun (cutState st x y) chain stop)
+      + chain.length ≤ machineMarks st + 2 := by
+  have hcut := machineMarks_cutState st x y hyn hy0
+  have hm' : MarkOK (cutState st x y) := cut_MarkOK st x y hm
+  have h1 := markcount_clearCells stop chain (cutState st x y) hm'
+    (by rw [cutState_n]; exact hcc)
+  omega
+
+/-- **The clearing splice's potential drops.**  One fresh root (`+1`) against
+at least one consumed mark (`−2·1` or better): `Φ' ≤ Φ + 1 − 2 ≤ Φ`. -/
+theorem machinePotential_clearPromoteState_le (st : HState) (y z : ℕ)
+    (hyn : y < st.n) (hzn : z < st.n) (hm : MarkOK st) (hy1 : st.mrk y = 1)
+    (hyz : y ≠ z) :
+    machinePotential (clearPromoteState st y z) + 1 ≤ machinePotential st := by
+  have hmrk := machineMarks_clearPromoteState_le st y z hyn hzn hm hy1 hyz
+  have hroots : (clearPromoteState st y z).roots.length = st.roots.length + 1 := by
+    rw [clearPromoteState_roots', promoteState_roots, List.length_cons]
+  simp only [machinePotential, hroots]
+  omega
+
+/-- **The clearing cascade's potential: c-independence.**  Every cell's
+potential is nonincreasing (the root's `+1` is more than paid by the consumed
+marks) and the stop's mark adds at most two — for ANY chain length:
+`Φ(clearCascadeRun st chain stop) ≤ Φ(st) + 2`.  This is the CLRS per-op
+form's machine half; with `machineMarks_clearCascade_hmarks` the
+`decrease_amortized_clrs` ledger closes at `D0 + 3K + D1` per op,
+independent of the cascade length. -/
+theorem clearCascadeRun_potential (stop : ℕ) : ∀ (chain : List (ℕ × ℕ)) (s : HState),
+    MarkOK s → ClearChain s s.n chain →
+    machinePotential (clearCascadeRun s chain stop) ≤ machinePotential s + 2 := by
+  intro chain
+  induction chain with
+  | nil =>
+    intro s _hm _
+    have h2 := machineMarks_markState_le s stop
+    have hroots : (markState s stop).roots.length = s.roots.length := by
+      rw [markState_roots]
+    simp only [clearCascadeRun, machinePotential, hroots]
+    omega
+  | cons cell tail ih =>
+    intro s hm hcc
+    obtain ⟨y, z⟩ := cell
+    obtain ⟨hyN, hzN, hy1, hyz, hrest⟩ := hcc
+    have hrest' : ClearChain (clearPromoteState s y z)
+        (clearPromoteState s y z).n tail := by
+      rw [clearPromoteState_n]; exact hrest
+    have hm' : MarkOK (clearPromoteState s y z) := promoteClear_MarkOK s y z hm
+    have hcell := machinePotential_clearPromoteState_le s y z hyN hzN hm hy1 hyz
+    calc machinePotential (clearCascadeRun s ((y, z) :: tail) stop)
+        = machinePotential (clearCascadeRun (clearPromoteState s y z) tail stop) := rfl
+      _ ≤ machinePotential (clearPromoteState s y z) + 2 :=
+          ih (clearPromoteState s y z) hm' hrest'
+      _ ≤ machinePotential s + 2 := by omega
+
 /-! ## The consolidation measure -/
 
 /-- Distinct root degrees: after consolidation no two roots share a rank. -/
