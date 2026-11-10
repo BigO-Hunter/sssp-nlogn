@@ -1490,6 +1490,706 @@ theorem logPush_RelLog (reg : String) (stW : HState) (pending : List ℕ)
   · -- cost
     rw [cost_charge, cost_setW, cost_charge, cost_storeW]
 
+/-! ## The cut chain at variable level (`dkCut_runs`' scaffolding)
+
+The p2d draft measured the endgame fight: reads and decode congruences inlined
+as 10+-wrapper terms inside named-arg `by` blocks re-walk the whole nest on
+every defeq check (whnf timeouts at 8M heartbeats, `simp` maxRecDepth on the
+post-`rgt` chain).  The cure is the landed `decode_cutSplice` architecture at
+the read level too: name the chain stages (each stage carries the machine's
+exact charge structure — one `.charge 1` per `wstore`/`ite`/`skip` step), hoist
+every read and the three branch decode congruences to plain-`r` lemmas (one
+wrapper per peel), and let the receipt cite them in one line each.  The one
+genuine split — `rgt x` read through the fresh `rgt` store, where `x` may be
+the store's own target cell — is stated once per arm, not per use. -/
+
+/-- **The wrapper-list pass-through lemma.**  A read through a charged store
+list that never touches `(b, j)` is the pre-state read.  This is the general
+engine behind the cut chain's read congruences: the head stage applies it (a
+two-store list), the deeper stages peel one wrapper onto it. -/
+theorem wa_stores_pass (r : State V) (b : String) (j : ℕ) :
+    ∀ ps : List (String × ℕ × ℕ),
+      (∀ q ∈ ps, q.1 ≠ b ∨ q.2.1 ≠ j) →
+      (ps.foldl (fun s q => (s.storeW q.1 q.2.1 q.2.2).charge 1) r).wa b j = r.wa b j := by
+  intro ps
+  induction ps generalizing r with
+  | nil => intro _; rfl
+  | cons p ps ih =>
+    intro h
+    show (ps.foldl (fun s q => (s.storeW q.1 q.2.1 q.2.2).charge 1)
+        ((r.storeW p.1 p.2.1 p.2.2).charge 1)).wa b j = r.wa b j
+    rw [ih ((r.storeW p.1 p.2.1 p.2.2).charge 1) (fun q hq => h q (by simp [hq])),
+      wa_charge, wa_storeW]
+    exact if_neg (fun hh => Or.elim (h p (by simp)) (fun h1 => h1 hh.1.symm) (fun h2 => h2 hh.2.symm))
+
+/-- One store to a foreign cell passes a read through. -/
+theorem wa_storeW_pass (s : State V) (c : String) (k v : ℕ) (b : String) (j : ℕ)
+    (hne : c ≠ b ∨ j ≠ k) :
+    ((s.storeW c k v).charge 1).wa b j = s.wa b j := by
+  rw [wa_charge, wa_storeW]
+  exact if_neg (fun hh => Or.elim hne (fun h1 => h1 hh.1.symm) (fun h2 => h2 hh.2))
+
+/-- Reading an array cell through a store to the same array: the stored value
+at the stored index, the pre-read elsewhere. -/
+theorem wa_storeW_self (s : State V) (b : String) (k v j : ℕ) :
+    ((s.storeW b k v).charge 1).wa b j = if j = k then v else s.wa b j := by
+  rw [wa_charge, wa_storeW]
+  by_cases h : j = k <;> simp [h]
+
+/-- The head stage's store list never touches the read arrays (`"deg"`,
+`"chd"`, `"rgt"`, `"lft"`) — the wrapper-list lemma's pass hypothesis. -/
+theorem dkHead_pass {b : String} (hb : b ≠ "par" ∧ b ≠ "mrk") (x y j : ℕ) :
+    ∀ q ∈ [("par", x, 0), ("mrk", y, 1)], q.1 ≠ b ∨ q.2.1 ≠ j := by
+  intro q hq
+  simp only [List.mem_cons] at hq
+  rcases hq with rfl | hq
+  · exact Or.inl (Ne.symm hb.1)
+  · rcases hq with rfl | hq
+    · exact Or.inl (Ne.symm hb.2)
+    · exact absurd hq (by simp)
+
+/-- The cut's head stage: `par x := 0`, `mrk y := 1`, both charged — the state
+every branch test reads. -/
+def dkHeadC (r : State V) (x y : ℕ) : State V :=
+  ((r.storeW "par" x 0).charge 1).storeW "mrk" y 1 |>.charge 1
+
+/-- The TRUE arm's `chd y := 0` store, charged (the outer ite's charge plus the
+store's own) — the state the deg store reads. -/
+def dkTrueChd (r : State V) (x y : ℕ) : State V :=
+  ((dkHeadC r x y).charge 1).storeW "chd" y 0 |>.charge 1
+
+/-- The TRUE arm's full chain: head, `chd y := 0`, `deg y := deg y − 1`. -/
+def dkTrue (r : State V) (x y d : ℕ) : State V :=
+  (dkTrueChd r x y).storeW "deg" y d |>.charge 1
+
+/-- The FALSE arm's `chd y := v` store, charged (outer ite + inner ite + the
+store's own) — the state the relinks read (head-write arm). -/
+def dkChdC (r : State V) (x y v : ℕ) : State V :=
+  (((dkHeadC r x y).charge 1).charge 1).storeW "chd" y v |>.charge 1
+
+/-- The `rgt` relink charged (`rgt[lft x] := rgt x`) — the state the `lft`
+relink reads (head-write arm). -/
+def dkRgtC (r : State V) (x y v u w : ℕ) : State V :=
+  (dkChdC r x y v).storeW "rgt" u w |>.charge 1
+
+/-- The `lft` relink charged (`lft[rgt x] := lft x`) — the state the deg store
+reads (head-write arm). -/
+def dkLftC (r : State V) (x y v u w : ℕ) : State V :=
+  (dkRgtC r x y v u w).storeW "lft" w u |>.charge 1
+
+/-- The head-write arm's full chain: head, `chd`, both relinks, `deg`. -/
+def dkDegC (r : State V) (x y v u w d : ℕ) : State V :=
+  (dkLftC r x y v u w).storeW "deg" y d |>.charge 1
+
+/-- The skip arm's post-`skip` state (outer ite + inner ite + skip, all three
+charges) — the state the relinks read. -/
+def dkSkipC (r : State V) (x y : ℕ) : State V :=
+  ((dkHeadC r x y).charge 1).charge 1 |>.charge 1
+
+/-- The skip arm's `rgt` relink charged. -/
+def dkSkipRgtC (r : State V) (x y u w : ℕ) : State V :=
+  (dkSkipC r x y).storeW "rgt" u w |>.charge 1
+
+/-- The skip arm's `lft` relink charged. -/
+def dkSkipLftC (r : State V) (x y u w : ℕ) : State V :=
+  (dkSkipRgtC r x y u w).storeW "lft" w u |>.charge 1
+
+/-- The skip arm's full chain: head, skip, both relinks, `deg`. -/
+def dkSkipDegC (r : State V) (x y u w d : ℕ) : State V :=
+  (dkSkipLftC r x y u w).storeW "deg" y d |>.charge 1
+
+/-! ### The head stage's reads (the wrapper-list lemma at work) -/
+
+theorem dkHeadC_wa_deg (r : State V) (x y j : ℕ) :
+    (dkHeadC r x y).wa "deg" j = r.wa "deg" j := by
+  rw [show dkHeadC r x y
+      = [("par", x, 0), ("mrk", y, 1)].foldl (fun s q => (s.storeW q.1 q.2.1 q.2.2).charge 1) r
+      from rfl]
+  exact wa_stores_pass r "deg" j _ (dkHead_pass (by decide) x y j)
+
+theorem dkHeadC_wa_chd (r : State V) (x y j : ℕ) :
+    (dkHeadC r x y).wa "chd" j = r.wa "chd" j := by
+  rw [show dkHeadC r x y
+      = [("par", x, 0), ("mrk", y, 1)].foldl (fun s q => (s.storeW q.1 q.2.1 q.2.2).charge 1) r
+      from rfl]
+  exact wa_stores_pass r "chd" j _ (dkHead_pass (by decide) x y j)
+
+theorem dkHeadC_wa_rgt (r : State V) (x y j : ℕ) :
+    (dkHeadC r x y).wa "rgt" j = r.wa "rgt" j := by
+  rw [show dkHeadC r x y
+      = [("par", x, 0), ("mrk", y, 1)].foldl (fun s q => (s.storeW q.1 q.2.1 q.2.2).charge 1) r
+      from rfl]
+  exact wa_stores_pass r "rgt" j _ (dkHead_pass (by decide) x y j)
+
+theorem dkHeadC_wa_lft (r : State V) (x y j : ℕ) :
+    (dkHeadC r x y).wa "lft" j = r.wa "lft" j := by
+  rw [show dkHeadC r x y
+      = [("par", x, 0), ("mrk", y, 1)].foldl (fun s q => (s.storeW q.1 q.2.1 q.2.2).charge 1) r
+      from rfl]
+  exact wa_stores_pass r "lft" j _ (dkHead_pass (by decide) x y j)
+
+/-! ### Deeper-stage read congruences (one wrapper per peel) -/
+
+theorem dkTrueChd_wa_deg (r : State V) (x y j : ℕ) :
+    (dkTrueChd r x y).wa "deg" j = r.wa "deg" j := by
+  show ((((dkHeadC r x y).charge 1).storeW "chd" y 0).charge 1).wa "deg" j = r.wa "deg" j
+  rw [wa_storeW_pass ((dkHeadC r x y).charge 1) "chd" y 0 "deg" j
+    (Or.inl (by decide : ("chd" : String) ≠ "deg")), wa_charge]
+  exact dkHeadC_wa_deg r x y j
+
+theorem dkChdC_wa_rgt (r : State V) (x y v j : ℕ) :
+    (dkChdC r x y v).wa "rgt" j = r.wa "rgt" j := by
+  show (((((dkHeadC r x y).charge 1).charge 1).storeW "chd" y v).charge 1).wa "rgt" j
+      = r.wa "rgt" j
+  rw [wa_storeW_pass (((dkHeadC r x y).charge 1).charge 1) "chd" y v "rgt" j
+    (Or.inl (by decide : ("chd" : String) ≠ "rgt")),
+    wa_charge, wa_charge]
+  exact dkHeadC_wa_rgt r x y j
+
+theorem dkChdC_wa_lft (r : State V) (x y v j : ℕ) :
+    (dkChdC r x y v).wa "lft" j = r.wa "lft" j := by
+  show (((((dkHeadC r x y).charge 1).charge 1).storeW "chd" y v).charge 1).wa "lft" j
+      = r.wa "lft" j
+  rw [wa_storeW_pass (((dkHeadC r x y).charge 1).charge 1) "chd" y v "lft" j
+    (Or.inl (by decide : ("chd" : String) ≠ "lft")),
+    wa_charge, wa_charge]
+  exact dkHeadC_wa_lft r x y j
+
+theorem dkChdC_wa_deg (r : State V) (x y v j : ℕ) :
+    (dkChdC r x y v).wa "deg" j = r.wa "deg" j := by
+  show (((((dkHeadC r x y).charge 1).charge 1).storeW "chd" y v).charge 1).wa "deg" j
+      = r.wa "deg" j
+  rw [wa_storeW_pass (((dkHeadC r x y).charge 1).charge 1) "chd" y v "deg" j
+    (Or.inl (by decide : ("chd" : String) ≠ "deg")),
+    wa_charge, wa_charge]
+  exact dkHeadC_wa_deg r x y j
+
+/-- The genuine split, head-write arm: `rgt x` read through the fresh `rgt`
+store — the stored value when `x` is the store's own target, the pre-read
+otherwise (stated once; the draft's hand-counted `if_pos`/`if_neg` chain). -/
+theorem dkRgtC_wa_rgt_x (r : State V) (x y v u w : ℕ) :
+    (dkRgtC r x y v u w).wa "rgt" x = if x = u then w else r.wa "rgt" x := by
+  show ((((dkChdC r x y v).storeW "rgt" u w).charge 1)).wa "rgt" x
+      = if x = u then w else r.wa "rgt" x
+  rw [wa_storeW_self (dkChdC r x y v) "rgt" u w x, dkChdC_wa_rgt]
+
+theorem dkRgtC_wa_lft (r : State V) (x y v u w j : ℕ) :
+    (dkRgtC r x y v u w).wa "lft" j = r.wa "lft" j := by
+  show ((((dkChdC r x y v).storeW "rgt" u w).charge 1)).wa "lft" j = r.wa "lft" j
+  rw [wa_storeW_pass (dkChdC r x y v) "rgt" u w "lft" j
+    (Or.inl (by decide : ("rgt" : String) ≠ "lft")), dkChdC_wa_lft]
+
+theorem dkRgtC_wa_deg (r : State V) (x y v u w j : ℕ) :
+    (dkRgtC r x y v u w).wa "deg" j = r.wa "deg" j := by
+  show ((((dkChdC r x y v).storeW "rgt" u w).charge 1)).wa "deg" j = r.wa "deg" j
+  rw [wa_storeW_pass (dkChdC r x y v) "rgt" u w "deg" j
+    (Or.inl (by decide : ("rgt" : String) ≠ "deg")), dkChdC_wa_deg]
+
+theorem dkLftC_wa_deg (r : State V) (x y v u w j : ℕ) :
+    (dkLftC r x y v u w).wa "deg" j = r.wa "deg" j := by
+  show ((((dkRgtC r x y v u w).storeW "lft" w u).charge 1)).wa "deg" j = r.wa "deg" j
+  rw [wa_storeW_pass (dkRgtC r x y v u w) "lft" w u "deg" j
+    (Or.inl (by decide : ("lft" : String) ≠ "deg")), dkRgtC_wa_deg]
+
+theorem dkSkipC_wa_rgt (r : State V) (x y j : ℕ) :
+    (dkSkipC r x y).wa "rgt" j = r.wa "rgt" j := by
+  show ((((dkHeadC r x y).charge 1).charge 1).charge 1).wa "rgt" j = r.wa "rgt" j
+  rw [wa_charge, wa_charge, wa_charge]
+  exact dkHeadC_wa_rgt r x y j
+
+theorem dkSkipC_wa_lft (r : State V) (x y j : ℕ) :
+    (dkSkipC r x y).wa "lft" j = r.wa "lft" j := by
+  show ((((dkHeadC r x y).charge 1).charge 1).charge 1).wa "lft" j = r.wa "lft" j
+  rw [wa_charge, wa_charge, wa_charge]
+  exact dkHeadC_wa_lft r x y j
+
+theorem dkSkipC_wa_deg (r : State V) (x y j : ℕ) :
+    (dkSkipC r x y).wa "deg" j = r.wa "deg" j := by
+  show ((((dkHeadC r x y).charge 1).charge 1).charge 1).wa "deg" j = r.wa "deg" j
+  rw [wa_charge, wa_charge, wa_charge]
+  exact dkHeadC_wa_deg r x y j
+
+/-- The genuine split, skip arm: `rgt x` read through the fresh `rgt` store. -/
+theorem dkSkipRgtC_wa_rgt_x (r : State V) (x y u w : ℕ) :
+    (dkSkipRgtC r x y u w).wa "rgt" x = if x = u then w else r.wa "rgt" x := by
+  show ((((dkSkipC r x y).storeW "rgt" u w).charge 1)).wa "rgt" x
+      = if x = u then w else r.wa "rgt" x
+  rw [wa_storeW_self (dkSkipC r x y) "rgt" u w x, dkSkipC_wa_rgt]
+
+theorem dkSkipRgtC_wa_lft (r : State V) (x y u w j : ℕ) :
+    (dkSkipRgtC r x y u w).wa "lft" j = r.wa "lft" j := by
+  show ((((dkSkipC r x y).storeW "rgt" u w).charge 1)).wa "lft" j = r.wa "lft" j
+  rw [wa_storeW_pass (dkSkipC r x y) "rgt" u w "lft" j
+    (Or.inl (by decide : ("rgt" : String) ≠ "lft")), dkSkipC_wa_lft]
+
+theorem dkSkipRgtC_wa_deg (r : State V) (x y u w j : ℕ) :
+    (dkSkipRgtC r x y u w).wa "deg" j = r.wa "deg" j := by
+  show ((((dkSkipC r x y).storeW "rgt" u w).charge 1)).wa "deg" j = r.wa "deg" j
+  rw [wa_storeW_pass (dkSkipC r x y) "rgt" u w "deg" j
+    (Or.inl (by decide : ("rgt" : String) ≠ "deg")), dkSkipC_wa_deg]
+
+theorem dkSkipLftC_wa_deg (r : State V) (x y u w j : ℕ) :
+    (dkSkipLftC r x y u w).wa "deg" j = r.wa "deg" j := by
+  show ((((dkSkipRgtC r x y u w).storeW "lft" w u).charge 1)).wa "deg" j = r.wa "deg" j
+  rw [wa_storeW_pass (dkSkipRgtC r x y u w) "lft" w u "deg" j
+    (Or.inl (by decide : ("lft" : String) ≠ "deg")), dkSkipRgtC_wa_deg]
+
+/-! ### The stage reads as `evalW` facts (ready-made `runs_wstore` arguments)
+
+Each is a one-line citation in the receipt; the state in the statement is
+exactly the state the corresponding `runs_wstore` step sits at. -/
+
+theorem dkHeadC_load_deg {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hy : r.w "y" = y) (hyd : y < r.wlen "deg") :
+    evalW (dkHeadC r x y) (load "deg" (var "y")) = some (stW.deg y) := by
+  rw [evalW_load_of (j := y) (by simp only [dkHeadC, evalW_var, w_charge, w_storeW, hy])
+    (by simp only [dkHeadC, wlen_charge, wlen_storeW]; exact hyd), dkHeadC_wa_deg]
+  exact congrArg some (wa_deg_of_rel hR y)
+
+theorem dkHeadC_load_chd {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hy : r.w "y" = y) (hyc : y < r.wlen "chd") :
+    evalW (dkHeadC r x y) (load "chd" (var "y")) = some (stW.chd y) := by
+  rw [evalW_load_of (j := y) (by simp only [dkHeadC, evalW_var, w_charge, w_storeW, hy])
+    (by simp only [dkHeadC, wlen_charge, wlen_storeW]; exact hyc), dkHeadC_wa_chd]
+  exact congrArg some (wa_chd_of_rel hR y)
+
+theorem dkHeadC_load_rgt {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hx : r.w "x" = x) (hxr : x < r.wlen "rgt") :
+    evalW (dkHeadC r x y) (load "rgt" (var "x")) = some (stW.rgt x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkHeadC, wlen_charge, wlen_storeW]; exact hxr), dkHeadC_wa_rgt]
+  exact congrArg some (wa_rgt_of_rel hR x)
+
+theorem dkHeadC_load_lft {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hx : r.w "x" = x) (hxl : x < r.wlen "lft") :
+    evalW (dkHeadC r x y) (load "lft" (var "x")) = some (stW.lft x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkHeadC, wlen_charge, wlen_storeW]; exact hxl), dkHeadC_wa_lft]
+  exact congrArg some (wa_lft_of_rel hR x)
+
+theorem dkTrueChd_load_deg {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hy : r.w "y" = y) (hyd : y < r.wlen "deg") :
+    evalW (dkTrueChd r x y) (load "deg" (var "y")) = some (stW.deg y) := by
+  rw [evalW_load_of (j := y) (by simp only [dkTrueChd, dkHeadC, evalW_var, w_charge, w_storeW, hy])
+    (by simp only [dkTrueChd, dkHeadC, wlen_charge, wlen_storeW]; exact hyd), dkTrueChd_wa_deg]
+  exact congrArg some (wa_deg_of_rel hR y)
+
+theorem dkChdC_load_rgt {stW : HState} {r : State V} (hR : Rel stW r) (x y v : ℕ)
+    (hx : r.w "x" = x) (hxr : x < r.wlen "rgt") :
+    evalW (dkChdC r x y v) (load "rgt" (var "x")) = some (stW.rgt x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkChdC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkChdC, dkHeadC, wlen_charge, wlen_storeW]; exact hxr), dkChdC_wa_rgt]
+  exact congrArg some (wa_rgt_of_rel hR x)
+
+theorem dkChdC_load_lft {stW : HState} {r : State V} (hR : Rel stW r) (x y v : ℕ)
+    (hx : r.w "x" = x) (hxl : x < r.wlen "lft") :
+    evalW (dkChdC r x y v) (load "lft" (var "x")) = some (stW.lft x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkChdC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkChdC, dkHeadC, wlen_charge, wlen_storeW]; exact hxl), dkChdC_wa_lft]
+  exact congrArg some (wa_lft_of_rel hR x)
+
+/-- The head-write arm's `lft`-relink index read: `rgt x` through the fresh
+`rgt` store — the split, resolved once here. -/
+theorem dkRgtC_load_rgt_x {stW : HState} {r : State V} (hR : Rel stW r) (x y v : ℕ)
+    (hx : r.w "x" = x) (hxr : x < r.wlen "rgt") :
+    evalW (dkRgtC r x y v (stW.lft x) (stW.rgt x)) (load "rgt" (var "x"))
+      = some (stW.rgt x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkRgtC, dkChdC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkRgtC, dkChdC, dkHeadC, wlen_charge, wlen_storeW]; exact hxr), dkRgtC_wa_rgt_x]
+  by_cases hx2 : x = stW.lft x
+  · rw [if_pos hx2]
+  · rw [if_neg hx2]
+    exact congrArg some (wa_rgt_of_rel hR x)
+
+theorem dkRgtC_load_lft_x {stW : HState} {r : State V} (hR : Rel stW r) (x y v : ℕ)
+    (hx : r.w "x" = x) (hxl : x < r.wlen "lft") :
+    evalW (dkRgtC r x y v (stW.lft x) (stW.rgt x)) (load "lft" (var "x"))
+      = some (stW.lft x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkRgtC, dkChdC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkRgtC, dkChdC, dkHeadC, wlen_charge, wlen_storeW]; exact hxl), dkRgtC_wa_lft]
+  exact congrArg some (wa_lft_of_rel hR x)
+
+theorem dkLftC_load_deg {stW : HState} {r : State V} (hR : Rel stW r) (x y v : ℕ)
+    (hy : r.w "y" = y) (hyd : y < r.wlen "deg") :
+    evalW (dkLftC r x y v (stW.lft x) (stW.rgt x)) (load "deg" (var "y"))
+      = some (stW.deg y) := by
+  rw [evalW_load_of (j := y) (by simp only [dkLftC, dkRgtC, dkChdC, dkHeadC, evalW_var, w_charge, w_storeW, hy])
+    (by simp only [dkLftC, dkRgtC, dkChdC, dkHeadC, wlen_charge, wlen_storeW]; exact hyd), dkLftC_wa_deg]
+  exact congrArg some (wa_deg_of_rel hR y)
+
+theorem dkSkipC_load_rgt {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hx : r.w "x" = x) (hxr : x < r.wlen "rgt") :
+    evalW (dkSkipC r x y) (load "rgt" (var "x")) = some (stW.rgt x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkSkipC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkSkipC, dkHeadC, wlen_charge, wlen_storeW]; exact hxr), dkSkipC_wa_rgt]
+  exact congrArg some (wa_rgt_of_rel hR x)
+
+theorem dkSkipC_load_lft {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hx : r.w "x" = x) (hxl : x < r.wlen "lft") :
+    evalW (dkSkipC r x y) (load "lft" (var "x")) = some (stW.lft x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkSkipC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkSkipC, dkHeadC, wlen_charge, wlen_storeW]; exact hxl), dkSkipC_wa_lft]
+  exact congrArg some (wa_lft_of_rel hR x)
+
+/-- The skip arm's `lft`-relink index read: `rgt x` through the fresh `rgt`
+store — the split, resolved once here. -/
+theorem dkSkipRgtC_load_rgt_x {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hx : r.w "x" = x) (hxr : x < r.wlen "rgt") :
+    evalW (dkSkipRgtC r x y (stW.lft x) (stW.rgt x)) (load "rgt" (var "x"))
+      = some (stW.rgt x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkSkipRgtC, dkSkipC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkSkipRgtC, dkSkipC, dkHeadC, wlen_charge, wlen_storeW]; exact hxr), dkSkipRgtC_wa_rgt_x]
+  by_cases hx2 : x = stW.lft x
+  · rw [if_pos hx2]
+  · rw [if_neg hx2]
+    exact congrArg some (wa_rgt_of_rel hR x)
+
+theorem dkSkipRgtC_load_lft_x {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hx : r.w "x" = x) (hxl : x < r.wlen "lft") :
+    evalW (dkSkipRgtC r x y (stW.lft x) (stW.rgt x)) (load "lft" (var "x"))
+      = some (stW.lft x) := by
+  rw [evalW_load_of (j := x) (by simp only [dkSkipRgtC, dkSkipC, dkHeadC, evalW_var, w_charge, w_storeW, hx])
+    (by simp only [dkSkipRgtC, dkSkipC, dkHeadC, wlen_charge, wlen_storeW]; exact hxl), dkSkipRgtC_wa_lft]
+  exact congrArg some (wa_lft_of_rel hR x)
+
+theorem dkSkipLftC_load_deg {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hy : r.w "y" = y) (hyd : y < r.wlen "deg") :
+    evalW (dkSkipLftC r x y (stW.lft x) (stW.rgt x)) (load "deg" (var "y"))
+      = some (stW.deg y) := by
+  rw [evalW_load_of (j := y) (by simp only [dkSkipLftC, dkSkipRgtC, dkSkipC, dkHeadC, evalW_var, w_charge, w_storeW, hy])
+    (by simp only [dkSkipLftC, dkSkipRgtC, dkSkipC, dkHeadC, wlen_charge, wlen_storeW]; exact hyd), dkSkipLftC_wa_deg]
+  exact congrArg some (wa_deg_of_rel hR y)
+
+/-! ### The branch tests (ready-made `runs_ite` arguments) -/
+
+/-- The outer branch test reads the pre-store `deg y` through the head. -/
+theorem dkHeadC_test_deg {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hy : r.w "y" = y) (hyd : y < r.wlen "deg") (hcap0 : 1 < r.cap) :
+    evalW (dkHeadC r x y) (eq (load "deg" (var "y")) (lit 1))
+      = some (if stW.deg y = 1 then 1 else 0) :=
+  evalW_eq_of (dkHeadC_load_deg hR x y hy hyd)
+    (evalW_lit_of (by simp only [dkHeadC, cap_charge, cap_storeW]; omega))
+    (by simp only [dkHeadC, cap_charge, cap_storeW]; exact hcap0)
+
+/-- The inner branch test reads the pre-store `chd y` and the register `x`. -/
+theorem dkHeadC_test_chd {stW : HState} {r : State V} (hR : Rel stW r) (x y : ℕ)
+    (hy : r.w "y" = y) (hx : r.w "x" = x) (hyc : y < r.wlen "chd") (hcap0 : 1 < r.cap) :
+    evalW (dkHeadC r x y) (eq (load "chd" (var "y")) (var "x"))
+      = some (if stW.chd y = x then 1 else 0) :=
+  evalW_eq_of (dkHeadC_load_chd hR x y hy hyc) (congrArg some hx)
+    (by simp only [dkHeadC, cap_charge, cap_storeW]; exact hcap0)
+
+/-! ### The branch decode congruences (step-wise, the `decode_twoStore_clear`
+pattern: peel the charges and stores one `decode_*` lemma at a time, then the
+field-wise finisher) -/
+
+/-- **The TRUE branch's step congruence** — the decode lands exactly at the
+window frame `cutPend`. -/
+theorem decode_dkChain_true {stW : HState} {r : State V} (hR : Rel stW r) (x y d : ℕ)
+    (hd : d = stW.deg y - 1) (h1 : stW.deg y = 1) :
+    decode (dkTrue r x y d) = cutPend stW x y := by
+  subst hd
+  have hdeq : stW = decode r := hR.symm
+  subst hdeq
+  have h1' : r.wa "deg" y = 1 := h1
+  simp only [dkTrue, dkTrueChd, dkHeadC]
+  rw [decode_charge, decode_storeW_deg, decode_charge, decode_storeW_chd,
+    decode_charge, decode_charge, decode_storeW_mrk, decode_charge,
+    decode_storeW_par, cutPend, cutState]
+  simp [HState.mk.injEq, degUpd_eq, h1']
+  all_goals first
+    | rfl
+    | (funext i; by_cases h : i = y <;> simp [h, h1'])
+
+/-- **The FALSE_ONE branch's step congruence** (`deg y ≥ 2`, `chd y = x` — the
+head-write arm). -/
+theorem decode_dkChain_false_one {stW : HState} {r : State V} (hR : Rel stW r)
+    (x y v u w d : ℕ) (hv : v = stW.rgt x) (hu : u = stW.lft x) (hw : w = stW.rgt x)
+    (hd : d = stW.deg y - 1) (h1 : stW.deg y ≠ 1) (h2 : stW.chd y = x) :
+    decode (dkDegC r x y v u w d) = cutPend stW x y := by
+  subst hv; subst hu; subst hw; subst hd
+  have hdeq : stW = decode r := hR.symm
+  subst hdeq
+  have h1' : r.wa "deg" y ≠ 1 := h1
+  have h2' : r.wa "chd" y = x := h2
+  simp only [dkDegC, dkLftC, dkRgtC, dkChdC, dkHeadC]
+  rw [decode_charge, decode_storeW_deg, decode_charge, decode_storeW_lft,
+    decode_charge, decode_storeW_rgt, decode_charge, decode_storeW_chd,
+    decode_charge, decode_charge, decode_charge, decode_storeW_mrk,
+    decode_charge, decode_storeW_par, cutPend, cutState]
+  simp [HState.mk.injEq, degUpd_eq, h1', h2']
+  all_goals first
+    | rfl
+    | (funext i; by_cases h : i = y <;> simp [h, h1', h2'])
+
+/-- **The FALSE_TWO branch's step congruence** (`deg y ≥ 2`, `chd y ≠ x` — the
+skip arm). -/
+theorem decode_dkChain_false_two {stW : HState} {r : State V} (hR : Rel stW r)
+    (x y u w d : ℕ) (hu : u = stW.lft x) (hw : w = stW.rgt x)
+    (hd : d = stW.deg y - 1) (h1 : stW.deg y ≠ 1) (h2 : stW.chd y ≠ x) :
+    decode (dkSkipDegC r x y u w d) = cutPend stW x y := by
+  subst hu; subst hw; subst hd
+  have hdeq : stW = decode r := hR.symm
+  subst hdeq
+  have h1' : r.wa "deg" y ≠ 1 := h1
+  have h2' : r.wa "chd" y ≠ x := h2
+  simp only [dkSkipDegC, dkSkipLftC, dkSkipRgtC, dkSkipC, dkHeadC]
+  rw [decode_charge, decode_storeW_deg, decode_charge, decode_storeW_lft,
+    decode_charge, decode_storeW_rgt, decode_charge, decode_charge,
+    decode_charge, decode_charge, decode_storeW_mrk, decode_charge,
+    decode_storeW_par, cutPend, cutState]
+  simp [HState.mk.injEq, degUpd_eq, h1', h2']
+  all_goals first
+    | rfl
+    | (funext i; by_cases h : i = y <;> simp [h, h1', h2'])
+
+/-! ### The branch log congruences -/
+
+theorem logOf_dkTrue (r : State V) (x y d : ℕ) : logOf (dkTrue r x y d) = logOf r := by
+  simp only [dkTrue, dkTrueChd, dkHeadC, logOf_storeW (b := "deg") (by decide),
+    logOf_storeW (b := "chd") (by decide), logOf_storeW (b := "mrk") (by decide),
+    logOf_storeW (b := "par") (by decide), logOf_charge]
+
+theorem logOf_dkDegC (r : State V) (x y v u w d : ℕ) :
+    logOf (dkDegC r x y v u w d) = logOf r := by
+  simp only [dkDegC, dkLftC, dkRgtC, dkChdC, dkHeadC,
+    logOf_storeW (b := "deg") (by decide), logOf_storeW (b := "lft") (by decide),
+    logOf_storeW (b := "rgt") (by decide), logOf_storeW (b := "chd") (by decide),
+    logOf_storeW (b := "mrk") (by decide), logOf_storeW (b := "par") (by decide),
+    logOf_charge]
+
+theorem logOf_dkSkipDegC (r : State V) (x y u w d : ℕ) :
+    logOf (dkSkipDegC r x y u w d) = logOf r := by
+  simp only [dkSkipDegC, dkSkipLftC, dkSkipRgtC, dkSkipC, dkHeadC,
+    logOf_storeW (b := "deg") (by decide), logOf_storeW (b := "lft") (by decide),
+    logOf_storeW (b := "rgt") (by decide), logOf_storeW (b := "mrk") (by decide),
+    logOf_storeW (b := "par") (by decide), logOf_charge]
+
+set_option maxHeartbeats 10000000 in
+/-- **The cut op's `Runs` receipt.**  The store chain's eval facts ride the
+`wa_*_of_rel` readers through the hoisted variable-level stage lemmas (one
+line each), the decode bridges by the hoisted `decode_dkChain_*` congruences,
+and the append rides `logPush_RelLog`.  Cost `≤ 10` (7 in the `deg y = 1`
+branch, 8 in the head-write arm, 10 in the skip arm). -/
+theorem dkCut_runs (stW : HState) (pending : List ℕ) (x y : ℕ) (r : State ℝ≥0)
+    (hR : RelLog stW pending r)
+    (hx : r.w "x" = x) (hy : r.w "y" = y)
+    (hxp : x < r.wlen "par") (hyp : y < r.wlen "par") (hym : y < r.wlen "mrk")
+    (hyc : y < r.wlen "chd") (hyd : y < r.wlen "deg")
+    (hxr : x < r.wlen "rgt") (hxl : x < r.wlen "lft")
+    (hlf : r.wa "lft" x < r.wlen "rgt") (hrg : r.wa "rgt" x < r.wlen "lft")
+    (hcap0 : 1 < r.cap) (hcapE : r.w "e" + 1 < r.cap) (hb : r.w "e" < r.wlen "elog") :
+    Runs realOps dkCut r (fun r' =>
+      RelLog (cutPend stW x y) (pending ++ [x]) r' ∧ r'.cost ≤ r.cost + 10) := by
+  unfold dkCut
+  by_cases h1 : stW.deg y = 1
+  · -- the `deg y = 1` branch: par, mrk, chd y := 0, deg, logPush — cost 7
+    refine runs_seq (runs_wstore (j := x) (a := 0)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hx])
+      (he := evalW_lit_of (by omega)) (hj := hxp) ?_)
+    refine runs_seq (runs_wstore (j := y) (a := 1)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hym) ?_)
+    have hc1 : evalW (dkHeadC r x y) (eq (load "deg" (var "y")) (lit 1)) = some 1 := by
+      rw [dkHeadC_test_deg hR.1 x y hy hyd hcap0, if_pos h1]
+    refine runs_seq (runs_ite_true hc1 (by decide) ?_)
+    refine runs_wstore (j := y) (a := 0)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hyc) ?_
+    have hEd1 : evalW (dkTrueChd r x y) (load "deg" (var "y")) = some (stW.deg y) :=
+      dkTrueChd_load_deg hR.1 x y hy hyd
+    refine runs_seq (runs_wstore (j := y) (a := stW.deg y - 1)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_sub_of hEd1
+        (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega)))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hyd) ?_)
+    refine Runs.mono (logPush_RelLog "x" (cutPend stW x y) pending _ (r.w "e")
+      ?hR hcap0 hcapE ?he ?hb) ?post
+    · -- hR: the chain peels in place (decode_twoStore_clear's pattern, in
+      -- situ — no state-defeq bridge: every rw matches the raw nest
+      -- syntactically)
+      refine ⟨?_, ?_⟩
+      · simp only [FibHeapDecode.Rel]
+        rw [decode_charge, decode_storeW_deg, decode_charge, decode_storeW_chd,
+          decode_charge, decode_charge, decode_storeW_mrk, decode_charge,
+          decode_storeW_par, cutPend, cutState]
+        rw [if_pos h1, HState.mk.injEq]
+        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · funext i; by_cases h : i = x <;> simp [h, wa_par_of_rel hR.1]
+        · funext i; by_cases h : i = y <;> simp [h, wa_mrk_of_rel hR.1]
+        · funext i; by_cases h : i = y <;> simp [h, wa_deg_of_rel hR.1]
+        · funext i; by_cases h : i = y <;> simp [h, wa_chd_of_rel hR.1]
+        · exact congrArg HState.rgt hR.1
+        · exact congrArg HState.lft hR.1
+        · exact congrArg HState.roots hR.1
+        · exact congrArg HState.n hR.1
+      · simp only [logOf_storeW (b := "deg") (by decide),
+          logOf_storeW (b := "chd") (by decide), logOf_storeW (b := "mrk") (by decide),
+          logOf_storeW (b := "par") (by decide), logOf_charge]
+        exact hR.2
+    · simp only [w_charge, w_storeW]
+    · simp only [wlen_charge, wlen_storeW]; exact hb
+    rintro r'' ⟨hrel, hcost⟩
+    obtain ⟨hdec, hlog⟩ := hrel
+    refine ⟨?_, ?_⟩
+    · refine ⟨hdec, ?_⟩
+      rw [hlog]
+      simp only [w_charge, w_storeW, hx]
+    · simp only [cost_storeW, cost_charge] at hcost
+      omega
+  · -- the `deg y ≥ 2` branch
+    refine runs_seq (runs_wstore (j := x) (a := 0)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hx])
+      (he := evalW_lit_of (by omega)) (hj := hxp) ?_)
+    refine runs_seq (runs_wstore (j := y) (a := 1)
+      (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+      (he := evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega))
+      (hj := by simp only [wlen_charge, wlen_storeW]; exact hym) ?_)
+    have hc1 : evalW (dkHeadC r x y) (eq (load "deg" (var "y")) (lit 1)) = some 0 := by
+      rw [dkHeadC_test_deg hR.1 x y hy hyd hcap0, if_neg h1]
+    refine runs_seq (runs_ite_false hc1 ?_)
+    by_cases h2 : stW.chd y = x
+    · -- inner then-arm: the head write — cost 8
+      have hc2 : evalW ((dkHeadC r x y).charge 1)
+          (eq (load "chd" (var "y")) (var "x")) = some 1 := by
+        rw [evalW_charge, dkHeadC_test_chd hR.1 x y hy hx hyc hcap0, if_pos h2]
+      refine runs_seq (runs_ite_true hc2 (by decide) ?_)
+      -- the chd store reads its value `rgt x` through the head stage
+      refine runs_wstore (j := y) (a := stW.rgt x)
+        (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+        (he := by exact dkHeadC_load_rgt hR.1 x y hx hxr)
+        (hj := by simp only [wlen_charge, wlen_storeW]; exact hyc) ?_
+      -- the relinks run in BOTH inner arms (the outer else is
+      -- .seq (inner ite) (.seq rgt lft)); the rgt relink's index/value reads
+      -- pass the chd store
+      have hElf2t : evalW (dkChdC r x y (stW.rgt x)) (load "lft" (var "x"))
+          = some (stW.lft x) := dkChdC_load_lft hR.1 x y (stW.rgt x) hx hxl
+      have hErg2t : evalW (dkChdC r x y (stW.rgt x)) (load "rgt" (var "x"))
+          = some (stW.rgt x) := dkChdC_load_rgt hR.1 x y (stW.rgt x) hx hxr
+      refine runs_seq (runs_wstore (j := stW.lft x) (a := stW.rgt x)
+        (hi := hElf2t) (he := hErg2t)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_lft_of_rel hR.1 x]; exact hlf) ?_)
+      -- the lft relink: index `rgt x` read AFTER the rgt store (the split),
+      -- value `lft x` passing through
+      have hErg2u : evalW (dkRgtC r x y (stW.rgt x) (stW.lft x) (stW.rgt x))
+          (load "rgt" (var "x")) = some (stW.rgt x) :=
+        dkRgtC_load_rgt_x hR.1 x y (stW.rgt x) hx hxr
+      have hElf2u : evalW (dkRgtC r x y (stW.rgt x) (stW.lft x) (stW.rgt x))
+          (load "lft" (var "x")) = some (stW.lft x) :=
+        dkRgtC_load_lft_x hR.1 x y (stW.rgt x) hx hxl
+      refine runs_wstore (j := stW.rgt x) (a := stW.lft x)
+        (hi := hErg2u) (he := hElf2u)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_rgt_of_rel hR.1 x]; exact hrg) ?_
+      have hEd2 : evalW (dkLftC r x y (stW.rgt x) (stW.lft x) (stW.rgt x))
+          (load "deg" (var "y")) = some (stW.deg y) :=
+        dkLftC_load_deg hR.1 x y (stW.rgt x) hy hyd
+      refine runs_seq (runs_wstore (j := y) (a := stW.deg y - 1)
+        (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+        (he := evalW_sub_of hEd2
+          (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega)))
+        (hj := by simp only [wlen_charge, wlen_storeW]; exact hyd) ?_)
+      refine Runs.mono (logPush_RelLog "x" (cutPend stW x y) pending _ (r.w "e")
+        ?hR hcap0 hcapE ?he ?hb) ?post
+      · -- hR: the chain peels in place
+        refine ⟨?_, ?_⟩
+        · simp only [FibHeapDecode.Rel]
+          rw [decode_charge, decode_storeW_deg, decode_charge, decode_storeW_lft,
+            decode_charge, decode_storeW_rgt, decode_charge, decode_storeW_chd,
+            decode_charge, decode_charge, decode_charge, decode_storeW_mrk,
+            decode_charge, decode_storeW_par, cutPend, cutState, if_neg h1,
+            if_pos h2, HState.mk.injEq]
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          · funext i; by_cases h : i = x <;> simp [h, wa_par_of_rel hR.1]
+          · funext i; by_cases h : i = y <;> simp [h, wa_mrk_of_rel hR.1]
+          · funext i; by_cases h : i = y <;> simp [h, wa_deg_of_rel hR.1]
+          · funext i; by_cases h : i = y <;> simp [h, wa_chd_of_rel hR.1]
+          · funext i; by_cases h : i = stW.lft x <;> simp [h, wa_rgt_of_rel hR.1]
+          · funext i; by_cases h : i = stW.rgt x <;> simp [h, wa_lft_of_rel hR.1]
+          · exact congrArg HState.roots hR.1
+          · exact congrArg HState.n hR.1
+        · simp only [logOf_storeW (b := "deg") (by decide),
+            logOf_storeW (b := "lft") (by decide), logOf_storeW (b := "rgt") (by decide),
+            logOf_storeW (b := "chd") (by decide), logOf_storeW (b := "mrk") (by decide),
+            logOf_storeW (b := "par") (by decide), logOf_charge]
+          exact hR.2
+      · simp only [w_charge, w_storeW]
+      · simp only [wlen_charge, wlen_storeW]; exact hb
+      rintro r'' ⟨hrel, hcost⟩
+      obtain ⟨hdec, hlog⟩ := hrel
+      refine ⟨?_, ?_⟩
+      · refine ⟨hdec, ?_⟩
+        rw [hlog]
+        simp only [w_charge, w_storeW, hx]
+      · simp only [cost_storeW, cost_charge] at hcost
+        omega
+    · -- inner else-arm: skip + both relinks — cost 10
+      have hc2 : evalW ((dkHeadC r x y).charge 1)
+          (eq (load "chd" (var "y")) (var "x")) = some 0 := by
+        rw [evalW_charge, dkHeadC_test_chd hR.1 x y hy hx hyc hcap0, if_neg h2]
+      refine runs_seq (runs_ite_false hc2 ?_)
+      refine runs_skip ?_
+      -- the rgt relink: index `lft x`, value `rgt x`, both pre-state reads
+      have hlftS : evalW (dkSkipC r x y) (load "lft" (var "x")) = some (stW.lft x) :=
+        dkSkipC_load_lft hR.1 x y hx hxl
+      have hrgtS : evalW (dkSkipC r x y) (load "rgt" (var "x")) = some (stW.rgt x) :=
+        dkSkipC_load_rgt hR.1 x y hx hxr
+      refine runs_seq (runs_wstore (j := stW.lft x) (a := stW.rgt x)
+        (hi := hlftS) (he := hrgtS)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_lft_of_rel hR.1 x]; exact hlf) ?_)
+      -- the lft relink: index `rgt x` read AFTER the rgt store (the split),
+      -- value `lft x` passing through
+      have hrgtU : evalW (dkSkipRgtC r x y (stW.lft x) (stW.rgt x)) (load "rgt" (var "x"))
+          = some (stW.rgt x) := dkSkipRgtC_load_rgt_x hR.1 x y hx hxr
+      have hlftU : evalW (dkSkipRgtC r x y (stW.lft x) (stW.rgt x)) (load "lft" (var "x"))
+          = some (stW.lft x) := dkSkipRgtC_load_lft_x hR.1 x y hx hxl
+      refine runs_seq (runs_wstore (j := stW.rgt x) (a := stW.lft x)
+        (hi := hrgtU) (he := hlftU)
+        (hj := by simp only [wlen_charge, wlen_storeW]; rw [← wa_rgt_of_rel hR.1 x]; exact hrg) ?_)
+      have hEd3 : evalW (dkSkipLftC r x y (stW.lft x) (stW.rgt x)) (load "deg" (var "y"))
+          = some (stW.deg y) := dkSkipLftC_load_deg hR.1 x y hy hyd
+      refine runs_seq (runs_wstore (j := y) (a := stW.deg y - 1)
+        (hi := by simp only [evalW_var, w_charge, w_storeW, hy])
+        (he := evalW_sub_of hEd3
+          (evalW_lit_of (by simp only [cap_charge, cap_storeW]; omega)))
+        (hj := by simp only [wlen_charge, wlen_storeW]; exact hyd) ?_)
+      refine Runs.mono (logPush_RelLog "x" (cutPend stW x y) pending _ (r.w "e")
+        ?hR hcap0 hcapE ?he ?hb) ?post
+      · -- hR: the chain peels in place
+        refine ⟨?_, ?_⟩
+        · simp only [FibHeapDecode.Rel]
+          rw [decode_charge, decode_storeW_deg, decode_charge, decode_storeW_lft,
+            decode_charge, decode_storeW_rgt, decode_charge, decode_charge,
+            decode_charge, decode_charge, decode_storeW_mrk, decode_charge,
+            decode_storeW_par, cutPend, cutState, if_neg h1, if_neg h2,
+            HState.mk.injEq]
+          refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+          · funext i; by_cases h : i = x <;> simp [h, wa_par_of_rel hR.1]
+          · funext i; by_cases h : i = y <;> simp [h, wa_mrk_of_rel hR.1]
+          · funext i; by_cases h : i = y <;> simp [h, wa_deg_of_rel hR.1]
+          · funext i; by_cases h : i = y <;> simp [h, wa_chd_of_rel hR.1]
+          · funext i; by_cases h : i = stW.lft x <;> simp [h, wa_rgt_of_rel hR.1]
+          · funext i; by_cases h : i = stW.rgt x <;> simp [h, wa_lft_of_rel hR.1]
+          · exact congrArg HState.roots hR.1
+          · exact congrArg HState.n hR.1
+        · simp only [logOf_storeW (b := "deg") (by decide),
+            logOf_storeW (b := "lft") (by decide), logOf_storeW (b := "rgt") (by decide),
+            logOf_storeW (b := "mrk") (by decide), logOf_storeW (b := "par") (by decide),
+            logOf_charge]
+          exact hR.2
+      · simp only [w_charge, w_storeW]
+      · simp only [wlen_charge, wlen_storeW]; exact hb
+      rintro r'' ⟨hrel, hcost⟩
+      obtain ⟨hdec, hlog⟩ := hrel
+      refine ⟨?_, ?_⟩
+      · refine ⟨hdec, ?_⟩
+        rw [hlog]
+        simp only [w_charge, w_storeW, hx]
+      · simp only [cost_storeW, cost_charge] at hcost
+        omega
+
+
 /-! ## Axiom probes -/
 
 #print axioms insertOp_runs
@@ -1504,3 +2204,8 @@ theorem logPush_RelLog (reg : String) (stW : HState) (pending : List ℕ)
 #print axioms flt_filter_append
 #print axioms flt_eq_filter_append
 #print axioms logPush_RelLog
+#print axioms wa_stores_pass
+#print axioms decode_dkChain_true
+#print axioms decode_dkChain_false_one
+#print axioms decode_dkChain_false_two
+#print axioms dkCut_runs
