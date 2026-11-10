@@ -24,6 +24,7 @@ import Submission.FibHeapMeasure
 import Submission.FibHeapDepth
 import Submission.FibHeapCascade
 import Submission.FibHeapPop
+import Widgets.FrozenLock
 
 namespace Submission.FibHeapRow
 
@@ -307,5 +308,62 @@ theorem row_nlog {st : HState} (s : DkRunClear (FibHeapAccounting.rankCap st.n) 
     exact h
   simp only [machinePotential] at *
   omega
+
+/-! ## The no-carry consolidation seam's termination, imported (item 5)
+
+`Widgets.FrozenLock` (`darkhipo/minplus-widgets` @ `a1e6a90`, mathlib pin
+shared with this lane) carries the fast-sweeping structure in discrete
+min-plus form.  What the row's consolidation discipline needs from it is
+one thing: when **every** frontier edge is re-examined on every pass (the
+no-carry discipline — `FibHeapConsolidate`'s generator reads a static
+table, each slot absorbing at most once), a head cannot stay frozen at a
+non-tight value, so the iteration settles — and it settles **at the tight
+fixpoint**, not at some merely stationary state.
+
+Two consequences are the row-shape facts, and both are the widget's:
+
+* `Φ_run_lt` — a working pass strictly drops the potential measured
+  against the run's start.  This is the per-op amortization shape the row
+  charges (`m · 5` on the decrease-key half): at most `Φ d₀` passes can do
+  work.
+* `tight_of_stable` — the settled state satisfies every Bellman
+  inequality on the examined edge list, i.e. the walk stops at the fixpoint
+  rather than at a frozen non-tight head (`sweep_unlocks` is the exclusion
+  that forbids the latter).
+
+Honest boundary (stated, not papered — same discipline as Residual 1): this
+certificate bounds the *pass count* by `Φ d₀`.  The row charges the walk as
+`chain.length ≤ 2 · rankCap st.n + 1` (`row_nlog`'s extract half), and
+converting one measure into the other needs a potential bound on the
+consolidation frontier that is **not** claimed here.  So this does not
+discharge `DegOK` (wound 2125609385) and does not shorten `row_nlog`'s
+hypothesis list; it replaces an argued-semantically premise ("sweeps with
+no carry terminate at the fixpoint") with a proved one, and it makes the
+widgets load-bearing for this lane instead of banked. -/
+
+/-- **The no-carry consolidation seam, discharged by the widgets.**  For any
+frontier graph `(w, E)` and any starting potential vector `d`, the
+all-edges-every-pass sweep settles within `Φ d₀` rounds, and the settled
+state is the tight (Bellman) fixpoint on `E`. -/
+theorem consolidateSweep_certificate {V : Type} [Fintype V] [DecidableEq V]
+    (w : V → V → ℕ) (E : List (V × V)) (d : V → ℕ) :
+    ∃ k, k ≤ Widgets.Φ d
+      ∧ Widgets.sweepRun w E (k + 1) d = Widgets.sweepRun w E k d
+      ∧ (∀ a b : V, (a, b) ∈ E →
+          Widgets.sweepRun w E k d b ≤ Widgets.sweepRun w E k d a + w a b) := by
+  obtain ⟨k, hk, hstab⟩ := Widgets.frozenLock_settles w E d
+  exact ⟨k, hk, hstab, fun a b hab => Widgets.tight_of_stable w E d k hstab a b hab⟩
+
+/-- The amortized half of the same certificate: every **working** round drops
+the potential strictly against the run's start (`Φ_run_lt`), so the number of
+rounds that change the machine is at most `Φ d₀`. -/
+theorem consolidateSweep_work_rounds {V : Type} [Fintype V] [DecidableEq V]
+    (w : V → V → ℕ) (E : List (V × V)) (d : V → ℕ) (k : ℕ)
+    (hne : Widgets.sweepRun w E (k + 1) d ≠ Widgets.sweepRun w E k d) :
+    Widgets.Φ (Widgets.sweepRun w E (k + 1) d) < Widgets.Φ d :=
+  Widgets.Φ_run_lt w E d k hne
+
+#print axioms consolidateSweep_certificate
+#print axioms consolidateSweep_work_rounds
 
 end Submission.FibHeapRow

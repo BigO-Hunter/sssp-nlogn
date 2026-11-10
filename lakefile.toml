@@ -16,3 +16,13 @@ autoImplicit = true
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4.git"
 rev = "d13f23b723b8a846827a245b89c10fc7d3f11612"
+
+# The min-plus / fast-sweeping widget library (darkhipo/minplus-widgets), pinned to
+# the release that landed the FrozenLock potential/termination module. Shared mathlib
+# pin + shared toolchain (v4.34.1), so the import is drop-in (see that repo's
+# INTEGRATION.md, section 1). Consumers: Submission/FibHeapRow.lean -- the no-carry
+# consolidation seam's sweep-termination side condition.
+[[require]]
+name = "Widgets"
+git = "https://github.com/darkhipo/minplus-widgets.git"
+rev = "a1e6a90d6009682772c97e2122e19079ed4265c6"

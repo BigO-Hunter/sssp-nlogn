@@ -1,0 +1,88 @@
+Submission/FibHeapProg.lean:149:8: warning: This simp argument is unused:
+  List.getElem?_range
+
+Hint: Omit it from the simp argument list.
+  [apply] simp [hj] at h1
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:264:31: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:266:55: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:270:55: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:323:33: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:342:54: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:349:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:357:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:357:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:361:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:365:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:383:33: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:385:33: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:405:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:405:45: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:405:55: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:406:23: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:406:41: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:410:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:410:25: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:410:36: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:416:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:416:61: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:417:10: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:418:21: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:418:39: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:422:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:422:23: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:422:34: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:449:28: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:457:12: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:447:12: warning: This simp argument is unused:
+  show ¬(t < t) from lt_irrefl t
+
+Hint: Omit it from the simp argument list.
+  [apply] simp
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Submission/FibHeapProg.lean:596:26: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:598:31: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:619:70: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:621:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:624:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:627:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:644:12: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:660:37: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:661:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:670:12: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:672:16: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:676:16: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:682:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:683:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:693:26: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:724:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:726:37: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:727:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:741:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:742:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:770:16: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:808:16: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:895:19: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:902:60: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:904:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:905:14: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:907:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:908:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:910:31: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:911:14: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:914:19: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:945:77: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:947:46: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:952:41: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:956:37: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:964:62: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:966:33: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:969:71: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+Submission/FibHeapProg.lean:973:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+Submission/FibHeapProg.lean:976:8: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+'Submission.FibHeapProg.insertOp_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.copyLoop_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.stashLoop_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Submission.FibHeapProg.rootsCompact_runs' depends on axioms: [propext, Classical.choice, Quot.sound]
