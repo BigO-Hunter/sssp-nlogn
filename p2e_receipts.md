@@ -61,6 +61,46 @@ between the module's floor and the cull threshold — a memory-capped build
 is not an available workaround, and this is now a measurement rather than
 a guess.
 
+### Exclusions — each checked, none assumed
+
+The body's own suspects were each read, not guessed at:
+
+- **`lean_build_governor`** (launchd, `StartInterval` 60 s, `--enforce`):
+  every tick logs `killed=0 frozen=0 thawed=0 held=0 deferred=0`, and its
+  durable freeze ledger `~/.multiaim/state/lean_build_governor/frozen.json`
+  reads `{"aggregate_pid": null, "held": {}, "pardoned": {}}` — it has
+  never frozen or killed anything on this boot. **Excluded.**
+- **`swap_shedder`**: its action vocabulary is SIGSTOP/SIGCONT on *agent
+  panes*; its log shows `SIGSTOP n agent pane(s)` and no lean path.
+  **Excluded.**
+- **`scripts/_reap_swap_offenders.sh`**: dry-run by default, requires
+  `--yes`, and is not scheduled. **Excluded.**
+- **`memory_admission_watchdog`**: a *door* (refuses new heavy producers
+  past `MAX_CONCURRENT_HEAVY=3` / the pressure floor) plus a status
+  report. Its receipt names the arm that fired; it does not signal.
+  **Excluded as a killer** (it may refuse a future *spawn*, which is a
+  different symptom: exit 66/75 from the wrapper, not rc=137).
+- **jetsam**: `runningboardd` logged `[anon<lean>(501):NNNN] is not
+  RunningBoard jetsam managed` — the kernel's memory-status killer is not
+  managing these processes. **Excluded.**
+- **The body's kill ledger** (`~/.multiaim/logs/kill-ledger.jsonl`, whose
+  entire purpose is attributing SIGKILLs from the killer's side): **no
+  record** for any of the killed pids. A kill path is signalling outside
+  it — that is the actionable finding, and it is exactly the class the
+  R2125608918 fix ("the kill ledger stops losing records silently") went
+  after.
+
+### A landing-path hazard for whoever cures this
+
+The governor's plist runs with
+`PYTHONPATH=/Users/dmitri.arkhipov/.multiaim/worktrees/trunk/src`, and that
+locus is currently **stale and dirty**: 17 commits behind `origin/main`
+with 14 modified files under `src/` (including `stale_process_reaper.py`,
+`swap_shedder.py` and `memory/admission.py` — the three files a reaper cure
+touches). A cure landed on `main` will therefore not reach the running
+governor until that worktree is refreshed (the body's documented
+"launchd executes from a stale checkout" class).
+
 ## Wrapper changes landed this session (durable, for the next attempt)
 
 `p2e_build.sh` (new; `p2d_build.sh` left intact as the record):
